@@ -1,170 +1,201 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// The shelf. Warm paper surface, serif wordmark, two-column cover grid.
 struct LibraryView: View {
-    @EnvironmentObject private var bookStore: BookStore
-    @EnvironmentObject private var settings: ReaderSettings
-    @State private var showImporter = false
-    @State private var selectedBook: Book?
-    @State private var showDeleteConfirm = false
-    @State private var bookToDelete: Book?
+    @Environment(LibraryStore.self) private var library
+    @Environment(SettingsStore.self) private var settingsStore
 
-    private let columns = [
-        GridItem(.adaptive(minimum: 140, maximum: 180), spacing: 24)
-    ]
+    @State private var isImporterPresented = false
+    @State private var openBook: Book?
+    @State private var importError: String?
+
+    private let paper = Color(hex: "#F7F2E9")
+    private let ink = Color(hex: "#211C15")
+    private let accent = Color(hex: "#9A3B2E")
+
+    private var sortedBooks: [Book] {
+        library.books.sorted {
+            ($0.lastOpenedAt ?? $0.addedAt)
+                > ($1.lastOpenedAt ?? $1.addedAt)
+        }
+    }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if bookStore.books.isEmpty {
-                    emptyState
-                } else {
-                    bookGrid
-                }
-            }
-            .background(Color(.systemBackground))
-            .navigationTitle("Library")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showImporter = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .fontWeight(.medium)
-                    }
-                }
-            }
-            .fileImporter(
-                isPresented: $showImporter,
-                allowedContentTypes: [UTType(filenameExtension: "epub") ?? .data],
-                allowsMultipleSelection: true
-            ) { result in
-                handleImport(result)
-            }
-            .alert("Import Error", isPresented: .init(
-                get: { bookStore.importError != nil },
-                set: { if !$0 { bookStore.importError = nil } }
-            )) {
-                Button("OK") { bookStore.importError = nil }
-            } message: {
-                Text(bookStore.importError ?? "")
+        ZStack {
+            paper.ignoresSafeArea()
+
+            if library.books.isEmpty {
+                emptyState
+            } else {
+                shelf
             }
         }
-        .overlay {
-            if bookStore.isImporting {
-                importingOverlay
+        .preferredColorScheme(.light)
+        .onAppear {
+            if ProcessInfo.processInfo.arguments
+                .contains("-autoOpenFirstBook") {
+                openBook = sortedBooks.first
             }
         }
-        .fullScreenCover(item: $selectedBook) { book in
-            ReaderView(book: book)
-                .environmentObject(settings)
-                .environmentObject(bookStore)
+        .fileImporter(
+            isPresented: $isImporterPresented,
+            allowedContentTypes: [
+                UTType(filenameExtension: "epub") ?? .data
+            ],
+            allowsMultipleSelection: true
+        ) { result in
+            handleImport(result)
+        }
+        .fullScreenCover(item: $openBook) { book in
+            ReaderView(
+                book: book, library: library, settingsStore: settingsStore
+            )
+        }
+        .alert(
+            "Import failed",
+            isPresented: Binding(
+                get: { importError != nil },
+                set: { if !$0 { importError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importError ?? "")
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Shelf
 
-    private var bookGrid: some View {
+    private var shelf: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 32) {
-                ForEach(bookStore.books) { book in
-                    BookCard(book: book)
-                        .onTapGesture { selectedBook = book }
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                    .padding(.horizontal, 24)
+                    .padding(.top, 18)
+                    .padding(.bottom, 26)
+
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 22),
+                        GridItem(.flexible(), spacing: 22)
+                    ],
+                    alignment: .leading,
+                    spacing: 30
+                ) {
+                    ForEach(sortedBooks) { book in
+                        Button {
+                            openBook = book
+                        } label: {
+                            BookCard(
+                                book: book,
+                                coverURL: library.coverURL(for: book)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier(
+                            "library.book.\(book.title)"
+                        )
                         .contextMenu {
                             Button(role: .destructive) {
-                                bookToDelete = book
-                                showDeleteConfirm = true
+                                library.delete(book)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label("Delete book", systemImage: "trash")
                             }
                         }
+                    }
                 }
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-            .padding(.bottom, 40)
-        }
-        .confirmationDialog(
-            "Delete \"\(bookToDelete?.title ?? "")\"?",
-            isPresented: $showDeleteConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                if let b = bookToDelete { bookStore.deleteBook(b) }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
             }
         }
     }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("LumenRead")
+                    .font(.system(size: 34, weight: .semibold,
+                                  design: .serif))
+                    .italic()
+                    .foregroundStyle(ink)
+                Text(
+                    "\(library.books.count) book\(library.books.count == 1 ? "" : "s") on the shelf"
+                )
+                .font(.system(size: 13))
+                .foregroundStyle(ink.opacity(0.55))
+            }
+            Spacer()
+            importButton
+        }
+    }
+
+    private var importButton: some View {
+        Button {
+            isImporterPresented = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(paper)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(accent))
+        }
+        .accessibilityIdentifier("library.import")
+        .accessibilityLabel("Import book")
+    }
+
+    // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: 20) {
-            Spacer()
-
-            Image(systemName: "books.vertical")
-                .font(.system(size: 64, weight: .thin))
-                .foregroundStyle(Color.primary.opacity(0.3))
-
-            Text("Your library is empty")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.primary)
-
-            Text("Tap + to import an EPUB, or copy files\ninto the LumenRead folder in the Files app.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-
+        VStack(spacing: 18) {
+            ZStack {
+                Circle()
+                    .fill(accent.opacity(0.08))
+                    .frame(width: 120, height: 120)
+                Image(systemName: "books.vertical")
+                    .font(.system(size: 44, weight: .light))
+                    .foregroundStyle(accent)
+            }
+            VStack(spacing: 6) {
+                Text("Your shelf is empty")
+                    .font(.system(size: 24, weight: .semibold,
+                                  design: .serif))
+                    .italic()
+                    .foregroundStyle(ink)
+                Text("Add an EPUB from Files and start reading.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(ink.opacity(0.55))
+            }
             Button {
-                showImporter = true
+                isImporterPresented = true
             } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                    Text("Add Book")
-                }
-                .font(.body.weight(.medium))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .background(Color.accentColor, in: Capsule())
+                Label("Add a book", systemImage: "plus")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(paper)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+                    .background(Capsule().fill(accent))
             }
-            .padding(.top, 8)
-
-            Spacer()
+            .accessibilityIdentifier("library.import.empty")
+            .padding(.top, 6)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
-        .padding(40)
-        .onAppear {
-            print("📖 Empty state is showing")
-        }
+        .padding(32)
     }
 
-    private var importingOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.35).ignoresSafeArea()
-            VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .tint(.white)
-                Text("Importing…")
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
-            }
-            .padding(32)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
-        }
-    }
-
-    // MARK: - Actions
+    // MARK: - Import
 
     private func handleImport(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
             for url in urls {
-                bookStore.importEPUB(from: url)
+                do {
+                    try library.importBook(from: url)
+                } catch {
+                    importError = error.localizedDescription
+                }
             }
         case .failure(let error):
-            bookStore.importError = error.localizedDescription
+            importError = error.localizedDescription
         }
     }
 }

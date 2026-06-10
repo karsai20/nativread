@@ -1,110 +1,96 @@
-# LumenRead
+# LumenRead 2.0
 
-A clean, eye-friendly EPUB reader for iPhone. Inspired by Kindle's typography.
+A ground-up rewrite of LumenRead: a fast, beautiful EPUB reader for
+iPhone, built to the standard of the best readers on the market
+(Apple Books, Kindle, Readest).
 
-## Features
+| Library | Paper | Dusk | Typography |
+|---|---|---|---|
+| ![Library](docs/screenshots/library.png) | ![Paper](docs/screenshots/reader-paper.png) | ![Dusk](docs/screenshots/reader-dusk.png) | ![Panel](docs/screenshots/typography-panel.png) |
 
-- EPUB 2 & 3 support
-- Georgia / Palatino / Charter / Times New Roman typefaces
-- Light, Sepia, Dark themes
-- Adjustable font size (13–24pt), line height, and margins
-- Table of contents
-- Reading progress saved automatically
-- Swipe left/right to move between chapters
-- Tap centre to show/hide navigation chrome
-- Add books via Files app or the + import button
+## What's new versus v1
 
----
+The old app paginated **per chapter** (one swipe = one whole chapter).
+The new reading engine paginates **per page** the way real readers do:
+chapters are laid out in viewport-wide CSS columns inside a WKWebView
+and a small JS engine (`window.lumen`) turns pages with
+compositor-friendly `translate3d` animations, reporting state back to
+Swift over a message bridge.
 
-## Setup
+- **Page-level pagination** with tap zones (left/right edge), swipe,
+  and an animated page turn; seamless across chapter boundaries
+- **Whole-book progress** weighted by chapter size, with a scrubber to
+  jump anywhere in the book (`Book.bookFraction` / `Book.position`
+  are exact inverses, property-tested)
+- **Four reading themes** — Paper, Sepia, Dusk, Ink (true black) —
+  and the chrome adopts the page colour so the whole screen reads as
+  one sheet
+- **Typography control**: New York / Georgia / Palatino / Charter /
+  San Francisco, font size 13–26, line height, margins, justification
+- **Full-text search** across the whole book with snippets; tapping a
+  result jumps to the page and highlights the match
+- **Bookmarks** with automatic text snippets, listed next to the TOC
+- **TOC** from the EPUB 3 nav document with EPUB 2 NCX fallback and a
+  synthesised fallback for books that ship neither
+- **Library** with real cover extraction (EPUB 3 `cover-image`,
+  EPUB 2 `meta name="cover"`, heuristic fallback) and deterministic
+  generated covers for books without art
+- **Robust EPUB parsing**: container → OPF → manifest/spine/metadata,
+  percent-encoded hrefs, fragment hrefs, failed imports roll back
 
-### Prerequisites
-
-```bash
-brew install xcodegen
-```
-
-### 1. Generate the Xcode project
-
-```bash
-cd /Users/karsai/Projects/LumenRead
-xcodegen generate
-```
-
-This creates `LumenRead.xcodeproj`.
-
-### 2. Open in Xcode
-
-```bash
-open LumenRead.xcodeproj
-```
-
-### 3. First build
-
-- Select your iPhone as the run destination (or a simulator)
-- Press **Cmd+R**
-
-Xcode will automatically fetch ZIPFoundation via Swift Package Manager on first build.
-
----
-
-## Adding Books
-
-**Method A – Files App**
-1. Open the **Files** app on your iPhone
-2. Navigate to **On My iPhone → LumenRead**
-3. Paste or move any `.epub` file into this folder
-4. Open LumenRead — the book will appear automatically
-
-**Method B – Share Sheet**
-Any app that can share files (Safari, Mail, iBooks, etc.) can send an EPUB to LumenRead via **Share → Open with LumenRead**.
-
-**Method C – In-App Import**
-Tap the **+** button in the top-right corner of the Library screen.
-
----
-
-## Typography Settings
-
-Tap the **Aa** button at the bottom of the reader to open the Appearance panel:
-
-| Setting | Range |
-|---------|-------|
-| Theme | Light / Sepia / Dark |
-| Font size | 13 – 24 pt |
-| Line spacing | 1.30 – 2.20 |
-| Margin | 12 – 56 pt |
-| Typeface | Georgia, Palatino, Charter, Times New Roman, System |
-
----
-
-## Project Structure
+## Architecture
 
 ```
 LumenRead/
-├── LumenReadApp.swift          — App entry point
-├── Models/
-│   ├── Book.swift              — Book data model + progress
-│   └── ReaderSettings.swift    — Typography settings + CSS generator
+├── LumenReadApp.swift            — entry, launch-argument test hooks
+├── Models/                       — Book, ReadingProgress, Bookmark,
+│                                   ReaderSettings, themes (pure)
+├── EPUB/                         — EPUBParser + XML delegates (pure)
 ├── Services/
-│   ├── EPUBParser.swift        — ZIP extraction + OPF/NCX parsing
-│   └── BookStore.swift         — Library management + persistence
-├── Views/
-│   ├── Library/
-│   │   ├── LibraryView.swift   — Book grid, import flow
-│   │   └── BookCard.swift      — Cover art + generated covers
-│   └── Reader/
-│       ├── ReaderView.swift    — Full-screen reader, chrome, TOC
-│       ├── ReaderWebView.swift — WKWebView bridge, CSS injection
-│       └── TypographyPanel.swift — Appearance sheet
-└── Extensions/
-    └── Color+Hex.swift
+│   ├── LibraryStore.swift        — import/unzip/persist (@Observable)
+│   ├── SettingsStore.swift       — typography persistence
+│   ├── ReaderStyle.swift         — CSS generator (pure, tested)
+│   ├── ReaderScripts.swift       — JS pagination engine
+│   ├── ReaderController.swift    — WKWebView bridge
+│   └── SearchService.swift       — whole-book search (pure, tested)
+└── Views/
+    ├── Library/                  — shelf, covers, import
+    └── Reader/                   — reader, chrome, panels, sheets
 ```
 
----
+## Setup
 
-## Notes
+```bash
+brew install xcodegen
+cd LumenRead
+xcodegen generate
+open LumenRead.xcodeproj   # Cmd+R on a simulator or device
+```
 
-- **Bookerly** is Amazon's proprietary font and is not available on iOS. Georgia is the closest equivalent with the same warmth and legibility.
-- ZIPFoundation is the only external dependency.
-- Books are stored in `Documents/Books/`, extracted files in `Documents/Extracted/`. Both are private to the app.
+Dependency: ZIPFoundation (resolved by SPM on first build).
+
+## Testing
+
+```bash
+xcodebuild -project LumenRead.xcodeproj -scheme LumenRead \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+```
+
+- **27 unit tests**: EPUB 2/3 parsing, TOC (nav + NCX), cover
+  detection, error paths, progress math round-trips, settings
+  persistence, CSS generation, search
+- **6 UI tests** (`ReaderJourneyUITests`): seeded shelf, page turn +
+  progress restore, theme switching, TOC navigation, whole-book
+  search, bookmarking
+
+Test hooks (launch arguments): `-resetLibrary`, `-seedSampleBook`,
+`-autoOpenFirstBook`, `-forceTheme <paper|sepia|dusk|ink>`,
+`-showTypographyPanel`.
+
+The sample books are generated by `scripts/make_sample_epub.py`;
+the app icon by `swift scripts/make_icon.swift <out.png>`.
+
+## Adding books
+
+- **Files app / Share sheet** — open any `.epub` with LumenRead
+- **In-app** — the + button on the shelf (multi-select supported)

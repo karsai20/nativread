@@ -1,199 +1,117 @@
-import Foundation
 import SwiftUI
 
-class ReaderSettings: ObservableObject {
-    @AppStorage("fontSize") var fontSize: Double = 17
-    @AppStorage("lineHeight") var lineHeight: Double = 1.75
-    @AppStorage("marginSize") var marginSize: Double = 28
-    @AppStorage("fontFamily") var fontFamily: String = FontFamily.georgia.rawValue
-    @AppStorage("theme") private var themeRaw: String = ReaderTheme.light.rawValue
+/// The four reading atmospheres. Chrome colours follow the page so the
+/// whole screen feels like one sheet of paper, the way Apple Books does it.
+enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
+    case paper, sepia, dusk, ink
 
-    var theme: ReaderTheme {
-        get { ReaderTheme(rawValue: themeRaw) ?? .light }
-        set { themeRaw = newValue.rawValue }
-    }
+    var id: String { rawValue }
 
-    enum ReaderTheme: String, CaseIterable {
-        case light = "light"
-        case sepia  = "sepia"
-        case dark   = "dark"
-
-        var displayName: String {
-            switch self {
-            case .light: return "Light"
-            case .sepia:  return "Sepia"
-            case .dark:   return "Dark"
-            }
-        }
-
-        var backgroundHex: String {
-            switch self {
-            case .light: return "#FAFAF8"
-            case .sepia:  return "#F5EDD6"
-            case .dark:   return "#181818"
-            }
-        }
-
-        var textHex: String {
-            switch self {
-            case .light: return "#1A1A1A"
-            case .sepia:  return "#2B1A00"
-            case .dark:   return "#E4E4DC"
-            }
-        }
-
-        var linkHex: String {
-            switch self {
-            case .light: return "#1A1A1A"
-            case .sepia:  return "#2B1A00"
-            case .dark:   return "#E4E4DC"
-            }
-        }
-
-        var backgroundColor: Color {
-            Color(hex: backgroundHex)
-        }
-
-        var textColor: Color {
-            Color(hex: textHex)
-        }
-
-        var systemColorScheme: ColorScheme? {
-            switch self {
-            case .dark:  return .dark
-            default:     return .light
-            }
+    var label: String {
+        switch self {
+        case .paper: return "Paper"
+        case .sepia: return "Sepia"
+        case .dusk: return "Dusk"
+        case .ink: return "Ink"
         }
     }
 
-    enum FontFamily: String, CaseIterable {
-        case georgia     = "Georgia"
-        case palatino    = "Palatino"
-        case times       = "TimesNewRomanPSMT"
-        case charter     = "Charter"
-        case system      = "-apple-system"
-
-        var displayName: String {
-            switch self {
-            case .georgia:  return "Georgia"
-            case .palatino: return "Palatino"
-            case .times:    return "Times New Roman"
-            case .charter:  return "Charter"
-            case .system:   return "System"
-            }
+    var backgroundHex: String {
+        switch self {
+        case .paper: return "#FAF6EE"
+        case .sepia: return "#F2E5CF"
+        case .dusk: return "#23262C"
+        case .ink: return "#000000"
         }
-
-        var cssValue: String { rawValue }
     }
 
-    // CSS injected into every chapter
-    func generateCSS() -> String {
-        let t = theme
-        return """
-        :root {
-            --bg:          \(t.backgroundHex);
-            --text:        \(t.textHex);
-            --link:        \(t.linkHex);
-            --font-size:   \(Int(fontSize))px;
-            --line-height: \(String(format: "%.2f", lineHeight));
-            --font-family: '\(fontFamily)', Georgia, 'Palatino Linotype', Palatino, serif;
-            --margin-h:    \(Int(marginSize))px;
-            --max-width:   660px;
+    var textHex: String {
+        switch self {
+        case .paper: return "#1F1A14"
+        case .sepia: return "#41311E"
+        case .dusk: return "#C8CAD1"
+        case .ink: return "#ABABAB"
         }
-
-        *, *::before, *::after { box-sizing: border-box; }
-
-        html { background: var(--bg); height: 100%; }
-
-        body {
-            font-family:   var(--font-family);
-            font-size:     var(--font-size);
-            line-height:   var(--line-height);
-            color:         var(--text);
-            background:    var(--bg);
-            margin:        0 auto;
-            padding:       56px var(--margin-h) 120px;
-            max-width:     calc(var(--max-width) + var(--margin-h) * 2);
-            -webkit-text-size-adjust: none;
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            word-spacing:  0.02em;
-        }
-
-        h1, h2, h3, h4, h5, h6 {
-            font-family: var(--font-family);
-            font-weight: normal;
-            line-height: 1.25;
-            margin: 1.8em 0 0.6em;
-            color: var(--text);
-        }
-
-        h1 { font-size: 1.55em; text-align: center; margin-top: 2.5em; }
-        h2 { font-size: 1.3em; }
-        h3 { font-size: 1.1em; }
-
-        p {
-            margin: 0;
-            text-indent: 1.5em;
-            orphans: 3;
-            widows:  3;
-        }
-
-        p:first-child,
-        h1 + p, h2 + p, h3 + p, h4 + p,
-        blockquote + p,
-        hr + p {
-            text-indent: 0;
-        }
-
-        blockquote {
-            margin:      1.5em 1.5em;
-            padding:     0 0 0 1em;
-            border-left: 2px solid rgba(128,128,128,0.35);
-            font-style:  italic;
-        }
-
-        hr {
-            border: none;
-            text-align: center;
-            margin: 2em 0;
-            color: var(--text);
-            opacity: 0.4;
-        }
-
-        hr::after { content: '* * *'; }
-
-        img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            margin: 1.5em auto;
-        }
-
-        a {
-            color: var(--link);
-            text-decoration: none;
-            border-bottom: 1px solid rgba(128,128,128,0.4);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9em;
-            margin: 1.5em 0;
-        }
-
-        td, th {
-            padding: 0.5em 0.75em;
-            border: 1px solid rgba(128,128,128,0.3);
-        }
-
-        sup, sub { font-size: 0.75em; }
-
-        .chapter-title, [class*="chapter"] > h1:first-child {
-            text-align: center;
-            margin-top: 3em;
-        }
-        """
     }
+
+    var secondaryTextHex: String {
+        switch self {
+        case .paper: return "#8A8070"
+        case .sepia: return "#94805F"
+        case .dusk: return "#7C7F88"
+        case .ink: return "#5E5E5E"
+        }
+    }
+
+    var accentHex: String {
+        switch self {
+        case .paper: return "#9A3B2E"
+        case .sepia: return "#8F4B26"
+        case .dusk: return "#D08770"
+        case .ink: return "#B3552F"
+        }
+    }
+
+    var isDark: Bool {
+        switch self {
+        case .paper, .sepia: return false
+        case .dusk, .ink: return true
+        }
+    }
+
+    var background: Color { Color(hex: backgroundHex) }
+    var text: Color { Color(hex: textHex) }
+    var secondaryText: Color { Color(hex: secondaryTextHex) }
+    var accent: Color { Color(hex: accentHex) }
+}
+
+enum ReaderFont: String, Codable, CaseIterable, Identifiable {
+    case newYork, georgia, palatino, charter, sanFrancisco
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .newYork: return "New York"
+        case .georgia: return "Georgia"
+        case .palatino: return "Palatino"
+        case .charter: return "Charter"
+        case .sanFrancisco: return "San Francisco"
+        }
+    }
+
+    /// CSS font stack injected into the chapter document.
+    var cssFamily: String {
+        switch self {
+        case .newYork: return "ui-serif, 'New York', Georgia, serif"
+        case .georgia: return "Georgia, serif"
+        case .palatino: return "'Palatino', 'Palatino Linotype', 'Book Antiqua', serif"
+        case .charter: return "'Charter', 'Iowan Old Style', Georgia, serif"
+        case .sanFrancisco: return "-apple-system, ui-sans-serif, 'Helvetica Neue', sans-serif"
+        }
+    }
+
+    /// SwiftUI preview font for the typography panel.
+    var previewFont: Font {
+        switch self {
+        case .newYork: return .system(.body, design: .serif)
+        case .sanFrancisco: return .system(.body)
+        case .georgia: return .custom("Georgia", size: 17)
+        case .palatino: return .custom("Palatino", size: 17)
+        case .charter: return .custom("Charter", size: 17)
+        }
+    }
+}
+
+struct ReaderSettings: Codable, Equatable {
+    var theme: ReaderTheme = .paper
+    var font: ReaderFont = .newYork
+    var fontSize: Double = 18
+    var lineHeight: Double = 1.55
+    var horizontalMargin: Double = 26
+    var isJustified: Bool = true
+
+    static let fontSizeRange: ClosedRange<Double> = 13...26
+    static let lineHeightRange: ClosedRange<Double> = 1.25...2.1
+    static let marginRange: ClosedRange<Double> = 14...48
 }

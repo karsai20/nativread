@@ -1,0 +1,204 @@
+import Foundation
+
+/// Parses an already-unpacked EPUB directory: container.xml → OPF →
+/// metadata, manifest, spine, cover, then the table of contents.
+enum EPUBParser {
+
+    static func parse(extractedRoot: URL) throws -> ParsedEPUB {
+        let containerURL = extractedRoot
+            .appendingPathComponent("META-INF/container.xml")
+        guard let containerData = try? Data(contentsOf: containerURL) else {
+            throw EPUBError.missingContainer
+        }
+
+        let containerParser = ContainerXMLDelegate()
+        containerParser.run(on: containerData)
+        guard let opfPath = containerParser.opfPath else {
+            throw EPUBError.missingContainer
+        }
+
+        let opfURL = extractedRoot.appendingPathComponent(opfPath)
+        guard let opfData = try? Data(contentsOf: opfURL) else {
+            throw EPUBError.missingOPF(opfPath)
+        }
+        let opfDirectory = opfURL.deletingLastPathComponent()
+
+        let opf = OPFDelegate()
+        opf.run(on: opfData)
+
+        let manifestByID = Dictionary(
+            uniqueKeysWithValues: opf.manifest.map { ($0.id, $0) }
+        )
+
+        var spineURLs: [URL] = []
+        var spineHrefs: [String] = []
+        for idref in opf.spineIDRefs {
+            guard let item = manifestByID[idref] else { continue }
+            let url = resolve(href: item.href, against: opfDirectory)
+            if FileManager.default.fileExists(atPath: url.path) {
+                spineURLs.append(url)
+                spineHrefs.append(normalize(href: item.href))
+            }
+        }
+        guard !spineURLs.isEmpty else { throw EPUBError.emptySpine }
+
+        let coverImageURL = findCover(
+            opf: opf, manifestByID: manifestByID, opfDirectory: opfDirectory
+        )
+
+        let toc = parseTOC(
+            opf: opf, manifestByID: manifestByID,
+            opfDirectory: opfDirectory, spineHrefs: spineHrefs
+        )
+
+        let weights = spineURLs.map { url -> Double in
+            let size = (try? FileManager.default
+                .attributesOfItem(atPath: url.path)[.size] as? Int) ?? nil
+            return Double(max(size ?? 1, 1))
+        }
+
+        return ParsedEPUB(
+            title: opf.title ?? "Untitled",
+            author: opf.author ?? "Unknown author",
+            spineURLs: spineURLs,
+            spineHrefs: spineHrefs,
+            coverImageURL: coverImageURL,
+            toc: toc,
+            spineWeights: weights
+        )
+    }
+
+    // MARK: - Cover
+
+    private static func findCover(
+        opf: OPFDelegate,
+        manifestByID: [String: EPUBManifestItem],
+        opfDirectory: URL
+    ) -> URL? {
+        // EPUB 3: manifest item flagged properties="cover-image".
+        if let item = opf.manifest.first(where: {
+            $0.properties.contains("cover-image")
+        }) {
+            return existingURL(href: item.href, against: opfDirectory)
+        }
+        // EPUB 2: <meta name="cover" content="item-id"/>.
+        if let coverID = opf.coverMetaItemID, let item = manifestByID[coverID] {
+            return existingURL(href: item.href, against: opfDirectory)
+        }
+        // Last resort: a manifest image whose id or href mentions "cover".
+        if let item = opf.manifest.first(where: {
+            $0.mediaType.hasPrefix("image/")
+                && ($0.id.lowercased().contains("cover")
+                    || $0.href.lowercased().contains("cover"))
+        }) {
+            return existingURL(href: item.href, against: opfDirectory)
+        }
+        return nil
+    }
+
+    // MARK: - TOC
+
+    private static func parseTOC(
+        opf: OPFDelegate,
+        manifestByID: [String: EPUBManifestItem],
+        opfDirectory: URL,
+        spineHrefs: [String]
+    ) -> [TOCEntry] {
+        var raw: [(title: String, href: String, depth: Int)] = []
+
+        // EPUB 3 navigation document.
+        if let navItem = opf.manifest.first(where: {
+            $0.properties.contains("nav")
+        }), let data = try? Data(
+            contentsOf: resolve(href: navItem.href, against: opfDirectory)
+        ) {
+            let nav = NavDelegate()
+            nav.run(on: data)
+            raw = nav.entries.map {
+                (
+                    $0.title,
+                    join(base: navItem.href, relative: $0.href),
+                    $0.depth
+                )
+            }
+        }
+
+        // EPUB 2 NCX fallback.
+        if raw.isEmpty,
+           let ncxItem = opf.manifest.first(where: {
+               $0.mediaType == "application/x-dtbncx+xml"
+           }) ?? manifestByID[opf.spineTOCID ?? ""],
+           let data = try? Data(
+               contentsOf: resolve(href: ncxItem.href, against: opfDirectory)
+           ) {
+            let ncx = NCXDelegate()
+            ncx.run(on: data)
+            raw = ncx.entries.map {
+                (
+                    $0.title,
+                    join(base: ncxItem.href, relative: $0.href),
+                    $0.depth
+                )
+            }
+        }
+
+        // Synthesised TOC when the book ships none.
+        if raw.isEmpty {
+            return spineHrefs.enumerated().map { index, href in
+                TOCEntry(
+                    title: "Chapter \(index + 1)", href: href,
+                    spineIndex: index, depth: 0
+                )
+            }
+        }
+
+        return raw.map { entry in
+            let withoutFragment = String(
+                entry.href.split(separator: "#", maxSplits: 1)[0]
+            )
+            let spineIndex = spineHrefs.firstIndex(
+                of: normalize(href: withoutFragment)
+            )
+            return TOCEntry(
+                title: entry.title, href: entry.href,
+                spineIndex: spineIndex, depth: entry.depth
+            )
+        }
+    }
+
+    // MARK: - Path helpers
+
+    /// Resolves a (possibly percent-encoded) href against a directory.
+    static func resolve(href: String, against directory: URL) -> URL {
+        let decoded = href.removingPercentEncoding ?? href
+        return URL(fileURLWithPath: decoded, relativeTo: directory)
+            .standardizedFileURL
+    }
+
+    private static func existingURL(href: String, against dir: URL) -> URL? {
+        let url = resolve(href: href, against: dir)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// Normalises hrefs for spine matching: decode, drop "./".
+    static func normalize(href: String) -> String {
+        var value = href.removingPercentEncoding ?? href
+        while value.hasPrefix("./") { value.removeFirst(2) }
+        return value
+    }
+
+    /// Joins "nav/toc.xhtml" + "ch1.xhtml" → "nav/ch1.xhtml",
+    /// resolving any "../" segments.
+    static func join(base: String, relative: String) -> String {
+        if relative.hasPrefix("/") { return String(relative.dropFirst()) }
+        var parts = base.split(separator: "/").dropLast().map(String.init)
+        for segment in relative.split(separator: "/") {
+            switch segment {
+            case "..": if !parts.isEmpty { parts.removeLast() }
+            case ".": continue
+            default: parts.append(String(segment))
+            }
+        }
+        return parts.joined(separator: "/")
+    }
+}

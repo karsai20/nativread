@@ -1,10 +1,9 @@
-name: Verso
+name: LumenRead
 options:
-  bundleIdPrefix: com.verso
+  bundleIdPrefix: com.lumenread
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "17.0"
   defaultConfig: Debug
-  xcodeVersion: "15"
 
 packages:
   ZIPFoundation:
@@ -12,34 +11,33 @@ packages:
     from: "0.9.19"
 
 targets:
-  Verso:
+  LumenRead:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "17.0"
     sources:
       - LumenRead
     dependencies:
       - package: ZIPFoundation
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.verso.reader
-        PRODUCT_NAME: Verso
+        PRODUCT_BUNDLE_IDENTIFIER: com.lumenread.app
+        PRODUCT_NAME: LumenRead
         SWIFT_VERSION: "5.9"
-        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
-        MARKETING_VERSION: "1.0"
+        MARKETING_VERSION: "2.0"
         CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: LumenRead/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGNING_ALLOWED: "NO"
     info:
       path: LumenRead/Info.plist
       properties:
-        CFBundleDisplayName: Verso
+        CFBundleDisplayName: LumenRead
         UILaunchScreen:
           UIColorName: ""
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         CFBundleDocumentTypes:
@@ -58,3 +56,43 @@ targets:
                 - epub
               public.mime-type:
                 - application/epub+zip
+
+  LumenReadTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - LumenReadTests
+    dependencies:
+      - target: LumenRead
+    settings:
+      base:
+        CODE_SIGNING_ALLOWED: "NO"
+
+  LumenReadUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - LumenReadUITests
+    dependencies:
+      - target: LumenRead
+    settings:
+      base:
+        CODE_SIGNING_ALLOWED: "NO"
+
+schemes:
+  LumenRead:
+    build:
+      targets:
+        LumenRead: all
+        LumenReadTests: [test]
+        LumenReadUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - LumenReadTests
+        - LumenReadUITests
