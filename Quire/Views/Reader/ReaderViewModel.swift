@@ -73,6 +73,12 @@ final class ReaderViewModel {
                 self?.prevPage()
             }
         }
+        controller.onHighlightRequested = { [weak self] in
+            self?.highlightCurrentSelection()
+        }
+        controller.onChapterReady = { [weak self] in
+            self?.applyStoredHighlights()
+        }
     }
 
     private func handleTap(zone: String) {
@@ -247,6 +253,54 @@ final class ReaderViewModel {
 
     func removeBookmark(_ bookmark: Bookmark) {
         library.removeBookmark(bookID: bookID, bookmarkID: bookmark.id)
+    }
+
+    // MARK: - Highlights
+
+    private var chapterHighlights: [Highlight] {
+        (book?.highlights ?? []).filter { $0.spineIndex == spineIndex }
+    }
+
+    private func applyStoredHighlights() {
+        let highlights = chapterHighlights
+        guard !highlights.isEmpty else { return }
+        controller.applyHighlights(highlights)
+    }
+
+    /// Persists the current selection as a highlight and redraws.
+    func highlightCurrentSelection() {
+        let chapter = currentChapterTitle
+        controller.selectionLocator { [weak self] locator in
+            guard let self, let locator else { return }
+            self.library.addHighlight(bookID: self.bookID, highlight:
+                Highlight(
+                    spineIndex: self.spineIndex,
+                    text: locator.text,
+                    occurrence: locator.occurrence,
+                    chapterTitle: chapter
+                )
+            )
+            self.controller.clearSelection()
+            self.applyStoredHighlights()
+        }
+    }
+
+    func goTo(highlight: Highlight) {
+        activeSheet = nil
+        loadChapter(
+            at: highlight.spineIndex,
+            fraction: 0,
+            locate: (highlight.text, highlight.occurrence)
+        )
+    }
+
+    func removeHighlight(_ highlight: Highlight) {
+        library.removeHighlight(
+            bookID: bookID, highlightID: highlight.id
+        )
+        if highlight.spineIndex == spineIndex {
+            controller.applyHighlights(chapterHighlights)
+        }
     }
 
     // MARK: - Search

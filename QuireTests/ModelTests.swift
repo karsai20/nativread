@@ -285,4 +285,54 @@ final class ModelTests: XCTestCase {
         )
         XCTAssertTrue(scroll.contains("\"scroll\""))
     }
+
+    // MARK: - Highlights
+
+    func testBookDecodesLegacyJSONWithoutHighlights() throws {
+        // Library indexes written before highlights existed must load.
+        let legacyJSON = """
+        {"id":"\(UUID().uuidString)","title":"T","author":"A",
+         "fileName":"f.epub","addedAt":700000000,
+         "progress":{"spineIndex":0,"pageFraction":0,"bookFraction":0},
+         "bookmarks":[],"spineWeights":[1]}
+        """
+        let decoded = try JSONDecoder().decode(
+            Book.self, from: Data(legacyJSON.utf8)
+        )
+        XCTAssertEqual(decoded.title, "T")
+        XCTAssertTrue(decoded.highlights.isEmpty)
+    }
+
+    func testHighlightCodableRoundTrip() throws {
+        let highlight = Highlight(
+            spineIndex: 2, text: "a soft amber pulse",
+            occurrence: 1, chapterTitle: "Under the Glass"
+        )
+        let data = try JSONEncoder().encode(highlight)
+        let decoded = try JSONDecoder().decode(Highlight.self, from: data)
+        XCTAssertEqual(decoded, highlight)
+    }
+
+    func testEngineScriptContainsSelectionAndHighlightAPI() {
+        let script = ReaderScripts.engine(
+            pageWidth: 390, flow: .paged, transition: .slide
+        )
+        XCTAssertTrue(script.contains("selectionLocator"))
+        XCTAssertTrue(script.contains("applyHighlights"))
+    }
+
+    func testHighlightLocatorJSONIsValidJS() throws {
+        // Book text can contain quotes/backslashes; the payload passed
+        // to applyHighlights must stay valid JSON.
+        let tricky = Highlight(
+            spineIndex: 0, text: "she said \"wait\" \\ twice",
+            occurrence: 0, chapterTitle: "C"
+        )
+        let json = ReaderScripts.highlightsJSON([tricky])
+        let parsed = try JSONSerialization.jsonObject(
+            with: Data(json.utf8)
+        ) as? [[String: Any]]
+        XCTAssertEqual(parsed?.first?["text"] as? String, tricky.text)
+        XCTAssertEqual(parsed?.first?["occurrence"] as? Int, 0)
+    }
 }

@@ -85,6 +85,28 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(store.book(id: book.id)?.bookmarks.count, 0)
     }
 
+    func testHighlightsAddRemoveAndPersist() throws {
+        let store = makeStore()
+        let book = try store.importBook(from: epubURL)
+        let highlight = Highlight(
+            spineIndex: 0, text: "a skin of green glass",
+            occurrence: 0, chapterTitle: "Part 1"
+        )
+
+        store.addHighlight(bookID: book.id, highlight: highlight)
+        XCTAssertEqual(store.book(id: book.id)?.highlights.count, 1)
+
+        // Highlights must survive a store reload (Apple Books users'
+        // top complaint is silently lost annotations).
+        let reloaded = makeStore()
+        XCTAssertEqual(
+            reloaded.book(id: book.id)?.highlights.first, highlight
+        )
+
+        store.removeHighlight(bookID: book.id, highlightID: highlight.id)
+        XCTAssertEqual(store.book(id: book.id)?.highlights.count, 0)
+    }
+
     func testDeleteRemovesAllArtifacts() throws {
         let store = makeStore()
         let book = try store.importBook(from: epubURL)

@@ -5,7 +5,7 @@ import WebKit
 @MainActor
 final class ReaderController: NSObject, WKScriptMessageHandler {
 
-    let webView: WKWebView
+    let webView: HighlightingWebView
     let pageSize: CGSize
 
     /// (page, pageCount) after every page change or relayout.
@@ -16,6 +16,11 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
     var onTap: ((String) -> Void)?
     /// Horizontal swipe in paged flow: "forward" or "backward".
     var onSwipe: ((String) -> Void)?
+    /// The user picked Highlight in the selection menu.
+    var onHighlightRequested: (() -> Void)? {
+        get { webView.onHighlightSelection }
+        set { webView.onHighlightSelection = newValue }
+    }
 
     private var settingsCSS: String
     private var flow: PageFlow
@@ -34,7 +39,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
 
         let configuration = WKWebViewConfiguration()
         configuration.suppressesIncrementalRendering = true
-        webView = WKWebView(
+        webView = HighlightingWebView(
             frame: CGRect(origin: .zero, size: pageSize),
             configuration: configuration
         )
@@ -124,6 +129,40 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
             result, _ in
             completion((result as? String) ?? "")
         }
+    }
+
+    /// Resolves the current selection into a relayout-proof locator;
+    /// nil when there is no usable selection.
+    func selectionLocator(
+        completion: @escaping ((text: String, occurrence: Int)?) -> Void
+    ) {
+        webView.evaluateJavaScript(
+            "window.lumen && window.lumen.selectionLocator()"
+        ) { result, _ in
+            guard let dict = result as? [String: Any],
+                  let text = dict["text"] as? String,
+                  let occurrence = dict["occurrence"] as? Int else {
+                completion(nil)
+                return
+            }
+            completion((text: text, occurrence: occurrence))
+        }
+    }
+
+    func clearSelection() {
+        webView.evaluateJavaScript(
+            "window.lumen && window.lumen.clearSelection()"
+        )
+    }
+
+    /// Draws the stored highlights for the loaded chapter.
+    func applyHighlights(_ highlights: [Highlight]) {
+        webView.evaluateJavaScript(
+            """
+            window.lumen && window.lumen.applyHighlights(\
+            \(ReaderScripts.highlightsJSON(highlights)))
+            """
+        )
     }
 
     // MARK: - Engine messages

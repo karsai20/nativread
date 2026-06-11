@@ -34,6 +34,35 @@ struct Bookmark: Codable, Equatable, Identifiable {
     }
 }
 
+/// A saved highlight. Anchored by its exact text and which occurrence
+/// of that text it is within the chapter — a locator that survives
+/// relayout (font size, margins, flow mode) unlike pixel positions.
+struct Highlight: Codable, Equatable, Identifiable {
+    let id: UUID
+    let spineIndex: Int
+    let text: String
+    /// Zero-based index among equal-text matches in the chapter.
+    let occurrence: Int
+    let chapterTitle: String
+    let createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        spineIndex: Int,
+        text: String,
+        occurrence: Int,
+        chapterTitle: String,
+        createdAt: Date = .now
+    ) {
+        self.id = id
+        self.spineIndex = spineIndex
+        self.text = text
+        self.occurrence = occurrence
+        self.chapterTitle = chapterTitle
+        self.createdAt = createdAt
+    }
+}
+
 /// A book in the library. The EPUB itself lives in Documents/Books,
 /// the unpacked content in Library/Extracted/<id>.
 struct Book: Codable, Equatable, Identifiable {
@@ -46,6 +75,7 @@ struct Book: Codable, Equatable, Identifiable {
     var lastOpenedAt: Date?
     var progress: ReadingProgress
     var bookmarks: [Bookmark]
+    var highlights: [Highlight]
     /// Relative byte weight of every spine item, used for whole-book percentage.
     var spineWeights: [Double]
 
@@ -59,6 +89,7 @@ struct Book: Codable, Equatable, Identifiable {
         lastOpenedAt: Date? = nil,
         progress: ReadingProgress = ReadingProgress(),
         bookmarks: [Bookmark] = [],
+        highlights: [Highlight] = [],
         spineWeights: [Double] = []
     ) {
         self.id = id
@@ -70,7 +101,31 @@ struct Book: Codable, Equatable, Identifiable {
         self.lastOpenedAt = lastOpenedAt
         self.progress = progress
         self.bookmarks = bookmarks
+        self.highlights = highlights
         self.spineWeights = spineWeights
+    }
+
+    /// Tolerant decoding: libraries persisted before highlights existed
+    /// must keep loading without resetting the shelf.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        author = try container.decode(String.self, forKey: .author)
+        fileName = try container.decode(String.self, forKey: .fileName)
+        coverFileName = try container.decodeIfPresent(
+            String.self, forKey: .coverFileName)
+        addedAt = try container.decode(Date.self, forKey: .addedAt)
+        lastOpenedAt = try container.decodeIfPresent(
+            Date.self, forKey: .lastOpenedAt)
+        progress = try container.decode(
+            ReadingProgress.self, forKey: .progress)
+        bookmarks = try container.decodeIfPresent(
+            [Bookmark].self, forKey: .bookmarks) ?? []
+        highlights = try container.decodeIfPresent(
+            [Highlight].self, forKey: .highlights) ?? []
+        spineWeights = try container.decodeIfPresent(
+            [Double].self, forKey: .spineWeights) ?? []
     }
 
     var percentText: String {

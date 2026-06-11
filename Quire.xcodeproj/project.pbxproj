@@ -37,6 +37,7 @@
 		E473E004599001AC1C2F5552 /* ReaderStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB02B4D035464E16827D336B /* ReaderStyle.swift */; };
 		E5C240B7F9265CF92ED7DCB3 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */; };
 		E98B6EC9A25D3D46316D9786 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA18B541E30B03F8E3B6AC4 /* Book.swift */; };
+		ED10EADB4A13BC79C9E3FE1F /* HighlightingWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DDA93185D3B584EF079DA8 /* HighlightingWebView.swift */; };
 		FE941ACD5EDB9C060D5CE52A /* sample.epub in Resources */ = {isa = PBXBuildFile; fileRef = D40510A413E24BDD3B749FEB /* sample.epub */; };
 /* End PBXBuildFile section */
 
@@ -60,6 +61,7 @@
 /* Begin PBXFileReference section */
 		0447F85F8A550D54F87D3079 /* ReaderScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderScripts.swift; sourceTree = "<group>"; };
 		096B119587CE21EBDCFFE639 /* BookCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCard.swift; sourceTree = "<group>"; };
+		09DDA93185D3B584EF079DA8 /* HighlightingWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingWebView.swift; sourceTree = "<group>"; };
 		0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderWebView.swift; sourceTree = "<group>"; };
 		188A0565F753A8D4215E34A3 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		19A45D4CDE613BF4F2B29685 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -222,6 +224,7 @@
 		D546506AC66A8596CE3FA588 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				09DDA93185D3B584EF079DA8 /* HighlightingWebView.swift */,
 				99B40FCC5A205571EC103B52 /* LibraryStore.swift */,
 				3F74D253587A86E58E5C814A /* ReaderController.swift */,
 				0447F85F8A550D54F87D3079 /* ReaderScripts.swift */,
@@ -364,6 +367,7 @@
 				BD0A4EE713CAB694208B941C /* EPUBModels.swift in Sources */,
 				0A533069215997B43E4C7557 /* EPUBParser.swift in Sources */,
 				2843B628C77E8DA60F6363CD /* EPUBXMLDelegates.swift in Sources */,
+				ED10EADB4A13BC79C9E3FE1F /* HighlightingWebView.swift in Sources */,
 				8E234F3AC96F07336ADF2ADF /* LibraryStore.swift in Sources */,
 				8A4202AB7702325067826A43 /* LibraryView.swift in Sources */,
 				96DAD68A313347EA23206E92 /* QuireApp.swift in Sources */,

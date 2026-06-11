@@ -152,6 +152,22 @@ final class LibraryStore {
         save()
     }
 
+    func addHighlight(bookID: UUID, highlight: Highlight) {
+        guard let index = books.firstIndex(where: { $0.id == bookID }) else {
+            return
+        }
+        books[index].highlights.append(highlight)
+        save()
+    }
+
+    func removeHighlight(bookID: UUID, highlightID: UUID) {
+        guard let index = books.firstIndex(where: { $0.id == bookID }) else {
+            return
+        }
+        books[index].highlights.removeAll { $0.id == highlightID }
+        save()
+    }
+
     func book(id: UUID) -> Book? {
         books.first { $0.id == id }
     }

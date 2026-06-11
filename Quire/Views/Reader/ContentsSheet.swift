@@ -12,15 +12,16 @@ struct ContentsSheet: View {
             Picker("Section", selection: $section) {
                 Text("Contents").tag(0)
                 Text("Bookmarks").tag(1)
+                Text("Highlights").tag(2)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 20)
             .padding(.top, 18)
 
-            if section == 0 {
-                tocList
-            } else {
-                bookmarkList
+            switch section {
+            case 0: tocList
+            case 1: bookmarkList
+            default: highlightList
             }
         }
         .foregroundStyle(palette.text)
@@ -62,6 +63,71 @@ struct ContentsSheet: View {
             }
         }
         .accessibilityIdentifier("contents.toc")
+    }
+
+    private var highlightList: some View {
+        Group {
+            let highlights = viewModel.book?.highlights ?? []
+            if highlights.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "highlighter")
+                        .font(.system(size: 28))
+                        .foregroundStyle(palette.secondaryText)
+                    Text("No highlights yet")
+                        .font(.system(.subheadline, design: .serif))
+                        .foregroundStyle(palette.secondaryText)
+                    Text("Select text while reading to highlight it")
+                        .font(.system(size: 12))
+                        .foregroundStyle(palette.secondaryText)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(highlights) { highlight in
+                            Button {
+                                viewModel.goTo(highlight: highlight)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(highlight.chapterTitle)
+                                        .font(.system(
+                                            size: 12, weight: .semibold
+                                        ))
+                                        .foregroundStyle(palette.accent)
+                                    Text(highlight.text)
+                                        .font(.system(
+                                            size: 14, design: .serif
+                                        ))
+                                        .foregroundStyle(palette.text)
+                                        .multilineTextAlignment(.leading)
+                                        .lineLimit(3)
+                                        .padding(.horizontal, 6)
+                                        .background(
+                                            palette.accent.opacity(0.16),
+                                            in: RoundedRectangle(
+                                                cornerRadius: 4
+                                            )
+                                        )
+                                }
+                                .frame(
+                                    maxWidth: .infinity, alignment: .leading
+                                )
+                                .padding(.horizontal, 24)
+                                .padding(.vertical, 10)
+                            }
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    viewModel.removeHighlight(highlight)
+                                } label: {
+                                    Label("Remove", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                }
+                .accessibilityIdentifier("contents.highlights")
+            }
+        }
     }
 
     private var bookmarkList: some View {

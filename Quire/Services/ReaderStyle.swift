@@ -111,6 +111,14 @@ enum ReaderStyle {
             color: \(theme.backgroundHex) !important;
             border-radius: 2px;
         }
+        mark.lumen-highlight {
+            /* 8-digit hex: accent at ~30% over the page keeps the ink
+               readable in every theme. */
+            background: \(theme.accentHex)4D !important;
+            color: inherit !important;
+            border-radius: 2px;
+            padding: 0.06em 0;
+        }
         """
     }
 }

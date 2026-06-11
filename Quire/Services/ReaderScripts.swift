@@ -231,6 +231,115 @@ enum ReaderScripts {
               const f = max > 0 ? this.scroller().scrollTop / max : 0;
               this.page = Math.round(f * (this.pageCount - 1));
               this.notify();
+            },
+
+            // Concatenated body text with per-text-node offsets, the
+            // basis for relayout-proof highlight anchoring.
+            bodyTextMap() {
+              const walker = document.createTreeWalker(
+                document.body, NodeFilter.SHOW_TEXT
+              );
+              const nodes = [];
+              let text = "";
+              let node;
+              while ((node = walker.nextNode())) {
+                nodes.push({ node: node, start: text.length });
+                text += node.textContent;
+              }
+              return { nodes: nodes, text: text };
+            },
+
+            // The n-th occurrence of `needle`, as per-text-node
+            // segments (a match may span inline element boundaries).
+            findOccurrence(needle, occurrence) {
+              const map = this.bodyTextMap();
+              const hay = map.text.toLowerCase();
+              const n = needle.toLowerCase();
+              if (!n.length) { return null; }
+              let from = 0;
+              let seen = 0;
+              let at;
+              while ((at = hay.indexOf(n, from)) !== -1) {
+                if (seen === occurrence) {
+                  const end = at + n.length;
+                  const segments = [];
+                  for (const entry of map.nodes) {
+                    const ns = entry.start;
+                    const ne = ns + entry.node.textContent.length;
+                    const s = Math.max(at, ns);
+                    const e = Math.min(end, ne);
+                    if (s < e) {
+                      segments.push({
+                        node: entry.node, start: s - ns, end: e - ns
+                      });
+                    }
+                  }
+                  return segments;
+                }
+                seen += 1;
+                from = at + n.length;
+              }
+              return null;
+            },
+
+            // {text, occurrence} for the current selection, or null
+            // when it cannot be re-anchored later.
+            selectionLocator() {
+              const selection = window.getSelection();
+              if (!selection || selection.isCollapsed
+                  || !selection.rangeCount) { return null; }
+              const range = selection.getRangeAt(0);
+              const text = selection.toString();
+              if (!text.trim().length) { return null; }
+              const map = this.bodyTextMap();
+              let absolute = -1;
+              for (const entry of map.nodes) {
+                if (entry.node === range.startContainer) {
+                  absolute = entry.start + range.startOffset;
+                  break;
+                }
+              }
+              const hay = map.text.toLowerCase();
+              const needle = text.toLowerCase();
+              let from = 0;
+              let seen = 0;
+              let at;
+              while ((at = hay.indexOf(needle, from)) !== -1) {
+                if (absolute >= 0 && at >= absolute) { break; }
+                seen += 1;
+                from = at + needle.length;
+              }
+              if (at === -1) { return null; }
+              return { text: text, occurrence: seen };
+            },
+
+            clearSelection() {
+              const selection = window.getSelection();
+              if (selection) { selection.removeAllRanges(); }
+            },
+
+            // Redraws all stored highlights for this chapter. Clears
+            // previous marks first so the call is idempotent.
+            applyHighlights(list) {
+              document.querySelectorAll("mark.lumen-highlight")
+                .forEach((m) => { m.replaceWith(...m.childNodes); });
+              document.body.normalize();
+              for (const item of list) {
+                const segments = this.findOccurrence(
+                  item.text, item.occurrence
+                );
+                if (!segments) { continue; }
+                for (const seg of segments) {
+                  const range = document.createRange();
+                  range.setStart(seg.node, seg.start);
+                  range.setEnd(seg.node, seg.end);
+                  try {
+                    const mark = document.createElement("mark");
+                    mark.className = "lumen-highlight";
+                    range.surroundContents(mark);
+                  } catch (e) { /* node mutated mid-walk: skip */ }
+                }
+              }
             }
           };
 
@@ -306,6 +415,23 @@ enum ReaderScripts {
           }
         })();
         """
+    }
+
+    /// JSON payload for `applyHighlights`, safe to interpolate into a
+    /// JS expression (escapes the line separators JSON allows but JS
+    /// string literals reject).
+    static func highlightsJSON(_ highlights: [Highlight]) -> String {
+        let locators = highlights.map {
+            ["text": $0.text, "occurrence": $0.occurrence] as [String: Any]
+        }
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: locators
+        ), let json = String(data: data, encoding: .utf8) else {
+            return "[]"
+        }
+        return json
+            .replacingOccurrences(of: "\u{2028}", with: "\\u2028")
+            .replacingOccurrences(of: "\u{2029}", with: "\\u2029")
     }
 
     /// Wraps the settings CSS in a <style> tag managed by us, replacing

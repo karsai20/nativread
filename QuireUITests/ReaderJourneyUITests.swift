@@ -188,6 +188,42 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(fade.waitForExistence(timeout: 6))
     }
 
+    func testHighlightSelectionPersistsAcrossRelaunch() {
+        openSampleBook()
+
+        // Long-press a word in the chapter to select it; the native
+        // edit menu should include our custom Highlight action.
+        let text = app.webViews.staticTexts.element(boundBy: 2)
+        XCTAssertTrue(text.waitForExistence(timeout: 8))
+        text.press(forDuration: 1.2)
+
+        let highlightItem = app.menuItems["Highlight"]
+        XCTAssertTrue(highlightItem.waitForExistence(timeout: 6),
+                      "selection menu should offer Highlight")
+        highlightItem.tap()
+
+        // The highlight must be listed in the contents sheet.
+        app.buttons["reader.contents"].tap()
+        app.buttons["Highlights"].tap()
+        let list = app.scrollViews["contents.highlights"]
+        XCTAssertTrue(list.waitForExistence(timeout: 6))
+        XCTAssertGreaterThan(list.buttons.count, 0)
+        app.swipeDown(velocity: .fast)
+
+        // Relaunch without resetting: the highlight must survive.
+        app.terminate()
+        app.launchArguments = ["-seedSampleBook"]
+        app.launch()
+        openSampleBook()
+        app.buttons["reader.contents"].tap()
+        app.buttons["Highlights"].tap()
+        XCTAssertTrue(
+            app.scrollViews["contents.highlights"]
+                .waitForExistence(timeout: 6),
+            "highlight should persist across relaunch"
+        )
+    }
+
     func testBookmarkToggle() {
         openSampleBook()
         app.buttons["reader.bookmark"].tap()
