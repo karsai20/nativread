@@ -9,7 +9,9 @@ final class ReaderJourneyUITests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-resetLibrary", "-seedSampleBook"]
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook"
+        ]
         app.launch()
     }
 
@@ -126,6 +128,64 @@ final class ReaderJourneyUITests: XCTestCase {
             app.staticTexts["reader.pageLabel"]
                 .waitForExistence(timeout: 8)
         )
+    }
+
+    func testScrollFlowAdvancesProgress() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-forceFlow", "scroll"
+        ]
+        app.launch()
+        openSampleBook()
+        let initial = pageLabelValue
+
+        // In scroll flow the page advances by swiping vertically.
+        app.swipeUp(velocity: .fast)
+        app.swipeUp(velocity: .fast)
+
+        let label = app.staticTexts["reader.pageLabel"]
+        let changed = NSPredicate(format: "label != %@", initial)
+        expectation(for: changed, evaluatedWith: label)
+        waitForExpectations(timeout: 8)
+    }
+
+    /// Expands the typography sheet so below-the-fold controls enter
+    /// the accessibility hierarchy.
+    private func expandTypographyPanel() {
+        app.buttons["reader.typography"].tap()
+        // Toggles surface as switches in the accessibility tree.
+        XCTAssertTrue(
+            app.switches["theme.auto"].waitForExistence(timeout: 6)
+        )
+        app.swipeUp(velocity: .fast)
+    }
+
+    func testFlowAndTransitionPickersPersist() {
+        openSampleBook()
+        expandTypographyPanel()
+
+        // Transition picker is only visible in paged flow.
+        let fade = app.buttons["transition.fade"]
+        XCTAssertTrue(fade.waitForExistence(timeout: 6))
+        fade.tap()
+
+        let scroll = app.buttons["flow.scroll"]
+        XCTAssertTrue(scroll.waitForExistence(timeout: 6))
+        scroll.tap()
+        // Switching to scroll hides the transition row.
+        XCTAssertFalse(fade.exists)
+
+        // Reopen the panel: choices must have persisted.
+        app.swipeDown(velocity: .fast)
+        XCTAssertTrue(
+            app.buttons["reader.typography"].waitForExistence(timeout: 6)
+        )
+        expandTypographyPanel()
+        let paged = app.buttons["flow.paged"]
+        XCTAssertTrue(paged.waitForExistence(timeout: 6))
+        paged.tap()
+        XCTAssertTrue(fade.waitForExistence(timeout: 6))
     }
 
     func testBookmarkToggle() {

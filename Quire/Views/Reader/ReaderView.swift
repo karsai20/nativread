@@ -26,9 +26,10 @@ struct ReaderView: View {
             if let error = viewModel.loadError {
                 errorView(error)
             } else {
+                // Taps, swipes and scrolling are handled inside the web
+                // view by the JS engine so native text selection works.
                 ReaderWebView(controller: viewModel.controller)
                     .ignoresSafeArea()
-                pageTurnOverlay
             }
 
             chrome
@@ -61,45 +62,6 @@ struct ReaderView: View {
                 SearchSheet(viewModel: viewModel)
             }
         }
-    }
-
-    // MARK: - Gestures
-
-    private var pageTurnOverlay: some View {
-        GeometryReader { proxy in
-            HStack(spacing: 0) {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .frame(width: proxy.size.width * 0.24)
-                    .onTapGesture { viewModel.prevPage() }
-                    .accessibilityLabel("Previous page")
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.easeOut(duration: 0.22)) {
-                            viewModel.isChromeVisible.toggle()
-                        }
-                    }
-                    .accessibilityLabel("Toggle controls")
-                Color.clear
-                    .contentShape(Rectangle())
-                    .frame(width: proxy.size.width * 0.24)
-                    .onTapGesture { viewModel.nextPage() }
-                    .accessibilityLabel("Next page")
-            }
-        }
-        .gesture(
-            DragGesture(minimumDistance: 28)
-                .onEnded { value in
-                    guard abs(value.translation.width)
-                        > abs(value.translation.height) else { return }
-                    if value.translation.width < 0 {
-                        viewModel.nextPage()
-                    } else {
-                        viewModel.prevPage()
-                    }
-                }
-        )
     }
 
     // MARK: - Chrome

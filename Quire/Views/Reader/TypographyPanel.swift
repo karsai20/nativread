@@ -42,6 +42,13 @@ struct TypographyPanel: View {
 
             divider
 
+            flowRow
+            if settings.pageFlow == .paged {
+                transitionRow
+            }
+
+            divider
+
             fontList
 
             divider
@@ -90,6 +97,78 @@ struct TypographyPanel: View {
                     .font(.system(size: 15))
             }
             .tint(palette.accent)
+        }
+    }
+
+    // MARK: - Reading flow
+
+    private var flowRow: some View {
+        HStack(spacing: 10) {
+            ForEach(PageFlow.allCases) { candidate in
+                Button {
+                    viewModel.updateSettings { current in
+                        var next = current
+                        next.pageFlow = candidate
+                        return next
+                    }
+                } label: {
+                    Label(candidate.label, systemImage: candidate.icon)
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(maxWidth: .infinity, minHeight: 38)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(candidate == settings.pageFlow
+                            ? palette.accent.opacity(0.16)
+                            : palette.text.opacity(0.05))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(candidate == settings.pageFlow
+                            ? palette.accent
+                            : palette.text.opacity(0.1))
+                )
+                .foregroundStyle(candidate == settings.pageFlow
+                    ? palette.accent : palette.text)
+                .accessibilityIdentifier("flow.\(candidate.rawValue)")
+            }
+        }
+    }
+
+    private var transitionRow: some View {
+        HStack(spacing: 10) {
+            Label("Page turn", systemImage: "arrow.right.square")
+                .font(.system(size: 13))
+                .foregroundStyle(palette.secondaryText)
+            Spacer()
+            ForEach(PageTransition.allCases) { candidate in
+                Button {
+                    viewModel.updateSettings { current in
+                        var next = current
+                        next.pageTransition = candidate
+                        return next
+                    }
+                } label: {
+                    Text(candidate.label)
+                        .font(.system(size: 13, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                }
+                .background(
+                    Capsule().fill(candidate == settings.pageTransition
+                        ? palette.accent.opacity(0.16) : .clear)
+                )
+                .overlay(
+                    Capsule().strokeBorder(
+                        candidate == settings.pageTransition
+                            ? palette.accent
+                            : palette.text.opacity(0.12))
+                )
+                .foregroundStyle(candidate == settings.pageTransition
+                    ? palette.accent : palette.secondaryText)
+                .accessibilityIdentifier(
+                    "transition.\(candidate.rawValue)")
+            }
         }
     }
 

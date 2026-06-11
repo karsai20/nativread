@@ -109,6 +109,43 @@ enum ThemeMode: String, Codable, CaseIterable {
     case manual, system
 }
 
+/// How the reader moves through a chapter: discrete pages turned
+/// horizontally, or one continuous vertical scroll.
+enum PageFlow: String, Codable, CaseIterable, Identifiable {
+    case paged, scroll
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .paged: return "Pages"
+        case .scroll: return "Scroll"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .paged: return "book.pages"
+        case .scroll: return "arrow.up.and.down.text.horizontal"
+        }
+    }
+}
+
+/// The animation used when turning a page in paged flow.
+enum PageTransition: String, Codable, CaseIterable, Identifiable {
+    case slide, fade, instant
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .slide: return "Slide"
+        case .fade: return "Fade"
+        case .instant: return "None"
+        }
+    }
+}
+
 /// The fully resolved colours for one reading session: theme mode and
 /// warm-light shift already applied. Mirrors ReaderTheme's colour API
 /// so views can swap between them freely.
@@ -132,6 +169,8 @@ struct ReaderSettings: Codable, Equatable {
     var themeMode: ThemeMode = .manual
     /// 0 = neutral page, 1 = strongest amber shift (blue light cut).
     var warmth: Double = 0
+    var pageFlow: PageFlow = .paged
+    var pageTransition: PageTransition = .slide
     var font: ReaderFont = .newYork
     var fontSize: Double = 18
     var lineHeight: Double = 1.55
@@ -187,8 +226,9 @@ struct ReaderSettings: Codable, Equatable {
 
 extension ReaderSettings {
     private enum CodingKeys: String, CodingKey {
-        case theme, darkTheme, themeMode, warmth, font, fontSize,
-             lineHeight, horizontalMargin, isJustified
+        case theme, darkTheme, themeMode, warmth, pageFlow,
+             pageTransition, font, fontSize, lineHeight,
+             horizontalMargin, isJustified
     }
 
     /// Tolerant decoding: settings persisted by older versions are
@@ -205,6 +245,11 @@ extension ReaderSettings {
             ThemeMode.self, forKey: .themeMode) ?? defaults.themeMode
         warmth = try container.decodeIfPresent(
             Double.self, forKey: .warmth) ?? defaults.warmth
+        pageFlow = try container.decodeIfPresent(
+            PageFlow.self, forKey: .pageFlow) ?? defaults.pageFlow
+        pageTransition = try container.decodeIfPresent(
+            PageTransition.self, forKey: .pageTransition
+        ) ?? defaults.pageTransition
         font = try container.decodeIfPresent(
             ReaderFont.self, forKey: .font) ?? defaults.font
         fontSize = try container.decodeIfPresent(

@@ -56,10 +56,35 @@ final class ReaderViewModel {
                 settings: settingsStore.settings,
                 pageWidth: pageSize.width,
                 pageHeight: pageSize.height
-            )
+            ),
+            flow: settingsStore.settings.pageFlow,
+            transition: settingsStore.settings.pageTransition
         )
         controller.onState = { [weak self] page, pageCount in
             self?.handleState(page: page, pageCount: pageCount)
+        }
+        controller.onTap = { [weak self] zone in
+            self?.handleTap(zone: zone)
+        }
+        controller.onSwipe = { [weak self] direction in
+            if direction == "forward" {
+                self?.nextPage()
+            } else {
+                self?.prevPage()
+            }
+        }
+    }
+
+    private func handleTap(zone: String) {
+        switch zone {
+        case "left":
+            prevPage()
+        case "right":
+            nextPage()
+        default:
+            withAnimation(.easeOut(duration: 0.22)) {
+                isChromeVisible.toggle()
+            }
         }
     }
 
@@ -234,8 +259,14 @@ final class ReaderViewModel {
     // MARK: - Settings
 
     func updateSettings(_ transform: (ReaderSettings) -> ReaderSettings) {
+        let previousFlow = settings.pageFlow
         settingsStore.update(transform)
         reapplyStyle()
+        // Switching between paged and scroll changes the document layout
+        // fundamentally; reload the chapter at the same position.
+        if settings.pageFlow != previousFlow {
+            loadChapter(at: spineIndex, fraction: currentPageFraction)
+        }
     }
 
     func setSystemDark(_ dark: Bool) {
@@ -253,7 +284,9 @@ final class ReaderViewModel {
                 pageHeight: controller.pageSize.height,
                 systemDark: systemDark
             ),
-            backgroundColor: UIColor(palette.background)
+            backgroundColor: UIColor(palette.background),
+            flow: settings.pageFlow,
+            transition: settings.pageTransition
         )
     }
 }

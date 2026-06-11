@@ -9,6 +9,9 @@ struct QuireApp: App {
         let store = LibraryStore()
         Self.applyLaunchArguments(to: store)
         _library = State(initialValue: store)
+        if ProcessInfo.processInfo.arguments.contains("-resetSettings") {
+            SettingsStore.resetPersisted()
+        }
         let settings = SettingsStore()
         Self.applyThemeArgument(to: settings)
         _settingsStore = State(initialValue: settings)
@@ -43,16 +46,33 @@ struct QuireApp: App {
         }
     }
 
-    /// `-forceTheme dusk` pins a reading theme (screenshot automation).
+    /// `-forceTheme dusk`, `-forceFlow scroll`, `-forceTransition fade`
+    /// pin reading settings for UI tests and screenshot automation.
     private static func applyThemeArgument(to store: SettingsStore) {
         let arguments = ProcessInfo.processInfo.arguments
-        guard let flagIndex = arguments.firstIndex(of: "-forceTheme"),
-              arguments.indices.contains(flagIndex + 1),
-              let theme = ReaderTheme(rawValue: arguments[flagIndex + 1])
-        else { return }
-        store.update { current in
+
+        func value(after flag: String) -> String? {
+            guard let flagIndex = arguments.firstIndex(of: flag),
+                  arguments.indices.contains(flagIndex + 1) else {
+                return nil
+            }
+            return arguments[flagIndex + 1]
+        }
+
+        let theme = value(after: "-forceTheme")
+            .flatMap(ReaderTheme.init(rawValue:))
+        let flow = value(after: "-forceFlow")
+            .flatMap(PageFlow.init(rawValue:))
+        let transition = value(after: "-forceTransition")
+            .flatMap(PageTransition.init(rawValue:))
+        guard theme != nil || flow != nil || transition != nil else {
+            return
+        }
+        store.overrideWithoutPersisting { current in
             var next = current
-            next.theme = theme
+            if let theme { next.theme = theme }
+            if let flow { next.pageFlow = flow }
+            if let transition { next.pageTransition = transition }
             return next
         }
     }

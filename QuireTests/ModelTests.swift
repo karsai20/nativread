@@ -249,5 +249,40 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded.warmth, 0)
         XCTAssertEqual(decoded.themeMode, .manual)
         XCTAssertEqual(decoded.darkTheme, .dusk)
+        XCTAssertEqual(decoded.pageFlow, .paged)
+        XCTAssertEqual(decoded.pageTransition, .slide)
+    }
+
+    // MARK: - Page flow
+
+    func testReaderStyleScrollModeOmitsColumnsAndAllowsFlow() {
+        var settings = ReaderSettings()
+        settings.pageFlow = .scroll
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertFalse(css.contains("column-width"))
+        XCTAssertFalse(css.contains("overflow: hidden"))
+        XCTAssertTrue(css.contains(ReaderTheme.paper.backgroundHex))
+    }
+
+    func testReaderStylePagedModeKeepsColumns() {
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains("column-width"))
+    }
+
+    func testEngineScriptCarriesFlowAndTransition() {
+        let paged = ReaderScripts.engine(
+            pageWidth: 390, flow: .paged, transition: .fade
+        )
+        XCTAssertTrue(paged.contains("\"paged\""))
+        XCTAssertTrue(paged.contains("\"fade\""))
+
+        let scroll = ReaderScripts.engine(
+            pageWidth: 390, flow: .scroll, transition: .slide
+        )
+        XCTAssertTrue(scroll.contains("\"scroll\""))
     }
 }

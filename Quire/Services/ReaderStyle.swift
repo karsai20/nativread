@@ -9,32 +9,66 @@ enum ReaderStyle {
     static let topPadding: Double = 96
     static let bottomPadding: Double = 72
 
-    /// The stylesheet injected into every chapter document. Pagination
-    /// works by laying the chapter out in viewport-wide CSS columns and
-    /// translating the body horizontally, one page per column.
+    /// The stylesheet injected into every chapter document.
+    ///
+    /// Paged flow lays the chapter out in viewport-wide CSS columns and
+    /// translates the body horizontally, one page per column. Scroll
+    /// flow leaves the document in normal vertical flow and lets the
+    /// scroll view move it.
     static func css(settings: ReaderSettings, pageWidth: Double,
                     pageHeight: Double, systemDark: Bool = false) -> String {
         let theme = settings.palette(systemDark: systemDark)
         let margin = settings.horizontalMargin
-        let columnWidth = pageWidth - margin * 2
+        let contentWidth = pageWidth - margin * 2
         let textHeight = pageHeight - topPadding - bottomPadding
+
+        let layout: String
+        switch settings.pageFlow {
+        case .paged:
+            layout = """
+            html {
+                overflow: hidden !important;
+                background: \(theme.backgroundHex) !important;
+            }
+            body {
+                margin: 0 !important;
+                padding: \(topPadding)px \(margin)px \(bottomPadding)px !important;
+                box-sizing: border-box;
+                height: \(pageHeight)px !important;
+                width: auto !important;
+                max-width: none !important;
+                overflow: hidden !important;
+                column-width: \(contentWidth)px;
+                column-gap: \(margin * 2)px;
+                column-fill: auto;
+                will-change: transform;
+            }
+            body.lumen-animate {
+                transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            body.lumen-fade {
+                transition: opacity 110ms ease-in-out;
+            }
+            """
+        case .scroll:
+            layout = """
+            html {
+                background: \(theme.backgroundHex) !important;
+            }
+            body {
+                margin: 0 !important;
+                padding: \(topPadding)px \(margin)px \(bottomPadding)px !important;
+                box-sizing: border-box;
+                width: \(pageWidth)px !important;
+                max-width: \(pageWidth)px !important;
+            }
+            """
+        }
+
         return """
         :root { color-scheme: \(theme.isDark ? "dark" : "light"); }
-        html {
-            overflow: hidden !important;
-            background: \(theme.backgroundHex) !important;
-        }
+        \(layout)
         body {
-            margin: 0 !important;
-            padding: \(topPadding)px \(margin)px \(bottomPadding)px !important;
-            box-sizing: border-box;
-            height: \(pageHeight)px !important;
-            width: auto !important;
-            max-width: none !important;
-            overflow: hidden !important;
-            column-width: \(columnWidth)px;
-            column-gap: \(margin * 2)px;
-            column-fill: auto;
             background: \(theme.backgroundHex) !important;
             color: \(theme.textHex) !important;
             font-family: \(settings.font.cssFamily) !important;
@@ -44,10 +78,6 @@ enum ReaderStyle {
             -webkit-hyphens: auto;
             hyphens: auto;
             text-rendering: optimizeLegibility;
-            will-change: transform;
-        }
-        body.lumen-animate {
-            transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
         }
         body * {
             color: inherit !important;
@@ -63,7 +93,7 @@ enum ReaderStyle {
             break-after: avoid;
         }
         img, svg, video {
-            max-width: \(columnWidth)px !important;
+            max-width: \(contentWidth)px !important;
             max-height: \(textHeight)px !important;
             height: auto !important;
             object-fit: contain;

@@ -1,6 +1,6 @@
 import WebKit
 
-/// Owns the WKWebView and speaks to the JS pagination engine.
+/// Owns the WKWebView and speaks to the JS reading engine.
 /// SwiftUI only ever wraps `webView`; all commands go through here.
 @MainActor
 final class ReaderController: NSObject, WKScriptMessageHandler {
@@ -12,14 +12,25 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
     var onState: ((Int, Int) -> Void)?
     /// Fired once per chapter when the engine finished measuring.
     var onChapterReady: (() -> Void)?
+    /// Tap zones reported by the page: "left", "right", "center".
+    var onTap: ((String) -> Void)?
+    /// Horizontal swipe in paged flow: "forward" or "backward".
+    var onSwipe: ((String) -> Void)?
 
     private var settingsCSS: String
+    private var flow: PageFlow
+    private var transition: PageTransition
     private var pendingFraction: Double?
     private var pendingLocate: (query: String, occurrence: Int)?
 
-    init(pageSize: CGSize, initialCSS: String) {
+    init(
+        pageSize: CGSize, initialCSS: String,
+        flow: PageFlow, transition: PageTransition
+    ) {
         self.pageSize = pageSize
         self.settingsCSS = initialCSS
+        self.flow = flow
+        self.transition = transition
 
         let configuration = WKWebViewConfiguration()
         configuration.suppressesIncrementalRendering = true
@@ -27,7 +38,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
             frame: CGRect(origin: .zero, size: pageSize),
             configuration: configuration
         )
-        webView.scrollView.isScrollEnabled = false
+        webView.scrollView.isScrollEnabled = flow == .scroll
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
         super.init()
@@ -45,7 +56,10 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
             forMainFrameOnly: true
         ))
         controller.addUserScript(WKUserScript(
-            source: ReaderScripts.engine(pageWidth: pageSize.width),
+            source: ReaderScripts.engine(
+                pageWidth: pageSize.width, flow: flow,
+                transition: transition
+            ),
             injectionTime: .atDocumentEnd,
             forMainFrameOnly: true
         ))
@@ -63,12 +77,24 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
         webView.loadFileURL(url, allowingReadAccessTo: readAccessRoot)
     }
 
-    func applySettings(css: String, backgroundColor: UIColor) {
+    func applySettings(
+        css: String, backgroundColor: UIColor,
+        flow: PageFlow, transition: PageTransition
+    ) {
         settingsCSS = css
+        self.flow = flow
+        self.transition = transition
         webView.backgroundColor = backgroundColor
         webView.scrollView.backgroundColor = backgroundColor
+        webView.scrollView.isScrollEnabled = flow == .scroll
         installUserScripts()
         webView.evaluateJavaScript(ReaderScripts.applyStyle(css: css))
+        webView.evaluateJavaScript(
+            """
+            window.lumen
+              && (window.lumen.transition = "\(transition.rawValue)")
+            """
+        )
     }
 
     /// Turns the page; `completion(false)` means we hit a chapter edge.
@@ -110,6 +136,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
               let type = body["type"] as? String else { return }
         let page = body["page"] as? Int ?? 0
         let pageCount = body["pageCount"] as? Int ?? 1
+        let zone = body["zone"] as? String
+        let direction = body["direction"] as? String
 
         Task { @MainActor in
             switch type {
@@ -139,6 +167,10 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
                 }
             case "state":
                 self.onState?(page, pageCount)
+            case "tap":
+                if let zone { self.onTap?(zone) }
+            case "swipe":
+                if let direction { self.onSwipe?(direction) }
             default:
                 break
             }

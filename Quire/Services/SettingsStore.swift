@@ -28,4 +28,18 @@ final class SettingsStore {
             defaults.set(data, forKey: Self.key)
         }
     }
+
+    /// Applies launch-argument overrides without persisting them, so
+    /// forced test/screenshot configurations don't leak between runs.
+    func overrideWithoutPersisting(
+        _ transform: (ReaderSettings) -> ReaderSettings
+    ) {
+        settings = transform(settings)
+    }
+
+    /// Wipes persisted settings; used by the `-resetSettings` launch
+    /// argument so UI tests start from a known configuration.
+    static func resetPersisted(in defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: key)
+    }
 }
