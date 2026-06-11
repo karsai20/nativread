@@ -1,6 +1,6 @@
 import Foundation
 import ZIPFoundation
-@testable import LumenRead
+@testable import Quire
 
 /// Builds throwaway EPUB directory trees (and zipped .epub files) in a
 /// temp directory so parser tests never depend on bundled resources.

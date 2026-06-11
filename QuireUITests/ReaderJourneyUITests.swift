@@ -35,7 +35,7 @@ final class ReaderJourneyUITests: XCTestCase {
 
     func testShelfShowsSeededBook() {
         XCTAssertTrue(
-            app.staticTexts["LumenRead"].waitForExistence(timeout: 10)
+            app.staticTexts["Quire"].waitForExistence(timeout: 10)
         )
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]

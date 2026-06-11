@@ -1,0 +1,716 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00924C6207056585B349BDCB /* EPUBFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C5659588B5AAB59273494D /* EPUBFixtures.swift */; };
+		058400928998A4D6626E3F2F /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866364515E18FE4D73FF35C2 /* SearchService.swift */; };
+		07BC9128FC38A3929FD6A932 /* EPUBParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6140C42FA31E43791B71B866 /* EPUBParserTests.swift */; };
+		0A533069215997B43E4C7557 /* EPUBParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = F97A08937ECCA54D98F5CBDD /* EPUBParser.swift */; };
+		200412489402A0FE311DB423 /* TypographyPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34635843787B1D27D403CF42 /* TypographyPanel.swift */; };
+		238C7EDAAE8329A8C1B7252A /* BookCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096B119587CE21EBDCFFE639 /* BookCard.swift */; };
+		2843B628C77E8DA60F6363CD /* EPUBXMLDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5087F58DEF2E05C7EF5998CA /* EPUBXMLDelegates.swift */; };
+		29CAE0A933CECF31F1EEF6B0 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7C696BB6959D08083ADE8D /* ModelTests.swift */; };
+		2F7B9DDB23F76FC0EBC5E0F9 /* ReaderJourneyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6226174F78DC76AF88A5B2 /* ReaderJourneyUITests.swift */; };
+		39DECB90D3BC16DA5DCC4AAC /* sample-nocover.epub in Resources */ = {isa = PBXBuildFile; fileRef = 27FFBB928F332DE63E65B6CD /* sample-nocover.epub */; };
+		48E41311BA571595DB39BC0E /* ReaderScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0447F85F8A550D54F87D3079 /* ReaderScripts.swift */; };
+		5B1DCF06B39E6C83D9239C1C /* ContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56309681233397AEF5704C74 /* ContentsSheet.swift */; };
+		619FADE287E7D3D3CB57AD11 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 774E5C38AA7E9F14D2A9B166 /* ZIPFoundation */; };
+		66D8778BB22A24DF06C92822 /* ReaderController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F74D253587A86E58E5C814A /* ReaderController.swift */; };
+		7D0B409F6F37B58722D84AC3 /* ReaderWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */; };
+		861E966ACB7EB33CC6274E28 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B43F51DEC0F47BA2A7F4D5A /* Color+Hex.swift */; };
+		8A4202AB7702325067826A43 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FBBD281EC2BE60E0D32A72 /* LibraryView.swift */; };
+		8E234F3AC96F07336ADF2ADF /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99B40FCC5A205571EC103B52 /* LibraryStore.swift */; };
+		9481EFF28D46E9EA7DAECFA5 /* ReaderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F13FDA990500EC6E8E97D12 /* ReaderViewModel.swift */; };
+		9494D848A0A4DFCADE87E721 /* ReaderSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63787889C5CEC6C38F68721F /* ReaderSettings.swift */; };
+		96DAD68A313347EA23206E92 /* QuireApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 768F5343E29D34D9D3F1C845 /* QuireApp.swift */; };
+		A9720BFB0E9E1CDDCBF35D73 /* SearchServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3B33F795BF7ED4AF30E154 /* SearchServiceTests.swift */; };
+		AA6B534CFAFBFED878B00F98 /* LibraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031A34847954312F90B7A59 /* LibraryStoreTests.swift */; };
+		AAE9B2F18DEE7F66F81BDE64 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0D53D56C0A6FF6F59A0A4D /* ReaderView.swift */; };
+		BA8B1EF3C766765BFBEEA2B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B8F0BA01774655AC7E582449 /* Assets.xcassets */; };
+		BD0A4EE713CAB694208B941C /* EPUBModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F704CEEB43F0BDCC920E1395 /* EPUBModels.swift */; };
+		D7D85E11C06E4A60BD9118F3 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A0565F753A8D4215E34A3 /* SearchSheet.swift */; };
+		E473E004599001AC1C2F5552 /* ReaderStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB02B4D035464E16827D336B /* ReaderStyle.swift */; };
+		E5C240B7F9265CF92ED7DCB3 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */; };
+		E98B6EC9A25D3D46316D9786 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA18B541E30B03F8E3B6AC4 /* Book.swift */; };
+		FE941ACD5EDB9C060D5CE52A /* sample.epub in Resources */ = {isa = PBXBuildFile; fileRef = D40510A413E24BDD3B749FEB /* sample.epub */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		99A9DD6EA70C9E7BC6ADBCCE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 03555A7666F1EABAC3448246 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F7A882D2078409C78ACD2D31;
+			remoteInfo = Quire;
+		};
+		F1B8816C85B92DBED95822C4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 03555A7666F1EABAC3448246 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F7A882D2078409C78ACD2D31;
+			remoteInfo = Quire;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0447F85F8A550D54F87D3079 /* ReaderScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderScripts.swift; sourceTree = "<group>"; };
+		096B119587CE21EBDCFFE639 /* BookCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCard.swift; sourceTree = "<group>"; };
+		0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderWebView.swift; sourceTree = "<group>"; };
+		188A0565F753A8D4215E34A3 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
+		19A45D4CDE613BF4F2B29685 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		27FFBB928F332DE63E65B6CD /* sample-nocover.epub */ = {isa = PBXFileReference; path = "sample-nocover.epub"; sourceTree = "<group>"; };
+		2B43F51DEC0F47BA2A7F4D5A /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
+		2F13FDA990500EC6E8E97D12 /* ReaderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewModel.swift; sourceTree = "<group>"; };
+		34635843787B1D27D403CF42 /* TypographyPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypographyPanel.swift; sourceTree = "<group>"; };
+		3A0D53D56C0A6FF6F59A0A4D /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
+		3F74D253587A86E58E5C814A /* ReaderController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderController.swift; sourceTree = "<group>"; };
+		4C3B33F795BF7ED4AF30E154 /* SearchServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchServiceTests.swift; sourceTree = "<group>"; };
+		4FA18B541E30B03F8E3B6AC4 /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
+		5087F58DEF2E05C7EF5998CA /* EPUBXMLDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBXMLDelegates.swift; sourceTree = "<group>"; };
+		53FBBD281EC2BE60E0D32A72 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		56309681233397AEF5704C74 /* ContentsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentsSheet.swift; sourceTree = "<group>"; };
+		6140C42FA31E43791B71B866 /* EPUBParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBParserTests.swift; sourceTree = "<group>"; };
+		63787889C5CEC6C38F68721F /* ReaderSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderSettings.swift; sourceTree = "<group>"; };
+		6A9F0BBBED69D4B96FE67335 /* QuireUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		768F5343E29D34D9D3F1C845 /* QuireApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireApp.swift; sourceTree = "<group>"; };
+		866364515E18FE4D73FF35C2 /* SearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchService.swift; sourceTree = "<group>"; };
+		8C6226174F78DC76AF88A5B2 /* ReaderJourneyUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderJourneyUITests.swift; sourceTree = "<group>"; };
+		99B40FCC5A205571EC103B52 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		AB02B4D035464E16827D336B /* ReaderStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderStyle.swift; sourceTree = "<group>"; };
+		B4C5659588B5AAB59273494D /* EPUBFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBFixtures.swift; sourceTree = "<group>"; };
+		B8F0BA01774655AC7E582449 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C031A34847954312F90B7A59 /* LibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStoreTests.swift; sourceTree = "<group>"; };
+		D40510A413E24BDD3B749FEB /* sample.epub */ = {isa = PBXFileReference; path = sample.epub; sourceTree = "<group>"; };
+		DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		EF2480ED32FEEA5DD408B524 /* QuireTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F704CEEB43F0BDCC920E1395 /* EPUBModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBModels.swift; sourceTree = "<group>"; };
+		F97A08937ECCA54D98F5CBDD /* EPUBParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBParser.swift; sourceTree = "<group>"; };
+		FDF232EFA3AE3D93C15B8218 /* Quire.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Quire.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF7C696BB6959D08083ADE8D /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		66335677FE97547BC7A8C3CB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				619FADE287E7D3D3CB57AD11 /* ZIPFoundation in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		118110AF58B7F44005924017 /* QuireUITests */ = {
+			isa = PBXGroup;
+			children = (
+				8C6226174F78DC76AF88A5B2 /* ReaderJourneyUITests.swift */,
+			);
+			path = QuireUITests;
+			sourceTree = "<group>";
+		};
+		44944577884D3B6624F0C80D = {
+			isa = PBXGroup;
+			children = (
+				4E597334C2D80601148CA89E /* Quire */,
+				98F82F674CDD65189C2FE07A /* QuireTests */,
+				118110AF58B7F44005924017 /* QuireUITests */,
+				7B43C97A216C196A79649DDB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4E597334C2D80601148CA89E /* Quire */ = {
+			isa = PBXGroup;
+			children = (
+				19A45D4CDE613BF4F2B29685 /* Info.plist */,
+				768F5343E29D34D9D3F1C845 /* QuireApp.swift */,
+				E50DE76C84618D72687B1F7B /* EPUB */,
+				CDEA9351ECF44F457BDE0616 /* Models */,
+				7853341CB913132867D645A9 /* Resources */,
+				D546506AC66A8596CE3FA588 /* Services */,
+				8777CDE9F5C251B39646E649 /* Views */,
+			);
+			path = Quire;
+			sourceTree = "<group>";
+		};
+		60A0A3C6F2A26FEB651B69A7 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				096B119587CE21EBDCFFE639 /* BookCard.swift */,
+				53FBBD281EC2BE60E0D32A72 /* LibraryView.swift */,
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		72D2851377695801979452E1 /* Reader */ = {
+			isa = PBXGroup;
+			children = (
+				56309681233397AEF5704C74 /* ContentsSheet.swift */,
+				3A0D53D56C0A6FF6F59A0A4D /* ReaderView.swift */,
+				2F13FDA990500EC6E8E97D12 /* ReaderViewModel.swift */,
+				0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */,
+				188A0565F753A8D4215E34A3 /* SearchSheet.swift */,
+				34635843787B1D27D403CF42 /* TypographyPanel.swift */,
+			);
+			path = Reader;
+			sourceTree = "<group>";
+		};
+		7853341CB913132867D645A9 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B8F0BA01774655AC7E582449 /* Assets.xcassets */,
+				81922F0C27D320C0D7D5B89A /* Fixtures */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7B43C97A216C196A79649DDB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FDF232EFA3AE3D93C15B8218 /* Quire.app */,
+				EF2480ED32FEEA5DD408B524 /* QuireTests.xctest */,
+				6A9F0BBBED69D4B96FE67335 /* QuireUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		81922F0C27D320C0D7D5B89A /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				27FFBB928F332DE63E65B6CD /* sample-nocover.epub */,
+				D40510A413E24BDD3B749FEB /* sample.epub */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		8777CDE9F5C251B39646E649 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				60A0A3C6F2A26FEB651B69A7 /* Library */,
+				72D2851377695801979452E1 /* Reader */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		98F82F674CDD65189C2FE07A /* QuireTests */ = {
+			isa = PBXGroup;
+			children = (
+				B4C5659588B5AAB59273494D /* EPUBFixtures.swift */,
+				6140C42FA31E43791B71B866 /* EPUBParserTests.swift */,
+				C031A34847954312F90B7A59 /* LibraryStoreTests.swift */,
+				FF7C696BB6959D08083ADE8D /* ModelTests.swift */,
+				4C3B33F795BF7ED4AF30E154 /* SearchServiceTests.swift */,
+			);
+			path = QuireTests;
+			sourceTree = "<group>";
+		};
+		CDEA9351ECF44F457BDE0616 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				4FA18B541E30B03F8E3B6AC4 /* Book.swift */,
+				2B43F51DEC0F47BA2A7F4D5A /* Color+Hex.swift */,
+				63787889C5CEC6C38F68721F /* ReaderSettings.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		D546506AC66A8596CE3FA588 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				99B40FCC5A205571EC103B52 /* LibraryStore.swift */,
+				3F74D253587A86E58E5C814A /* ReaderController.swift */,
+				0447F85F8A550D54F87D3079 /* ReaderScripts.swift */,
+				AB02B4D035464E16827D336B /* ReaderStyle.swift */,
+				866364515E18FE4D73FF35C2 /* SearchService.swift */,
+				DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		E50DE76C84618D72687B1F7B /* EPUB */ = {
+			isa = PBXGroup;
+			children = (
+				F704CEEB43F0BDCC920E1395 /* EPUBModels.swift */,
+				F97A08937ECCA54D98F5CBDD /* EPUBParser.swift */,
+				5087F58DEF2E05C7EF5998CA /* EPUBXMLDelegates.swift */,
+			);
+			path = EPUB;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0C0297A804AAE3EF03899D8D /* QuireTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10C49255E90BCD93C3752CD /* Build configuration list for PBXNativeTarget "QuireTests" */;
+			buildPhases = (
+				F9CB5E20839DA2E9142C6087 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				29A6FD8C6EDDF4D3D2CF6726 /* PBXTargetDependency */,
+			);
+			name = QuireTests;
+			packageProductDependencies = (
+			);
+			productName = QuireTests;
+			productReference = EF2480ED32FEEA5DD408B524 /* QuireTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		2DF71322D53F74965BDFD261 /* QuireUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1698B15396797731F37F7BA8 /* Build configuration list for PBXNativeTarget "QuireUITests" */;
+			buildPhases = (
+				F5C695060BBA118EBCFF398C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0BC4463F96DD2C5CA5ABBCDA /* PBXTargetDependency */,
+			);
+			name = QuireUITests;
+			packageProductDependencies = (
+			);
+			productName = QuireUITests;
+			productReference = 6A9F0BBBED69D4B96FE67335 /* QuireUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		F7A882D2078409C78ACD2D31 /* Quire */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5738025FD9C4013A01AAF63B /* Build configuration list for PBXNativeTarget "Quire" */;
+			buildPhases = (
+				57DFA9116AA3125C3D4B3EDF /* Sources */,
+				F4F8E73CEDCFE4D827C0D508 /* Resources */,
+				66335677FE97547BC7A8C3CB /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Quire;
+			packageProductDependencies = (
+				774E5C38AA7E9F14D2A9B166 /* ZIPFoundation */,
+			);
+			productName = Quire;
+			productReference = FDF232EFA3AE3D93C15B8218 /* Quire.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		03555A7666F1EABAC3448246 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					2DF71322D53F74965BDFD261 = {
+						TestTargetID = F7A882D2078409C78ACD2D31;
+					};
+				};
+			};
+			buildConfigurationList = DE41E5A5A033D9248CB71710 /* Build configuration list for PBXProject "Quire" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 44944577884D3B6624F0C80D;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				69029F3E52789DB2AAB05D81 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 7B43C97A216C196A79649DDB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F7A882D2078409C78ACD2D31 /* Quire */,
+				0C0297A804AAE3EF03899D8D /* QuireTests */,
+				2DF71322D53F74965BDFD261 /* QuireUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F4F8E73CEDCFE4D827C0D508 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BA8B1EF3C766765BFBEEA2B5 /* Assets.xcassets in Resources */,
+				39DECB90D3BC16DA5DCC4AAC /* sample-nocover.epub in Resources */,
+				FE941ACD5EDB9C060D5CE52A /* sample.epub in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		57DFA9116AA3125C3D4B3EDF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E98B6EC9A25D3D46316D9786 /* Book.swift in Sources */,
+				238C7EDAAE8329A8C1B7252A /* BookCard.swift in Sources */,
+				861E966ACB7EB33CC6274E28 /* Color+Hex.swift in Sources */,
+				5B1DCF06B39E6C83D9239C1C /* ContentsSheet.swift in Sources */,
+				BD0A4EE713CAB694208B941C /* EPUBModels.swift in Sources */,
+				0A533069215997B43E4C7557 /* EPUBParser.swift in Sources */,
+				2843B628C77E8DA60F6363CD /* EPUBXMLDelegates.swift in Sources */,
+				8E234F3AC96F07336ADF2ADF /* LibraryStore.swift in Sources */,
+				8A4202AB7702325067826A43 /* LibraryView.swift in Sources */,
+				96DAD68A313347EA23206E92 /* QuireApp.swift in Sources */,
+				66D8778BB22A24DF06C92822 /* ReaderController.swift in Sources */,
+				48E41311BA571595DB39BC0E /* ReaderScripts.swift in Sources */,
+				9494D848A0A4DFCADE87E721 /* ReaderSettings.swift in Sources */,
+				E473E004599001AC1C2F5552 /* ReaderStyle.swift in Sources */,
+				AAE9B2F18DEE7F66F81BDE64 /* ReaderView.swift in Sources */,
+				9481EFF28D46E9EA7DAECFA5 /* ReaderViewModel.swift in Sources */,
+				7D0B409F6F37B58722D84AC3 /* ReaderWebView.swift in Sources */,
+				058400928998A4D6626E3F2F /* SearchService.swift in Sources */,
+				D7D85E11C06E4A60BD9118F3 /* SearchSheet.swift in Sources */,
+				E5C240B7F9265CF92ED7DCB3 /* SettingsStore.swift in Sources */,
+				200412489402A0FE311DB423 /* TypographyPanel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F5C695060BBA118EBCFF398C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2F7B9DDB23F76FC0EBC5E0F9 /* ReaderJourneyUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F9CB5E20839DA2E9142C6087 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				00924C6207056585B349BDCB /* EPUBFixtures.swift in Sources */,
+				07BC9128FC38A3929FD6A932 /* EPUBParserTests.swift in Sources */,
+				AA6B534CFAFBFED878B00F98 /* LibraryStoreTests.swift in Sources */,
+				29CAE0A933CECF31F1EEF6B0 /* ModelTests.swift in Sources */,
+				A9720BFB0E9E1CDDCBF35D73 /* SearchServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0BC4463F96DD2C5CA5ABBCDA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F7A882D2078409C78ACD2D31 /* Quire */;
+			targetProxy = 99A9DD6EA70C9E7BC6ADBCCE /* PBXContainerItemProxy */;
+		};
+		29A6FD8C6EDDF4D3D2CF6726 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F7A882D2078409C78ACD2D31 /* Quire */;
+			targetProxy = F1B8816C85B92DBED95822C4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0B16F6508C49F2D59F1FBC59 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Quire/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.quire;
+				PRODUCT_NAME = Quire;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		1573C521250F603AD03AEE54 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.QuireTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Quire.app/Quire";
+			};
+			name = Release;
+		};
+		1744A8C7A89A51969DF4EE6E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		1EF68FB709703C48B70A3045 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.QuireTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Quire.app/Quire";
+			};
+			name = Debug;
+		};
+		4CBD6877434B18C40F0FE6F6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.QuireUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Quire;
+			};
+			name = Release;
+		};
+		762634424CD35CAE1F114690 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.QuireUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Quire;
+			};
+			name = Debug;
+		};
+		90F900EB94A8E19094B0DFBA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		988F0D0BF2770ACD9C184768 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = Quire/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.quire;
+				PRODUCT_NAME = Quire;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1698B15396797731F37F7BA8 /* Build configuration list for PBXNativeTarget "QuireUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				762634424CD35CAE1F114690 /* Debug */,
+				4CBD6877434B18C40F0FE6F6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5738025FD9C4013A01AAF63B /* Build configuration list for PBXNativeTarget "Quire" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				988F0D0BF2770ACD9C184768 /* Debug */,
+				0B16F6508C49F2D59F1FBC59 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A10C49255E90BCD93C3752CD /* Build configuration list for PBXNativeTarget "QuireTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1EF68FB709703C48B70A3045 /* Debug */,
+				1573C521250F603AD03AEE54 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DE41E5A5A033D9248CB71710 /* Build configuration list for PBXProject "Quire" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				90F900EB94A8E19094B0DFBA /* Debug */,
+				1744A8C7A89A51969DF4EE6E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		69029F3E52789DB2AAB05D81 /* XCRemoteSwiftPackageReference "ZIPFoundation" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/weichsel/ZIPFoundation";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.19;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		774E5C38AA7E9F14D2A9B166 /* ZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69029F3E52789DB2AAB05D81 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ZIPFoundation;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 03555A7666F1EABAC3448246 /* Project object */;
+}

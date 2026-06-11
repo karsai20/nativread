@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct LumenReadApp: App {
+struct QuireApp: App {
     @State private var library: LibraryStore
     @State private var settingsStore: SettingsStore
 

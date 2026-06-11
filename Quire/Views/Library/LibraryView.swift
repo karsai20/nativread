@@ -114,7 +114,7 @@ struct LibraryView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("LumenRead")
+                Text("Quire")
                     .font(.system(size: 34, weight: .semibold,
                                   design: .serif))
                     .italic()

@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C78BFBABA8AF331B6637EFE5"
-               BuildableName = "LumenRead.app"
-               BlueprintName = "LumenRead"
-               ReferencedContainer = "container:LumenRead.xcodeproj">
+               BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+               BuildableName = "Quire.app"
+               BlueprintName = "Quire"
+               ReferencedContainer = "container:Quire.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AA83B3E809EF7CF4AC899FC2"
-               BuildableName = "LumenReadTests.xctest"
-               BlueprintName = "LumenReadTests"
-               ReferencedContainer = "container:LumenRead.xcodeproj">
+               BlueprintIdentifier = "0C0297A804AAE3EF03899D8D"
+               BuildableName = "QuireTests.xctest"
+               BlueprintName = "QuireTests"
+               ReferencedContainer = "container:Quire.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -43,10 +43,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "27BF4E68B88BC829895BDBDF"
-               BuildableName = "LumenReadUITests.xctest"
-               BlueprintName = "LumenReadUITests"
-               ReferencedContainer = "container:LumenRead.xcodeproj">
+               BlueprintIdentifier = "2DF71322D53F74965BDFD261"
+               BuildableName = "QuireUITests.xctest"
+               BlueprintName = "QuireUITests"
+               ReferencedContainer = "container:Quire.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -61,10 +61,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C78BFBABA8AF331B6637EFE5"
-            BuildableName = "LumenRead.app"
-            BlueprintName = "LumenRead"
-            ReferencedContainer = "container:LumenRead.xcodeproj">
+            BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+            BuildableName = "Quire.app"
+            BlueprintName = "Quire"
+            ReferencedContainer = "container:Quire.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -73,10 +73,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "AA83B3E809EF7CF4AC899FC2"
-               BuildableName = "LumenReadTests.xctest"
-               BlueprintName = "LumenReadTests"
-               ReferencedContainer = "container:LumenRead.xcodeproj">
+               BlueprintIdentifier = "0C0297A804AAE3EF03899D8D"
+               BuildableName = "QuireTests.xctest"
+               BlueprintName = "QuireTests"
+               ReferencedContainer = "container:Quire.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -84,10 +84,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "27BF4E68B88BC829895BDBDF"
-               BuildableName = "LumenReadUITests.xctest"
-               BlueprintName = "LumenReadUITests"
-               ReferencedContainer = "container:LumenRead.xcodeproj">
+               BlueprintIdentifier = "2DF71322D53F74965BDFD261"
+               BuildableName = "QuireUITests.xctest"
+               BlueprintName = "QuireUITests"
+               ReferencedContainer = "container:Quire.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -108,10 +108,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C78BFBABA8AF331B6637EFE5"
-            BuildableName = "LumenRead.app"
-            BlueprintName = "LumenRead"
-            ReferencedContainer = "container:LumenRead.xcodeproj">
+            BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+            BuildableName = "Quire.app"
+            BlueprintName = "Quire"
+            ReferencedContainer = "container:Quire.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -127,10 +127,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "C78BFBABA8AF331B6637EFE5"
-            BuildableName = "LumenRead.app"
-            BlueprintName = "LumenRead"
-            ReferencedContainer = "container:LumenRead.xcodeproj">
+            BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+            BuildableName = "Quire.app"
+            BlueprintName = "Quire"
+            ReferencedContainer = "container:Quire.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

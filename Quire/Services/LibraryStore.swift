@@ -19,9 +19,20 @@ final class LibraryStore {
     private var indexURL: URL { root.appendingPathComponent("library.json") }
 
     init(rootDirectory: URL? = nil) {
-        self.root = rootDirectory ?? FileManager.default
-            .urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("LumenRead")
+        if let rootDirectory {
+            self.root = rootDirectory
+        } else {
+            let documents = FileManager.default
+                .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let newRoot = documents.appendingPathComponent("Quire")
+            // One-time migration from the pre-rename data directory.
+            let legacyRoot = documents.appendingPathComponent("LumenRead")
+            if FileManager.default.fileExists(atPath: legacyRoot.path),
+               !FileManager.default.fileExists(atPath: newRoot.path) {
+                try? FileManager.default.moveItem(at: legacyRoot, to: newRoot)
+            }
+            self.root = newRoot
+        }
         for directory in [booksDirectory, extractedDirectory, coversDirectory] {
             try? fileManager.createDirectory(
                 at: directory, withIntermediateDirectories: true

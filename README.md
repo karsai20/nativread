@@ -1,6 +1,6 @@
-# LumenRead 2.0
+# Quire
 
-A ground-up rewrite of LumenRead: a fast, beautiful EPUB reader for
+Quire (formerly LumenRead): a fast, beautiful EPUB reader for
 iPhone, built to the standard of the best readers on the market
 (Apple Books, Kindle, Readest).
 
@@ -41,8 +41,8 @@ Swift over a message bridge.
 ## Architecture
 
 ```
-LumenRead/
-├── LumenReadApp.swift            — entry, launch-argument test hooks
+Quire/
+├── QuireApp.swift            — entry, launch-argument test hooks
 ├── Models/                       — Book, ReadingProgress, Bookmark,
 │                                   ReaderSettings, themes (pure)
 ├── EPUB/                         — EPUBParser + XML delegates (pure)
@@ -62,9 +62,9 @@ LumenRead/
 
 ```bash
 brew install xcodegen
-cd LumenRead
+cd Quire
 xcodegen generate
-open LumenRead.xcodeproj   # Cmd+R on a simulator or device
+open Quire.xcodeproj   # Cmd+R on a simulator or device
 ```
 
 Dependency: ZIPFoundation (resolved by SPM on first build).
@@ -72,7 +72,7 @@ Dependency: ZIPFoundation (resolved by SPM on first build).
 ## Testing
 
 ```bash
-xcodebuild -project LumenRead.xcodeproj -scheme LumenRead \
+xcodebuild -project Quire.xcodeproj -scheme Quire \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
@@ -92,5 +92,5 @@ the app icon by `swift scripts/make_icon.swift <out.png>`.
 
 ## Adding books
 
-- **Files app / Share sheet** — open any `.epub` with LumenRead
+- **Files app / Share sheet** — open any `.epub` with Quire
 - **In-app** — the + button on the shelf (multi-select supported)

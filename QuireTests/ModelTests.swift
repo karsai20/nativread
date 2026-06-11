@@ -1,5 +1,5 @@
 import XCTest
-@testable import LumenRead
+@testable import Quire
 
 final class ModelTests: XCTestCase {
 
