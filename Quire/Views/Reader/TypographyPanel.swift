@@ -5,7 +5,12 @@ struct TypographyPanel: View {
     @Bindable var viewModel: ReaderViewModel
 
     private var settings: ReaderSettings { viewModel.settings }
-    private var theme: ReaderTheme { settings.theme }
+    private var palette: ReaderPalette { viewModel.palette }
+    private var activeTheme: ReaderTheme {
+        settings.effectiveTheme(systemDark: viewModel.systemDark)
+    }
+
+    @State private var brightness = UIScreen.main.brightness
 
     var body: some View {
         ScrollView {
@@ -16,8 +21,8 @@ struct TypographyPanel: View {
             .padding(.top, 10)
             .padding(.bottom, 28)
         }
-        .foregroundStyle(theme.text)
-        .background(theme.background.ignoresSafeArea())
+        .foregroundStyle(palette.text)
+        .background(palette.background.ignoresSafeArea())
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.hidden)
     }
@@ -28,6 +33,12 @@ struct TypographyPanel: View {
             grabber
 
             themeRow
+
+            autoThemeToggle
+
+            divider
+
+            comfortSection
 
             divider
 
@@ -78,19 +89,70 @@ struct TypographyPanel: View {
                 Label("Justified text", systemImage: "text.justify")
                     .font(.system(size: 15))
             }
-            .tint(theme.accent)
+            .tint(palette.accent)
         }
+    }
+
+    // MARK: - Eye comfort
+
+    private var autoThemeToggle: some View {
+        Toggle(isOn: Binding(
+            get: { settings.themeMode == .system },
+            set: { isOn in
+                viewModel.updateSettings { current in
+                    var next = current
+                    next.themeMode = isOn ? .system : .manual
+                    return next
+                }
+            }
+        )) {
+            Label("Match system appearance",
+                  systemImage: "circle.lefthalf.filled")
+                .font(.system(size: 15))
+        }
+        .tint(palette.accent)
+        .accessibilityIdentifier("theme.auto")
+    }
+
+    @ViewBuilder
+    private var comfortSection: some View {
+        sliderRow(
+            icon: "thermometer.sun",
+            label: "Warm light",
+            value: settings.warmth,
+            range: ReaderSettings.warmthRange,
+            step: 0.05
+        ) { newValue in
+            viewModel.updateSettings { current in
+                var next = current
+                next.warmth = newValue
+                return next
+            }
+        }
+        .accessibilityIdentifier("comfort.warmth")
+
+        sliderRow(
+            icon: "sun.max",
+            label: "Brightness",
+            value: brightness,
+            range: 0.05...1,
+            step: 0.05
+        ) { newValue in
+            brightness = newValue
+            UIScreen.main.brightness = newValue
+        }
+        .accessibilityIdentifier("comfort.brightness")
     }
 
     private var grabber: some View {
         Capsule()
-            .fill(theme.secondaryText.opacity(0.4))
+            .fill(palette.secondaryText.opacity(0.4))
             .frame(width: 36, height: 4)
             .frame(maxWidth: .infinity)
     }
 
     private var divider: some View {
-        Rectangle().fill(theme.text.opacity(0.08)).frame(height: 1)
+        Rectangle().fill(palette.text.opacity(0.08)).frame(height: 1)
     }
 
     // MARK: - Theme swatches
@@ -101,7 +163,12 @@ struct TypographyPanel: View {
                 Button {
                     viewModel.updateSettings { current in
                         var next = current
-                        next.theme = candidate
+                        if current.themeMode == .system,
+                           viewModel.systemDark {
+                            next.darkTheme = candidate
+                        } else {
+                            next.theme = candidate
+                        }
                         return next
                     }
                 } label: {
@@ -111,10 +178,10 @@ struct TypographyPanel: View {
                                 .fill(candidate.background)
                                 .overlay(
                                     Circle().strokeBorder(
-                                        candidate == theme
+                                        candidate == activeTheme
                                             ? candidate.accent
-                                            : theme.text.opacity(0.15),
-                                        lineWidth: candidate == theme ? 2 : 1
+                                            : palette.text.opacity(0.15),
+                                        lineWidth: candidate == activeTheme ? 2 : 1
                                     )
                                 )
                                 .frame(width: 44, height: 44)
@@ -125,8 +192,8 @@ struct TypographyPanel: View {
                         Text(candidate.label)
                             .font(.system(size: 11))
                             .foregroundStyle(
-                                candidate == theme
-                                    ? theme.accent : theme.secondaryText
+                                candidate == activeTheme
+                                    ? palette.accent : palette.secondaryText
                             )
                     }
                 }
@@ -155,7 +222,7 @@ struct TypographyPanel: View {
                         if candidate == settings.font {
                             Image(systemName: "checkmark")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(theme.accent)
+                                .foregroundStyle(palette.accent)
                         }
                     }
                     .padding(.vertical, 9)
@@ -179,7 +246,7 @@ struct TypographyPanel: View {
             .accessibilityIdentifier("fontsize.down")
 
             Rectangle()
-                .fill(theme.text.opacity(0.1))
+                .fill(palette.text.opacity(0.1))
                 .frame(width: 1, height: 22)
 
             Button {
@@ -193,11 +260,11 @@ struct TypographyPanel: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(theme.text.opacity(0.05))
+                .fill(palette.text.opacity(0.05))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(theme.text.opacity(0.1))
+                .strokeBorder(palette.text.opacity(0.1))
         )
     }
 
@@ -221,13 +288,13 @@ struct TypographyPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             Label(label, systemImage: icon)
                 .font(.system(size: 13))
-                .foregroundStyle(theme.secondaryText)
+                .foregroundStyle(palette.secondaryText)
             Slider(
                 value: Binding(get: { value }, set: onChange),
                 in: range,
                 step: step
             )
-            .tint(theme.accent)
+            .tint(palette.accent)
         }
     }
 }

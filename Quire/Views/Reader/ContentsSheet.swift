@@ -5,7 +5,7 @@ struct ContentsSheet: View {
     @Bindable var viewModel: ReaderViewModel
     @State private var section = 0
 
-    private var theme: ReaderTheme { viewModel.settings.theme }
+    private var palette: ReaderPalette { viewModel.palette }
 
     var body: some View {
         VStack(spacing: 14) {
@@ -23,8 +23,8 @@ struct ContentsSheet: View {
                 bookmarkList
             }
         }
-        .foregroundStyle(theme.text)
-        .background(theme.background.ignoresSafeArea())
+        .foregroundStyle(palette.text)
+        .background(palette.background.ignoresSafeArea())
         .presentationDetents([.medium, .large])
     }
 
@@ -46,7 +46,7 @@ struct ContentsSheet: View {
                                 ))
                                 .foregroundStyle(
                                     entry.spineIndex == viewModel.spineIndex
-                                        ? theme.accent : theme.text
+                                        ? palette.accent : palette.text
                                 )
                                 .multilineTextAlignment(.leading)
                             Spacer()
@@ -71,10 +71,10 @@ struct ContentsSheet: View {
                 VStack(spacing: 8) {
                     Image(systemName: "bookmark")
                         .font(.system(size: 28))
-                        .foregroundStyle(theme.secondaryText)
+                        .foregroundStyle(palette.secondaryText)
                     Text("No bookmarks yet")
                         .font(.system(.subheadline, design: .serif))
-                        .foregroundStyle(theme.secondaryText)
+                        .foregroundStyle(palette.secondaryText)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -89,12 +89,12 @@ struct ContentsSheet: View {
                                         .font(.system(
                                             size: 12, weight: .semibold
                                         ))
-                                        .foregroundStyle(theme.accent)
+                                        .foregroundStyle(palette.accent)
                                     Text(bookmark.snippet)
                                         .font(.system(
                                             size: 14, design: .serif
                                         ))
-                                        .foregroundStyle(theme.text)
+                                        .foregroundStyle(palette.text)
                                         .multilineTextAlignment(.leading)
                                         .lineLimit(2)
                                 }

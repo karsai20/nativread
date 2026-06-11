@@ -5,6 +5,7 @@ import SwiftUI
 struct ReaderView: View {
     @State private var viewModel: ReaderViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     init(book: Book, library: LibraryStore, settingsStore: SettingsStore) {
         let bounds = UIScreen.main.bounds
@@ -16,11 +17,11 @@ struct ReaderView: View {
         ))
     }
 
-    private var theme: ReaderTheme { viewModel.settings.theme }
+    private var palette: ReaderPalette { viewModel.palette }
 
     var body: some View {
         ZStack {
-            theme.background.ignoresSafeArea()
+            palette.background.ignoresSafeArea()
 
             if let error = viewModel.loadError {
                 errorView(error)
@@ -33,8 +34,17 @@ struct ReaderView: View {
             chrome
         }
         .statusBarHidden(!viewModel.isChromeVisible)
-        .preferredColorScheme(theme.isDark ? .dark : .light)
+        .preferredColorScheme(
+            // In system mode the reader must not override appearance,
+            // otherwise the colour scheme it reads would be its own.
+            viewModel.settings.themeMode == .system
+                ? nil : (palette.isDark ? .dark : .light)
+        )
+        .onChange(of: colorScheme) {
+            viewModel.setSystemDark(colorScheme == .dark)
+        }
         .onAppear {
+            viewModel.setSystemDark(colorScheme == .dark)
             viewModel.open()
             if ProcessInfo.processInfo.arguments
                 .contains("-showTypographyPanel") {
@@ -125,7 +135,7 @@ struct ReaderView: View {
                     .lineLimit(1)
                 Text(viewModel.currentChapterTitle)
                     .font(.system(size: 11))
-                    .foregroundStyle(theme.secondaryText)
+                    .foregroundStyle(palette.secondaryText)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
@@ -139,8 +149,8 @@ struct ReaderView: View {
             }
             .accessibilityIdentifier("reader.bookmark")
         }
-        .foregroundStyle(theme.text)
-        .tint(theme.accent)
+        .foregroundStyle(palette.text)
+        .tint(palette.accent)
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
         .background(chromeBackground)
@@ -150,8 +160,8 @@ struct ReaderView: View {
         VStack(spacing: 10) {
             ScrubberView(
                 fraction: viewModel.bookFraction,
-                accent: theme.accent,
-                track: theme.secondaryText.opacity(0.25)
+                accent: palette.accent,
+                track: palette.secondaryText.opacity(0.25)
             ) { fraction in
                 viewModel.scrub(toBookFraction: fraction)
             }
@@ -170,7 +180,7 @@ struct ReaderView: View {
 
                 Text(pageLabel)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(theme.secondaryText)
+                    .foregroundStyle(palette.secondaryText)
                     .monospacedDigit()
                     .accessibilityIdentifier("reader.pageLabel")
 
@@ -195,8 +205,8 @@ struct ReaderView: View {
                 .accessibilityIdentifier("reader.typography")
             }
         }
-        .foregroundStyle(theme.text)
-        .tint(theme.accent)
+        .foregroundStyle(palette.text)
+        .tint(palette.accent)
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 8)
@@ -204,9 +214,9 @@ struct ReaderView: View {
     }
 
     private var chromeBackground: some View {
-        theme.background
+        palette.background
             .opacity(0.94)
-            .overlay(theme.text.opacity(0.04))
+            .overlay(palette.text.opacity(0.04))
             .ignoresSafeArea()
     }
 
@@ -219,18 +229,18 @@ struct ReaderView: View {
         VStack(spacing: 14) {
             Image(systemName: "book.closed")
                 .font(.system(size: 40))
-                .foregroundStyle(theme.secondaryText)
+                .foregroundStyle(palette.secondaryText)
             Text("This book could not be opened")
                 .font(.system(.headline, design: .serif))
             Text(message)
                 .font(.footnote)
-                .foregroundStyle(theme.secondaryText)
+                .foregroundStyle(palette.secondaryText)
                 .multilineTextAlignment(.center)
             Button("Back to Library") { dismiss() }
                 .buttonStyle(.borderedProminent)
-                .tint(theme.accent)
+                .tint(palette.accent)
         }
-        .foregroundStyle(theme.text)
+        .foregroundStyle(palette.text)
         .padding(40)
     }
 }

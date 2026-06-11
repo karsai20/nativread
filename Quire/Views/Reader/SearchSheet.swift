@@ -6,13 +6,13 @@ struct SearchSheet: View {
     @Bindable var viewModel: ReaderViewModel
     @FocusState private var isFieldFocused: Bool
 
-    private var theme: ReaderTheme { viewModel.settings.theme }
+    private var palette: ReaderPalette { viewModel.palette }
 
     var body: some View {
         VStack(spacing: 14) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundStyle(theme.secondaryText)
+                    .foregroundStyle(palette.secondaryText)
                 TextField("Search in book", text: $viewModel.searchQuery)
                     .focused($isFieldFocused)
                     .submitLabel(.search)
@@ -24,14 +24,14 @@ struct SearchSheet: View {
                         viewModel.searchQuery = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(theme.secondaryText)
+                            .foregroundStyle(palette.secondaryText)
                     }
                 }
             }
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(theme.text.opacity(0.06))
+                    .fill(palette.text.opacity(0.06))
             )
             .padding(.horizontal, 20)
             .padding(.top, 20)
@@ -40,19 +40,19 @@ struct SearchSheet: View {
                 VStack(spacing: 8) {
                     Image(systemName: "text.page.badge.magnifyingglass")
                         .font(.system(size: 28))
-                        .foregroundStyle(theme.secondaryText)
+                        .foregroundStyle(palette.secondaryText)
                     Text(viewModel.searchQuery.count >= 2
                         ? "No matches" : "Type at least two characters")
                         .font(.system(.subheadline, design: .serif))
-                        .foregroundStyle(theme.secondaryText)
+                        .foregroundStyle(palette.secondaryText)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 resultsList
             }
         }
-        .foregroundStyle(theme.text)
-        .background(theme.background.ignoresSafeArea())
+        .foregroundStyle(palette.text)
+        .background(palette.background.ignoresSafeArea())
         .presentationDetents([.medium, .large])
         .onAppear { isFieldFocused = true }
     }
@@ -62,7 +62,7 @@ struct SearchSheet: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 Text("\(viewModel.searchResults.count) result\(viewModel.searchResults.count == 1 ? "" : "s")")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(theme.secondaryText)
+                    .foregroundStyle(palette.secondaryText)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 6)
                     .accessibilityIdentifier("search.resultCount")
@@ -74,10 +74,10 @@ struct SearchSheet: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(result.chapterTitle)
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(theme.accent)
+                                .foregroundStyle(palette.accent)
                             highlightedSnippet(result.snippet)
                                 .font(.system(size: 14, design: .serif))
-                                .foregroundStyle(theme.text)
+                                .foregroundStyle(palette.text)
                                 .multilineTextAlignment(.leading)
                                 .lineLimit(3)
                         }
@@ -102,7 +102,7 @@ struct SearchSheet: View {
         let match = String(snippet[range])
         let after = String(snippet[range.upperBound...])
         return Text(before)
-            + Text(match).bold().foregroundColor(theme.accent)
+            + Text(match).bold().foregroundColor(palette.accent)
             + Text(after)
     }
 }

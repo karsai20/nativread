@@ -33,6 +33,13 @@ final class ReaderViewModel {
     var settings: ReaderSettings { settingsStore.settings }
     var book: Book? { library.book(id: bookID) }
 
+    /// Tracks the device appearance for system theme mode; fed by the
+    /// view layer because only SwiftUI sees colour scheme changes.
+    private(set) var systemDark = false
+
+    /// The resolved colours every reader surface should draw with.
+    var palette: ReaderPalette { settings.palette(systemDark: systemDark) }
+
     init(
         book: Book,
         library: LibraryStore,
@@ -228,13 +235,25 @@ final class ReaderViewModel {
 
     func updateSettings(_ transform: (ReaderSettings) -> ReaderSettings) {
         settingsStore.update(transform)
+        reapplyStyle()
+    }
+
+    func setSystemDark(_ dark: Bool) {
+        guard dark != systemDark else { return }
+        systemDark = dark
+        guard settings.themeMode == .system else { return }
+        reapplyStyle()
+    }
+
+    private func reapplyStyle() {
         controller.applySettings(
             css: ReaderStyle.css(
-                settings: settingsStore.settings,
+                settings: settings,
                 pageWidth: controller.pageSize.width,
-                pageHeight: controller.pageSize.height
+                pageHeight: controller.pageSize.height,
+                systemDark: systemDark
             ),
-            backgroundColor: UIColor(settingsStore.settings.theme.background)
+            backgroundColor: UIColor(palette.background)
         )
     }
 }

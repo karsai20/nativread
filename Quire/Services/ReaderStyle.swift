@@ -13,8 +13,8 @@ enum ReaderStyle {
     /// works by laying the chapter out in viewport-wide CSS columns and
     /// translating the body horizontally, one page per column.
     static func css(settings: ReaderSettings, pageWidth: Double,
-                    pageHeight: Double) -> String {
-        let theme = settings.theme
+                    pageHeight: Double, systemDark: Bool = false) -> String {
+        let theme = settings.palette(systemDark: systemDark)
         let margin = settings.horizontalMargin
         let columnWidth = pageWidth - margin * 2
         let textHeight = pageHeight - topPadding - bottomPadding

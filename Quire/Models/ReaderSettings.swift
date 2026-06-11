@@ -103,8 +103,35 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// How the reading theme is chosen: pinned by hand, or following the
+/// system light/dark appearance.
+enum ThemeMode: String, Codable, CaseIterable {
+    case manual, system
+}
+
+/// The fully resolved colours for one reading session: theme mode and
+/// warm-light shift already applied. Mirrors ReaderTheme's colour API
+/// so views can swap between them freely.
+struct ReaderPalette: Equatable {
+    let backgroundHex: String
+    let textHex: String
+    let secondaryTextHex: String
+    let accentHex: String
+    let isDark: Bool
+
+    var background: Color { Color(hex: backgroundHex) }
+    var text: Color { Color(hex: textHex) }
+    var secondaryText: Color { Color(hex: secondaryTextHex) }
+    var accent: Color { Color(hex: accentHex) }
+}
+
 struct ReaderSettings: Codable, Equatable {
     var theme: ReaderTheme = .paper
+    /// Theme used in system mode when the device is in dark appearance.
+    var darkTheme: ReaderTheme = .dusk
+    var themeMode: ThemeMode = .manual
+    /// 0 = neutral page, 1 = strongest amber shift (blue light cut).
+    var warmth: Double = 0
     var font: ReaderFont = .newYork
     var fontSize: Double = 18
     var lineHeight: Double = 1.55
@@ -114,4 +141,80 @@ struct ReaderSettings: Codable, Equatable {
     static let fontSizeRange: ClosedRange<Double> = 13...26
     static let lineHeightRange: ClosedRange<Double> = 1.25...2.1
     static let marginRange: ClosedRange<Double> = 14...48
+    static let warmthRange: ClosedRange<Double> = 0...1
+
+    /// Amber target the page is pulled toward as warmth rises, and how
+    /// far each role is allowed to travel at full warmth. The page
+    /// shifts hardest; ink shifts gently to preserve contrast; accent
+    /// keeps its identity so chrome stays recognisable.
+    private static let warmTargetHex = "#FFAE5C"
+    private static let backgroundWarmthCap = 0.30
+    private static let inkWarmthCap = 0.12
+
+    func effectiveTheme(systemDark: Bool) -> ReaderTheme {
+        themeMode == .system && systemDark ? darkTheme : theme
+    }
+
+    func palette(systemDark: Bool) -> ReaderPalette {
+        let theme = effectiveTheme(systemDark: systemDark)
+        guard warmth > 0 else {
+            return ReaderPalette(
+                backgroundHex: theme.backgroundHex,
+                textHex: theme.textHex,
+                secondaryTextHex: theme.secondaryTextHex,
+                accentHex: theme.accentHex,
+                isDark: theme.isDark
+            )
+        }
+        func warmed(_ hex: String, cap: Double) -> String {
+            Color.blendHex(
+                hex, toward: Self.warmTargetHex, amount: warmth * cap
+            )
+        }
+        return ReaderPalette(
+            backgroundHex: warmed(
+                theme.backgroundHex, cap: Self.backgroundWarmthCap
+            ),
+            textHex: warmed(theme.textHex, cap: Self.inkWarmthCap),
+            secondaryTextHex: warmed(
+                theme.secondaryTextHex, cap: Self.inkWarmthCap
+            ),
+            accentHex: theme.accentHex,
+            isDark: theme.isDark
+        )
+    }
+}
+
+extension ReaderSettings {
+    private enum CodingKeys: String, CodingKey {
+        case theme, darkTheme, themeMode, warmth, font, fontSize,
+             lineHeight, horizontalMargin, isJustified
+    }
+
+    /// Tolerant decoding: settings persisted by older versions are
+    /// missing the newer keys and must fall back to defaults instead
+    /// of resetting the user's whole configuration.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = ReaderSettings()
+        theme = try container.decodeIfPresent(
+            ReaderTheme.self, forKey: .theme) ?? defaults.theme
+        darkTheme = try container.decodeIfPresent(
+            ReaderTheme.self, forKey: .darkTheme) ?? defaults.darkTheme
+        themeMode = try container.decodeIfPresent(
+            ThemeMode.self, forKey: .themeMode) ?? defaults.themeMode
+        warmth = try container.decodeIfPresent(
+            Double.self, forKey: .warmth) ?? defaults.warmth
+        font = try container.decodeIfPresent(
+            ReaderFont.self, forKey: .font) ?? defaults.font
+        fontSize = try container.decodeIfPresent(
+            Double.self, forKey: .fontSize) ?? defaults.fontSize
+        lineHeight = try container.decodeIfPresent(
+            Double.self, forKey: .lineHeight) ?? defaults.lineHeight
+        horizontalMargin = try container.decodeIfPresent(
+            Double.self, forKey: .horizontalMargin
+        ) ?? defaults.horizontalMargin
+        isJustified = try container.decodeIfPresent(
+            Bool.self, forKey: .isJustified) ?? defaults.isJustified
+    }
 }

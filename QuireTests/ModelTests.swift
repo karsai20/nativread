@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import Quire
 
@@ -135,5 +136,118 @@ final class ModelTests: XCTestCase {
             settings: settings, pageWidth: 390, pageHeight: 844
         )
         XCTAssertTrue(css.contains("text-align: left"))
+    }
+
+    // MARK: - Hex blending
+
+    func testBlendHexZeroAmountReturnsBase() {
+        XCTAssertEqual(
+            Color.blendHex("#FAF6EE", toward: "#FFAE5C", amount: 0),
+            "#FAF6EE"
+        )
+    }
+
+    func testBlendHexFullAmountReturnsTarget() {
+        XCTAssertEqual(
+            Color.blendHex("#000000", toward: "#FFAE5C", amount: 1),
+            "#FFAE5C"
+        )
+    }
+
+    func testBlendHexMidpoint() {
+        XCTAssertEqual(
+            Color.blendHex("#000000", toward: "#FFFFFF", amount: 0.5),
+            "#808080"
+        )
+    }
+
+    func testBlendHexClampsAmount() {
+        XCTAssertEqual(
+            Color.blendHex("#102030", toward: "#FFFFFF", amount: -1),
+            "#102030"
+        )
+        XCTAssertEqual(
+            Color.blendHex("#102030", toward: "#FFFFFF", amount: 2),
+            "#FFFFFF"
+        )
+    }
+
+    // MARK: - Theme resolution & warmth
+
+    func testEffectiveThemeManualIgnoresSystemAppearance() {
+        var settings = ReaderSettings()
+        settings.theme = .paper
+        settings.themeMode = .manual
+        XCTAssertEqual(settings.effectiveTheme(systemDark: true), .paper)
+    }
+
+    func testEffectiveThemeSystemModeSwitchesToDarkTheme() {
+        var settings = ReaderSettings()
+        settings.theme = .paper
+        settings.darkTheme = .ink
+        settings.themeMode = .system
+        XCTAssertEqual(settings.effectiveTheme(systemDark: false), .paper)
+        XCTAssertEqual(settings.effectiveTheme(systemDark: true), .ink)
+    }
+
+    func testPaletteWithoutWarmthMatchesTheme() {
+        let settings = ReaderSettings()
+        let palette = settings.palette(systemDark: false)
+        XCTAssertEqual(palette.backgroundHex, ReaderTheme.paper.backgroundHex)
+        XCTAssertEqual(palette.textHex, ReaderTheme.paper.textHex)
+        XCTAssertEqual(palette.isDark, ReaderTheme.paper.isDark)
+    }
+
+    func testPaletteWarmthShiftsBackgroundTowardAmber() {
+        var settings = ReaderSettings()
+        settings.warmth = 1
+        let palette = settings.palette(systemDark: false)
+        XCTAssertNotEqual(
+            palette.backgroundHex, ReaderTheme.paper.backgroundHex
+        )
+        // Warm shift must keep accent identity for chrome consistency.
+        XCTAssertEqual(palette.accentHex, ReaderTheme.paper.accentHex)
+    }
+
+    func testReaderStyleEmitsWarmedBackground() {
+        var settings = ReaderSettings()
+        settings.warmth = 1
+        let warmedBackground = settings.palette(systemDark: false)
+            .backgroundHex
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains(warmedBackground))
+        XCTAssertFalse(css.contains(ReaderTheme.paper.backgroundHex))
+    }
+
+    func testReaderStyleSystemDarkUsesDarkTheme() {
+        var settings = ReaderSettings()
+        settings.themeMode = .system
+        settings.darkTheme = .ink
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844,
+            systemDark: true
+        )
+        XCTAssertTrue(css.contains(ReaderTheme.ink.backgroundHex))
+    }
+
+    // MARK: - Settings migration
+
+    func testSettingsDecodeFromLegacyJSONUsesDefaults() throws {
+        // Stored settings written before warmth/themeMode/darkTheme
+        // existed must decode with safe defaults, not fail.
+        let legacyJSON = """
+        {"theme":"sepia","font":"georgia","fontSize":20,
+         "lineHeight":1.6,"horizontalMargin":30,"isJustified":false}
+        """
+        let decoded = try JSONDecoder().decode(
+            ReaderSettings.self, from: Data(legacyJSON.utf8)
+        )
+        XCTAssertEqual(decoded.theme, .sepia)
+        XCTAssertEqual(decoded.fontSize, 20)
+        XCTAssertEqual(decoded.warmth, 0)
+        XCTAssertEqual(decoded.themeMode, .manual)
+        XCTAssertEqual(decoded.darkTheme, .dusk)
     }
 }
