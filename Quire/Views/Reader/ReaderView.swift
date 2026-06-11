@@ -30,6 +30,7 @@ struct ReaderView: View {
                 // view by the JS engine so native text selection works.
                 ReaderWebView(controller: viewModel.controller)
                     .ignoresSafeArea()
+                nextChapterAffordance
             }
 
             chrome
@@ -61,6 +62,59 @@ struct ReaderView: View {
             case .search:
                 SearchSheet(viewModel: viewModel)
             }
+        }
+    }
+
+    // MARK: - Next chapter affordance (scroll flow)
+
+    /// Floating pill at the end of a scrolled chapter: makes the
+    /// chapter boundary visible and tappable. Pulling past the edge
+    /// (overscroll) advances too; this is the discoverable half.
+    @ViewBuilder
+    private var nextChapterAffordance: some View {
+        if viewModel.settings.pageFlow == .scroll,
+           viewModel.isAtChapterEnd,
+           viewModel.hasNextChapter,
+           !viewModel.isChromeVisible {
+            VStack {
+                Spacer()
+                Button {
+                    viewModel.goToNextChapter()
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(viewModel.nextChapterTitle.isEmpty
+                            ? "Next chapter"
+                            : viewModel.nextChapterTitle)
+                            .font(.system(size: 13, weight: .medium,
+                                          design: .serif))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(
+                        Capsule()
+                            .fill(palette.background)
+                            .shadow(
+                                color: .black.opacity(0.18),
+                                radius: 10, y: 3
+                            )
+                    )
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(palette.text.opacity(0.12))
+                    )
+                    .foregroundStyle(palette.accent)
+                }
+                .accessibilityIdentifier("reader.nextChapter")
+                .padding(.bottom, 30)
+            }
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .animation(
+                .easeOut(duration: 0.22),
+                value: viewModel.isAtChapterEnd
+            )
         }
     }
 

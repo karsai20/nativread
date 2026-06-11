@@ -49,6 +49,19 @@ enum ReaderStyle {
             body.lumen-fade {
                 transition: opacity 110ms ease-in-out;
             }
+            #lumen-eink {
+                position: fixed;
+                inset: 0;
+                background: \(theme.textHex);
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 60ms linear;
+                z-index: 99;
+            }
+            #lumen-eink.lumen-eink-on {
+                opacity: 1;
+                transition: opacity 40ms linear;
+            }
             """
         case .scroll:
             layout = """

@@ -3,7 +3,8 @@ import WebKit
 /// Owns the WKWebView and speaks to the JS reading engine.
 /// SwiftUI only ever wraps `webView`; all commands go through here.
 @MainActor
-final class ReaderController: NSObject, WKScriptMessageHandler {
+final class ReaderController: NSObject, WKScriptMessageHandler,
+                              UIScrollViewDelegate {
 
     let webView: HighlightingWebView
     let pageSize: CGSize
@@ -21,6 +22,12 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
         get { webView.onHighlightSelection }
         set { webView.onHighlightSelection = newValue }
     }
+    /// Scroll flow: the user pulled past the chapter edge.
+    /// "forward" (bottom) or "backward" (top).
+    var onOverscroll: ((String) -> Void)?
+
+    /// Dragging past the chapter edge by this much advances chapters.
+    private static let overscrollThreshold: CGFloat = 70
 
     private var settingsCSS: String
     private var flow: PageFlow
@@ -48,6 +55,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
         webView.isOpaque = false
         super.init()
 
+        webView.scrollView.delegate = self
         configuration.userContentController.add(self, name: "lumen")
         installUserScripts()
     }
@@ -165,6 +173,29 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
         )
     }
 
+    // MARK: - Overscroll chapter advance (scroll flow)
+
+    /// The rubber-band overscroll happens at the UIScrollView level,
+    /// invisible to the page's JS, so chapter-edge pulls are detected
+    /// here from the drag's end position.
+    nonisolated func scrollViewDidEndDragging(
+        _ scrollView: UIScrollView, willDecelerate decelerate: Bool
+    ) {
+        MainActor.assumeIsolated {
+            guard flow == .scroll else { return }
+            let offset = scrollView.contentOffset.y
+            let maxOffset = max(
+                0, scrollView.contentSize.height
+                    - scrollView.bounds.height
+            )
+            if offset > maxOffset + Self.overscrollThreshold {
+                onOverscroll?("forward")
+            } else if offset < -Self.overscrollThreshold {
+                onOverscroll?("backward")
+            }
+        }
+    }
+
     // MARK: - Engine messages
 
     nonisolated func userContentController(
@@ -205,6 +236,13 @@ final class ReaderController: NSObject, WKScriptMessageHandler {
                     self.webView.alpha = 1
                 }
             case "state":
+                // Safety net: never leave the page hidden once the
+                // engine is demonstrably alive.
+                if self.webView.alpha == 0 {
+                    UIView.animate(withDuration: 0.18) {
+                        self.webView.alpha = 1
+                    }
+                }
                 self.onState?(page, pageCount)
             case "tap":
                 if let zone { self.onTap?(zone) }

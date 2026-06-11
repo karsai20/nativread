@@ -92,6 +92,9 @@ enum ReaderScripts {
                   move();
                   body.style.opacity = "1";
                 }, 110);
+              } else if (animate && this.transition === "eink") {
+                body.classList.remove("lumen-animate", "lumen-fade");
+                this.einkFlash(move);
               } else {
                 body.classList.remove("lumen-fade");
                 body.style.opacity = "1";
@@ -99,6 +102,23 @@ enum ReaderScripts {
                   !!animate && this.transition === "slide");
                 move();
               }
+            },
+
+            // The signature e-ink refresh: the screen blinks to ink
+            // while the page is swapped underneath. The overlay lives
+            // outside <body> so the page transform can't move it.
+            einkFlash(move) {
+              let flash = document.getElementById("lumen-eink");
+              if (!flash) {
+                flash = document.createElement("div");
+                flash.id = "lumen-eink";
+                document.documentElement.appendChild(flash);
+              }
+              flash.classList.add("lumen-eink-on");
+              setTimeout(() => {
+                move();
+                flash.classList.remove("lumen-eink-on");
+              }, 90);
             },
 
             goTo(page, animate) {
@@ -399,20 +419,38 @@ enum ReaderScripts {
             });
           }, { passive: true });
 
+          // Reveal as soon as the text is layouted (DOMContentLoaded):
+          // waiting for the full load event leaves the page blank for
+          // as long as a slow or missing image keeps loading.
+          let started = false;
           const start = () => {
+            if (started) { return; }
+            started = true;
             lumen.layout();
             window.webkit.messageHandlers.lumen.postMessage({
               type: "ready",
               pageCount: lumen.pageCount
             });
           };
-          if (document.readyState === "complete") {
+          if (document.readyState !== "loading") {
             requestAnimationFrame(start);
           } else {
-            window.addEventListener("load", () => {
+            document.addEventListener("DOMContentLoaded", () => {
               requestAnimationFrame(start);
             });
           }
+          // Late resources (images, fonts) change the layout: once
+          // everything arrived, re-measure but keep the position.
+          window.addEventListener("load", () => {
+            requestAnimationFrame(() => {
+              if (!started) { start(); return; }
+              const f = lumen.fraction();
+              lumen.layout();
+              lumen.goToFraction(f, false);
+            });
+          });
+          // Belt and braces: never leave the page hidden.
+          setTimeout(start, 1500);
         })();
         """
     }

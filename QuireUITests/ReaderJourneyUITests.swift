@@ -150,6 +150,47 @@ final class ReaderJourneyUITests: XCTestCase {
         waitForExpectations(timeout: 8)
     }
 
+    func testScrollFlowChapterEndAffordanceAdvancesChapter() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-forceFlow", "scroll"
+        ]
+        app.launch()
+        openSampleBook()
+
+        // Hide the chrome: the affordance only floats while reading.
+        let window = app.windows.firstMatch
+        window.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)
+        ).tap()
+
+        // Scroll to the chapter end; the next-chapter pill appears.
+        let pill = app.buttons["reader.nextChapter"]
+        for _ in 0..<6 where !pill.exists {
+            app.swipeUp(velocity: .fast)
+        }
+        XCTAssertTrue(pill.waitForExistence(timeout: 6),
+                      "chapter end should offer the next chapter")
+        pill.tap()
+
+        // Wait for the next chapter to load (the pill leaves the
+        // start of a chapter), then bring back the chrome.
+        let gone = NSPredicate(format: "exists == 0")
+        expectation(for: gone, evaluatedWith: pill)
+        waitForExpectations(timeout: 8)
+
+        let title = app.staticTexts["The Keeper's Son"]
+        for _ in 0..<3 where !title.exists {
+            window.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)
+            ).tap()
+            _ = title.waitForExistence(timeout: 3)
+        }
+        XCTAssertTrue(title.exists,
+                      "top bar should show the next chapter title")
+    }
+
     /// Expands the typography sheet so below-the-fold controls enter
     /// the accessibility hierarchy.
     private func expandTypographyPanel() {

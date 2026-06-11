@@ -313,6 +313,29 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded, highlight)
     }
 
+    func testEinkTransitionShipsFlashOverlay() {
+        let script = ReaderScripts.engine(
+            pageWidth: 390, flow: .paged, transition: .eink
+        )
+        XCTAssertTrue(script.contains("einkFlash"))
+
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains("#lumen-eink"))
+    }
+
+    func testEngineRevealsAtDOMContentLoadedWithFallback() {
+        // Waiting for the full load event leaves the page blank while
+        // a slow or missing image loads; the engine must start at
+        // DOMContentLoaded and keep a timeout safety net.
+        let script = ReaderScripts.engine(
+            pageWidth: 390, flow: .paged, transition: .slide
+        )
+        XCTAssertTrue(script.contains("DOMContentLoaded"))
+        XCTAssertTrue(script.contains("setTimeout(start"))
+    }
+
     func testEngineScriptContainsSelectionAndHighlightAPI() {
         let script = ReaderScripts.engine(
             pageWidth: 390, flow: .paged, transition: .slide

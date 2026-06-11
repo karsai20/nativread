@@ -79,6 +79,13 @@ final class ReaderViewModel {
         controller.onChapterReady = { [weak self] in
             self?.applyStoredHighlights()
         }
+        controller.onOverscroll = { [weak self] direction in
+            if direction == "forward" {
+                self?.goToNextChapter()
+            } else {
+                self?.goToPreviousChapter()
+            }
+        }
     }
 
     private func handleTap(zone: String) {
@@ -216,6 +223,35 @@ final class ReaderViewModel {
         return SearchService.chapterTitle(
             forSpineIndex: spineIndex, in: parsed
         )
+    }
+
+    // MARK: - Chapter advance (scroll flow affordances)
+
+    var hasNextChapter: Bool {
+        guard let parsed else { return false }
+        return spineIndex < parsed.spineURLs.count - 1
+    }
+
+    var nextChapterTitle: String {
+        guard let parsed, hasNextChapter else { return "" }
+        return SearchService.chapterTitle(
+            forSpineIndex: spineIndex + 1, in: parsed
+        )
+    }
+
+    /// True when the reader sits on the last screenful of the chapter.
+    var isAtChapterEnd: Bool {
+        page >= pageCount - 1
+    }
+
+    func goToNextChapter() {
+        guard hasNextChapter else { return }
+        loadChapter(at: spineIndex + 1, fraction: 0)
+    }
+
+    func goToPreviousChapter() {
+        guard spineIndex > 0 else { return }
+        loadChapter(at: spineIndex - 1, fraction: 1)
     }
 
     // MARK: - Bookmarks

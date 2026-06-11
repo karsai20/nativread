@@ -133,7 +133,7 @@ enum PageFlow: String, Codable, CaseIterable, Identifiable {
 
 /// The animation used when turning a page in paged flow.
 enum PageTransition: String, Codable, CaseIterable, Identifiable {
-    case slide, fade, instant
+    case slide, fade, eink, instant
 
     var id: String { rawValue }
 
@@ -141,6 +141,7 @@ enum PageTransition: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .slide: return "Slide"
         case .fade: return "Fade"
+        case .eink: return "E-Ink"
         case .instant: return "None"
         }
     }
