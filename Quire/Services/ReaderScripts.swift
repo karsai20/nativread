@@ -75,32 +75,39 @@ enum ReaderScripts {
               });
             },
 
-            // Paged flow: apply the horizontal transform with the
-            // configured turn animation.
-            applyTransform(animate) {
+            // Paged flow: move by scrolling the root scroller, not by
+            // transforming the body — WebKit only paints tiles around
+            // the scroll position, so a transformed page can arrive
+            // blank until the next interaction forces a repaint.
+            // User gestures stay disabled; only the engine scrolls.
+            movePaged(animate) {
               const body = document.body;
-              const x = -this.page * PW;
-              const move = () => {
-                body.style.transform =
-                  "translate3d(" + x + "px, 0, 0)";
+              const left = this.page * PW;
+              const jump = () => {
+                this.scroller().scrollTo({
+                  left: left, behavior: "auto"
+                });
               };
-              if (animate && this.transition === "fade") {
-                body.classList.remove("lumen-animate");
+              if (animate && this.transition === "slide") {
+                body.classList.remove("lumen-fade");
+                body.style.opacity = "1";
+                this.scroller().scrollTo({
+                  left: left, behavior: "smooth"
+                });
+              } else if (animate && this.transition === "fade") {
                 body.classList.add("lumen-fade");
                 body.style.opacity = "0";
                 setTimeout(() => {
-                  move();
+                  jump();
                   body.style.opacity = "1";
                 }, 110);
               } else if (animate && this.transition === "eink") {
-                body.classList.remove("lumen-animate", "lumen-fade");
-                this.einkFlash(move);
+                body.classList.remove("lumen-fade");
+                this.einkFlash(jump);
               } else {
                 body.classList.remove("lumen-fade");
                 body.style.opacity = "1";
-                body.classList.toggle("lumen-animate",
-                  !!animate && this.transition === "slide");
-                move();
+                jump();
               }
             },
 
@@ -131,7 +138,7 @@ enum ReaderScripts {
                   top: top, behavior: animate ? "smooth" : "auto"
                 });
               } else {
-                this.applyTransform(animate);
+                this.movePaged(animate);
               }
               this.notify();
             },
@@ -229,7 +236,8 @@ enum ReaderScripts {
                       });
                       this.syncScrollPage();
                     } else {
-                      const absoluteLeft = rect.left + this.page * PW;
+                      const absoluteLeft =
+                        rect.left + this.scroller().scrollLeft;
                       this.goTo(
                         Math.max(0, Math.floor(absoluteLeft / PW)), false
                       );

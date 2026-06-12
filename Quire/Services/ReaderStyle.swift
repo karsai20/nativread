@@ -27,7 +27,12 @@ enum ReaderStyle {
         case .paged:
             layout = """
             html {
-                overflow: hidden !important;
+                /* A real (programmatic) horizontal scroller: WebKit
+                   paints tiles around the scroll position, unlike a
+                   transformed body which can arrive blank. User
+                   panning stays disabled natively. */
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
                 background: \(theme.backgroundHex) !important;
             }
             body {
@@ -41,10 +46,6 @@ enum ReaderStyle {
                 column-width: \(contentWidth)px;
                 column-gap: \(margin * 2)px;
                 column-fill: auto;
-                will-change: transform;
-            }
-            body.lumen-animate {
-                transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
             }
             body.lumen-fade {
                 transition: opacity 110ms ease-in-out;

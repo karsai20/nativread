@@ -52,6 +52,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         )
         webView.scrollView.isScrollEnabled = flow == .scroll
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.scrollView.showsHorizontalScrollIndicator = false
         webView.isOpaque = false
         super.init()
 
