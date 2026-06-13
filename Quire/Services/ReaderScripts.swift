@@ -75,39 +75,38 @@ enum ReaderScripts {
               });
             },
 
-            // Paged flow: move by scrolling the root scroller, not by
-            // transforming the body — WebKit only paints tiles around
-            // the scroll position, so a transformed page can arrive
-            // blank until the next interaction forces a repaint.
-            // User gestures stay disabled; only the engine scrolls.
+            // Paged flow turns pages by horizontally scrolling the
+            // native UIScrollView — a CSS transform leaves WebKit's
+            // off-screen tiles unpainted, and a JS scrollTo does not
+            // reliably move WKWebView's scroll view. So the engine asks
+            // Swift to set the content offset; it only owns the
+            // transition animation (opacity / e-ink flash) here.
+            postScroll(animate) {
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "scroll", x: this.page * PW, animate: !!animate
+              });
+            },
+
             movePaged(animate) {
               const body = document.body;
-              const left = this.page * PW;
-              const jump = () => {
-                this.scroller().scrollTo({
-                  left: left, behavior: "auto"
-                });
-              };
               if (animate && this.transition === "slide") {
                 body.classList.remove("lumen-fade");
                 body.style.opacity = "1";
-                this.scroller().scrollTo({
-                  left: left, behavior: "smooth"
-                });
+                this.postScroll(true);
               } else if (animate && this.transition === "fade") {
                 body.classList.add("lumen-fade");
                 body.style.opacity = "0";
                 setTimeout(() => {
-                  jump();
+                  this.postScroll(false);
                   body.style.opacity = "1";
                 }, 110);
               } else if (animate && this.transition === "eink") {
                 body.classList.remove("lumen-fade");
-                this.einkFlash(jump);
+                this.einkFlash(() => this.postScroll(false));
               } else {
                 body.classList.remove("lumen-fade");
                 body.style.opacity = "1";
-                jump();
+                this.postScroll(false);
               }
             },
 
@@ -258,6 +257,13 @@ enum ReaderScripts {
               const max = this.maxScroll();
               const f = max > 0 ? this.scroller().scrollTop / max : 0;
               this.page = Math.round(f * (this.pageCount - 1));
+              this.notify();
+            },
+
+            // Paged flow: the user can flick the native pager to a
+            // different page; re-read it from the horizontal offset.
+            syncPagedPage() {
+              this.page = Math.round(this.scroller().scrollLeft / PW);
               this.notify();
             },
 

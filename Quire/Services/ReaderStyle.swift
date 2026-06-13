@@ -11,10 +11,11 @@ enum ReaderStyle {
 
     /// The stylesheet injected into every chapter document.
     ///
-    /// Paged flow lays the chapter out in viewport-wide CSS columns and
-    /// translates the body horizontally, one page per column. Scroll
-    /// flow leaves the document in normal vertical flow and lets the
-    /// scroll view move it.
+    /// Paged flow lays the chapter out in viewport-wide CSS columns that
+    /// overflow horizontally into the html element; turning a page
+    /// scrolls html to the next column (driven from Swift via the
+    /// scroll view, see ReaderController). Scroll flow leaves the
+    /// document in normal vertical flow and lets the scroll view move it.
     static func css(settings: ReaderSettings, pageWidth: Double,
                     pageHeight: Double, systemDark: Bool = false) -> String {
         let theme = settings.palette(systemDark: systemDark)
@@ -27,12 +28,15 @@ enum ReaderStyle {
         case .paged:
             layout = """
             html {
-                /* A real (programmatic) horizontal scroller: WebKit
+                /* The real (programmatic) horizontal scroller. WebKit
                    paints tiles around the scroll position, unlike a
-                   transformed body which can arrive blank. User
-                   panning stays disabled natively. */
+                   transformed body which can arrive blank. The body's
+                   columns overflow into here; html scrolls them and
+                   clips the vertical edge. User panning stays disabled
+                   natively. */
                 overflow-x: auto !important;
                 overflow-y: hidden !important;
+                height: \(pageHeight)px !important;
                 background: \(theme.backgroundHex) !important;
             }
             body {
@@ -40,9 +44,12 @@ enum ReaderStyle {
                 padding: \(topPadding)px \(margin)px \(bottomPadding)px !important;
                 box-sizing: border-box;
                 height: \(pageHeight)px !important;
-                width: auto !important;
+                width: \(pageWidth)px !important;
                 max-width: none !important;
-                overflow: hidden !important;
+                /* overflow must stay visible: the extra columns flow
+                   past the body box into html, which scrolls them. A
+                   hidden body would clip every page but the first. */
+                overflow: visible !important;
                 column-width: \(contentWidth)px;
                 column-gap: \(margin * 2)px;
                 column-fill: auto;

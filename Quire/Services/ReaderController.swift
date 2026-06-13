@@ -45,14 +45,24 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         self.transition = transition
 
         let configuration = WKWebViewConfiguration()
-        configuration.suppressesIncrementalRendering = true
+        // Incremental rendering must stay ON: suppressing it stops
+        // WebKit from rasterising the off-screen CSS columns, so a
+        // turned page arrives blank.
+        configuration.suppressesIncrementalRendering = false
         webView = HighlightingWebView(
             frame: CGRect(origin: .zero, size: pageSize),
             configuration: configuration
         )
-        webView.scrollView.isScrollEnabled = flow == .scroll
+        // Paged flow turns pages by scrolling the root scroller
+        // horizontally (a CSS transform leaves WebKit's off-screen
+        // tiles unpainted, so the next page arrives blank). The scroll
+        // view must stay enabled for the programmatic scroll to take
+        // effect, and paging snaps it to whole viewport-wide columns.
+        webView.scrollView.isScrollEnabled = true
+        webView.scrollView.isPagingEnabled = flow == .paged
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.showsHorizontalScrollIndicator = false
+        webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
         webView.isOpaque = false
         super.init()
 
@@ -100,7 +110,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         self.transition = transition
         webView.backgroundColor = backgroundColor
         webView.scrollView.backgroundColor = backgroundColor
-        webView.scrollView.isScrollEnabled = flow == .scroll
+        webView.scrollView.isPagingEnabled = flow == .paged
+        webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
         installUserScripts()
         webView.evaluateJavaScript(ReaderScripts.applyStyle(css: css))
         webView.evaluateJavaScript(
@@ -197,6 +208,19 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         }
     }
 
+    /// Native paging may settle the user on a different page than the
+    /// engine thinks; re-read it from the scroll position.
+    nonisolated func scrollViewDidEndDecelerating(
+        _ scrollView: UIScrollView
+    ) {
+        MainActor.assumeIsolated {
+            guard flow == .paged else { return }
+            webView.evaluateJavaScript(
+                "window.lumen && window.lumen.syncPagedPage()"
+            )
+        }
+    }
+
     // MARK: - Engine messages
 
     nonisolated func userContentController(
@@ -209,6 +233,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         let pageCount = body["pageCount"] as? Int ?? 1
         let zone = body["zone"] as? String
         let direction = body["direction"] as? String
+        let scrollX = body["x"] as? Double
+        let animate = body["animate"] as? Bool ?? false
 
         Task { @MainActor in
             switch type {
@@ -249,6 +275,15 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 if let zone { self.onTap?(zone) }
             case "swipe":
                 if let direction { self.onSwipe?(direction) }
+            case "scroll":
+                // The engine requests a horizontal page move; drive the
+                // native scroll view directly (reliable, unlike a JS
+                // scrollTo) so the destination page is actually painted.
+                if let scrollX {
+                    self.webView.scrollView.setContentOffset(
+                        CGPoint(x: scrollX, y: 0), animated: animate
+                    )
+                }
             default:
                 break
             }
