@@ -87,6 +87,7 @@
 		B4C5659588B5AAB59273494D /* EPUBFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBFixtures.swift; sourceTree = "<group>"; };
 		B8F0BA01774655AC7E582449 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C031A34847954312F90B7A59 /* LibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStoreTests.swift; sourceTree = "<group>"; };
+		C79B166BCF724AF224882335 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		D40510A413E24BDD3B749FEB /* sample.epub */ = {isa = PBXFileReference; path = sample.epub; sourceTree = "<group>"; };
 		DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		EF2480ED32FEEA5DD408B524 /* QuireTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -120,6 +121,7 @@
 			isa = PBXGroup;
 			children = (
 				4E597334C2D80601148CA89E /* Quire */,
+				A2D1418D537BE83C4B9687D5 /* quire */,
 				98F82F674CDD65189C2FE07A /* QuireTests */,
 				118110AF58B7F44005924017 /* QuireUITests */,
 				7B43C97A216C196A79649DDB /* Products */,
@@ -209,6 +211,15 @@
 				4C3B33F795BF7ED4AF30E154 /* SearchServiceTests.swift */,
 			);
 			path = QuireTests;
+			sourceTree = "<group>";
+		};
+		A2D1418D537BE83C4B9687D5 /* quire */ = {
+			isa = PBXGroup;
+			children = (
+				C79B166BCF724AF224882335 /* Signing.xcconfig */,
+			);
+			name = quire;
+			path = .;
 			sourceTree = "<group>";
 		};
 		CDEA9351ECF44F457BDE0616 /* Models */ = {
@@ -315,6 +326,9 @@
 				TargetAttributes = {
 					2DF71322D53F74965BDFD261 = {
 						TestTargetID = F7A882D2078409C78ACD2D31;
+					};
+					F7A882D2078409C78ACD2D31 = {
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -423,9 +437,9 @@
 /* Begin XCBuildConfiguration section */
 		0B16F6508C49F2D59F1FBC59 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C79B166BCF724AF224882335 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = Quire/Info.plist;
@@ -636,9 +650,9 @@
 		};
 		988F0D0BF2770ACD9C184768 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C79B166BCF724AF224882335 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = Quire/Info.plist;

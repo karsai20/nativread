@@ -6,3 +6,4 @@ build/
 .build/
 buildServer.json
 .compile
+Signing.xcconfig
