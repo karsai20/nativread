@@ -60,7 +60,10 @@ enum ReaderStyle {
             #lumen-eink {
                 position: fixed;
                 inset: 0;
-                background: \(theme.textHex);
+                /* A real e-ink full refresh flashes to black. Use the
+                   dark ink in every theme — in dark themes the text
+                   colour is light, which would flash white. */
+                background: \(theme.isDark ? "#000000" : theme.textHex);
                 opacity: 0;
                 pointer-events: none;
                 transition: opacity 60ms linear;

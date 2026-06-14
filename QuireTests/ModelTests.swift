@@ -340,6 +340,28 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(css.contains("#lumen-eink"))
     }
 
+    func testEinkFlashIsDarkInDarkThemeNotWhite() {
+        // In a dark theme the text colour is light; the e-ink flash must
+        // still be black, otherwise every page turn flashes white.
+        var dark = ReaderSettings()
+        dark.theme = .dusk
+        let darkCSS = ReaderStyle.css(
+            settings: dark, pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(darkCSS.contains("background: #000000"))
+        XCTAssertFalse(
+            darkCSS.contains("background: \(ReaderTheme.dusk.textHex)")
+        )
+
+        // Light theme keeps the dark ink text as the flash colour.
+        let lightCSS = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(
+            lightCSS.contains("background: \(ReaderTheme.paper.textHex)")
+        )
+    }
+
     func testEngineRevealsAtDOMContentLoadedWithFallback() {
         // Waiting for the full load event leaves the page blank while
         // a slow or missing image loads; the engine must start at

@@ -88,6 +88,12 @@ final class ReaderViewModel {
         }
     }
 
+    /// Persists any coalesced reading progress right away. Call when the
+    /// reader closes so the last scroll position is never lost.
+    func persistProgressNow() {
+        library.flushPendingSave()
+    }
+
     private func handleTap(zone: String) {
         switch zone {
         case "left":

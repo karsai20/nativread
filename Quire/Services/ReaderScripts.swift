@@ -251,13 +251,22 @@ enum ReaderScripts {
             },
 
             syncScrollPage() {
-              // Re-measure first: late font/image loads grow the
-              // document after the initial "ready" measurement.
-              this.layout();
+              // Hot path: runs while the user scrolls. Must NOT call
+              // layout() — reading scrollHeight forces a synchronous
+              // reflow every frame and makes scrolling stutter. The
+              // page count only changes on resize/late-load, which call
+              // remeasureScroll() instead.
               const max = this.maxScroll();
               const f = max > 0 ? this.scroller().scrollTop / max : 0;
               this.page = Math.round(f * (this.pageCount - 1));
               this.notify();
+            },
+
+            // Re-measure the document (late font/image loads grow it),
+            // then resync. Called on resize/load, never per scroll frame.
+            remeasureScroll() {
+              this.layout();
+              this.syncScrollPage();
             },
 
             // Paged flow: the user can flick the native pager to a
@@ -380,21 +389,27 @@ enum ReaderScripts {
           window.lumen = lumen;
 
           if (MODE === "scroll") {
-            let ticking = false;
+            // Throttle progress reporting: notifying Swift on every
+            // scroll frame floods the bridge and (via progress saving)
+            // stutters the scroll. ~5×/s while moving + once at rest is
+            // plenty for the progress bar.
+            let lastNotify = 0;
+            let restTimer = null;
             window.addEventListener("scroll", () => {
-              if (ticking) { return; }
-              ticking = true;
-              requestAnimationFrame(() => {
-                ticking = false;
+              const now = performance.now();
+              if (now - lastNotify >= 200) {
+                lastNotify = now;
                 lumen.syncScrollPage();
-              });
+              }
+              clearTimeout(restTimer);
+              restTimer = setTimeout(() => lumen.syncScrollPage(), 160);
             }, { passive: true });
             window.addEventListener("resize", () => {
-              lumen.syncScrollPage();
+              lumen.remeasureScroll();
             });
             // Late layout settle (web fonts, images) shifts heights;
             // re-measure once things calm down.
-            setTimeout(() => { lumen.syncScrollPage(); }, 350);
+            setTimeout(() => { lumen.remeasureScroll(); }, 350);
           }
 
           // Gestures live in the page so native text selection can

@@ -53,6 +53,9 @@ struct ReaderView: View {
                 viewModel.activeSheet = .typography
             }
         }
+        .onDisappear {
+            viewModel.persistProgressNow()
+        }
         .sheet(item: $viewModel.activeSheet) { sheet in
             switch sheet {
             case .contents:

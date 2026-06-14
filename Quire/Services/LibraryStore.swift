@@ -133,6 +133,31 @@ final class LibraryStore {
         )
         book.lastOpenedAt = .now
         books[index] = book
+        // In scroll mode progress updates fire on every scroll frame;
+        // writing the whole library JSON to disk each time makes
+        // scrolling stutter. Coalesce the writes — persist once the
+        // scroll settles (and on reader teardown via flushPendingSave).
+        scheduleProgressSave()
+    }
+
+    private var pendingProgressSave: DispatchWorkItem?
+
+    private func scheduleProgressSave() {
+        pendingProgressSave?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.pendingProgressSave = nil
+            self?.save()
+        }
+        pendingProgressSave = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+    }
+
+    /// Persists any pending coalesced progress immediately. Call when
+    /// the reader closes or the app backgrounds so no position is lost.
+    func flushPendingSave() {
+        guard pendingProgressSave != nil else { return }
+        pendingProgressSave?.cancel()
+        pendingProgressSave = nil
         save()
     }
 
