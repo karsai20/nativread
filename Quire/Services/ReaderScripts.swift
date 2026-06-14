@@ -446,6 +446,17 @@ enum ReaderScripts {
               pageCount: lumen.pageCount
             });
           };
+          // Re-measure after layout-affecting resources settle. External
+          // stylesheets and web fonts (which the synthetic sample never
+          // had) apply after our initial reveal and change the column
+          // count, so pageCount and the scrollable width must be
+          // recomputed while keeping the reading position.
+          const remeasure = () => {
+            if (!started) { start(); return; }
+            const f = lumen.fraction();
+            lumen.layout();
+            lumen.goToFraction(f, false);
+          };
           if (document.readyState !== "loading") {
             requestAnimationFrame(start);
           } else {
@@ -453,16 +464,20 @@ enum ReaderScripts {
               requestAnimationFrame(start);
             });
           }
-          // Late resources (images, fonts) change the layout: once
-          // everything arrived, re-measure but keep the position.
           window.addEventListener("load", () => {
-            requestAnimationFrame(() => {
-              if (!started) { start(); return; }
-              const f = lumen.fraction();
-              lumen.layout();
-              lumen.goToFraction(f, false);
-            });
+            requestAnimationFrame(remeasure);
           });
+          // Web fonts swap metrics in after load; recompute when ready.
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => requestAnimationFrame(remeasure));
+          }
+          // Linked stylesheets may apply after first paint.
+          document.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+            l.addEventListener("load", () => requestAnimationFrame(remeasure));
+          });
+          // Settle ticks for anything else (late images, slow CSSOM).
+          setTimeout(remeasure, 300);
+          setTimeout(remeasure, 900);
           // Belt and braces: never leave the page hidden.
           setTimeout(start, 1500);
         })();

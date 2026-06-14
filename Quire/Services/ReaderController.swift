@@ -239,6 +239,10 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         Task { @MainActor in
             switch type {
             case "ready":
+                // Reset the scroll position before revealing so a stale
+                // offset left by the previous chapter can never flash an
+                // empty page; goToFraction below sets the precise target.
+                self.webView.scrollView.setContentOffset(.zero, animated: false)
                 if let locate = self.pendingLocate {
                     self.pendingLocate = nil
                     self.pendingFraction = nil

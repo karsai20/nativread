@@ -113,12 +113,16 @@ enum ReaderStyle {
             text-align: left;
             break-after: avoid;
         }
-        img, svg, video {
+        img, svg, image, picture, video, object, .calibre1, .calibre2 {
+            display: block !important;
+            width: auto !important;
+            height: auto !important;
             max-width: \(contentWidth)px !important;
             max-height: \(textHeight)px !important;
-            height: auto !important;
-            object-fit: contain;
+            object-fit: contain !important;
             break-inside: avoid;
+            margin-left: auto !important;
+            margin-right: auto !important;
         }
         a { color: \(theme.accentHex) !important; text-decoration: none; }
         blockquote {

@@ -138,6 +138,21 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(css.contains("text-align: left"))
     }
 
+    func testReaderStyleNeutralizesPublisherMediaSizing() {
+        // Real EPUBs (e.g. calibre) pin images to fixed pt sizes that
+        // break column pagination; our reset must force them to fit one
+        // column with !important so a publisher rule can't win.
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains("object-fit: contain !important"))
+        XCTAssertTrue(css.contains("max-height: 676.0px !important"))
+        XCTAssertTrue(css.contains("height: auto !important"))
+        // Common calibre image classes are explicitly targeted.
+        XCTAssertTrue(css.contains(".calibre1"))
+        XCTAssertTrue(css.contains(".calibre2"))
+    }
+
     // MARK: - Hex blending
 
     func testBlendHexZeroAmountReturnsBase() {
