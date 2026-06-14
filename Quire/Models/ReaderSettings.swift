@@ -39,7 +39,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .paper: return "#8A8070"
         case .sepia: return "#94805F"
         case .dusk: return "#7C7F88"
-        case .ink: return "#5E5E5E"
+        case .ink: return "#6E6E6E"
         }
     }
 
@@ -49,6 +49,28 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#8F4B26"
         case .dusk: return "#D08770"
         case .ink: return "#B3552F"
+        }
+    }
+
+    /// Slightly raised fill vs the page background, for grouped wells.
+    var surfaceHex: String {
+        Color.blendHex(backgroundHex, toward: textHex, amount: isDark ? 0.10 : 0.05)
+    }
+    /// A touch more lift than `surface`, for cards / selected wells.
+    var surfaceRaisedHex: String {
+        Color.blendHex(backgroundHex, toward: textHex, amount: isDark ? 0.16 : 0.08)
+    }
+    /// Hairline divider / stroke colour.
+    var hairlineHex: String {
+        Color.blendHex(backgroundHex, toward: textHex, amount: isDark ? 0.20 : 0.12)
+    }
+    /// Shadow strength tuned per theme: pure-black ink needs the strongest.
+    var shadowOpacity: Double {
+        switch self {
+        case .paper: return 0.10
+        case .sepia: return 0.12
+        case .dusk:  return 0.30
+        case .ink:   return 0.42
         }
     }
 
@@ -63,6 +85,9 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
     var text: Color { Color(hex: textHex) }
     var secondaryText: Color { Color(hex: secondaryTextHex) }
     var accent: Color { Color(hex: accentHex) }
+    var surface: Color { Color(hex: surfaceHex) }
+    var surfaceRaised: Color { Color(hex: surfaceRaisedHex) }
+    var hairline: Color { Color(hex: hairlineHex) }
 }
 
 enum ReaderFont: String, Codable, CaseIterable, Identifiable {
@@ -155,12 +180,19 @@ struct ReaderPalette: Equatable {
     let textHex: String
     let secondaryTextHex: String
     let accentHex: String
+    let surfaceHex: String
+    let surfaceRaisedHex: String
+    let hairlineHex: String
+    let shadowOpacity: Double
     let isDark: Bool
 
     var background: Color { Color(hex: backgroundHex) }
     var text: Color { Color(hex: textHex) }
     var secondaryText: Color { Color(hex: secondaryTextHex) }
     var accent: Color { Color(hex: accentHex) }
+    var surface: Color { Color(hex: surfaceHex) }
+    var surfaceRaised: Color { Color(hex: surfaceRaisedHex) }
+    var hairline: Color { Color(hex: hairlineHex) }
 }
 
 struct ReaderSettings: Codable, Equatable {
@@ -203,6 +235,10 @@ struct ReaderSettings: Codable, Equatable {
                 textHex: theme.textHex,
                 secondaryTextHex: theme.secondaryTextHex,
                 accentHex: theme.accentHex,
+                surfaceHex: theme.surfaceHex,
+                surfaceRaisedHex: theme.surfaceRaisedHex,
+                hairlineHex: theme.hairlineHex,
+                shadowOpacity: theme.shadowOpacity,
                 isDark: theme.isDark
             )
         }
@@ -220,6 +256,12 @@ struct ReaderSettings: Codable, Equatable {
                 theme.secondaryTextHex, cap: Self.inkWarmthCap
             ),
             accentHex: theme.accentHex,
+            surfaceHex: warmed(theme.surfaceHex, cap: Self.backgroundWarmthCap),
+            surfaceRaisedHex: warmed(
+                theme.surfaceRaisedHex, cap: Self.backgroundWarmthCap
+            ),
+            hairlineHex: warmed(theme.hairlineHex, cap: Self.backgroundWarmthCap),
+            shadowOpacity: theme.shadowOpacity,
             isDark: theme.isDark
         )
     }

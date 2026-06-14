@@ -21,6 +21,7 @@
 		5B1DCF06B39E6C83D9239C1C /* ContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56309681233397AEF5704C74 /* ContentsSheet.swift */; };
 		619FADE287E7D3D3CB57AD11 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 774E5C38AA7E9F14D2A9B166 /* ZIPFoundation */; };
 		66D8778BB22A24DF06C92822 /* ReaderController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F74D253587A86E58E5C814A /* ReaderController.swift */; };
+		6D024FB0732977B37CBBED6B /* ReaderControlStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51D7D489211623C2240C0B12 /* ReaderControlStyle.swift */; };
 		7D0B409F6F37B58722D84AC3 /* ReaderWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */; };
 		861E966ACB7EB33CC6274E28 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B43F51DEC0F47BA2A7F4D5A /* Color+Hex.swift */; };
 		8A4202AB7702325067826A43 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FBBD281EC2BE60E0D32A72 /* LibraryView.swift */; };
@@ -65,7 +66,7 @@
 		0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderWebView.swift; sourceTree = "<group>"; };
 		188A0565F753A8D4215E34A3 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		19A45D4CDE613BF4F2B29685 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		27FFBB928F332DE63E65B6CD /* sample-nocover.epub */ = {isa = PBXFileReference; lastKnownFileType = file; path = "sample-nocover.epub"; sourceTree = "<group>"; };
+		27FFBB928F332DE63E65B6CD /* sample-nocover.epub */ = {isa = PBXFileReference; path = "sample-nocover.epub"; sourceTree = "<group>"; };
 		2B43F51DEC0F47BA2A7F4D5A /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		2F13FDA990500EC6E8E97D12 /* ReaderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewModel.swift; sourceTree = "<group>"; };
 		34635843787B1D27D403CF42 /* TypographyPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypographyPanel.swift; sourceTree = "<group>"; };
@@ -74,6 +75,7 @@
 		4C3B33F795BF7ED4AF30E154 /* SearchServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchServiceTests.swift; sourceTree = "<group>"; };
 		4FA18B541E30B03F8E3B6AC4 /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		5087F58DEF2E05C7EF5998CA /* EPUBXMLDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBXMLDelegates.swift; sourceTree = "<group>"; };
+		51D7D489211623C2240C0B12 /* ReaderControlStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderControlStyle.swift; sourceTree = "<group>"; };
 		53FBBD281EC2BE60E0D32A72 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		56309681233397AEF5704C74 /* ContentsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentsSheet.swift; sourceTree = "<group>"; };
 		6140C42FA31E43791B71B866 /* EPUBParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBParserTests.swift; sourceTree = "<group>"; };
@@ -88,12 +90,12 @@
 		B8F0BA01774655AC7E582449 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C031A34847954312F90B7A59 /* LibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStoreTests.swift; sourceTree = "<group>"; };
 		C79B166BCF724AF224882335 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
-		D40510A413E24BDD3B749FEB /* sample.epub */ = {isa = PBXFileReference; lastKnownFileType = file; path = sample.epub; sourceTree = "<group>"; };
+		D40510A413E24BDD3B749FEB /* sample.epub */ = {isa = PBXFileReference; path = sample.epub; sourceTree = "<group>"; };
 		DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		EF2480ED32FEEA5DD408B524 /* QuireTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F704CEEB43F0BDCC920E1395 /* EPUBModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBModels.swift; sourceTree = "<group>"; };
 		F97A08937ECCA54D98F5CBDD /* EPUBParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBParser.swift; sourceTree = "<group>"; };
-		FDF232EFA3AE3D93C15B8218 /* Quire.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Quire.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FDF232EFA3AE3D93C15B8218 /* Quire.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Quire.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FF7C696BB6959D08083ADE8D /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -155,6 +157,7 @@
 			isa = PBXGroup;
 			children = (
 				56309681233397AEF5704C74 /* ContentsSheet.swift */,
+				51D7D489211623C2240C0B12 /* ReaderControlStyle.swift */,
 				3A0D53D56C0A6FF6F59A0A4D /* ReaderView.swift */,
 				2F13FDA990500EC6E8E97D12 /* ReaderViewModel.swift */,
 				0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */,
@@ -385,6 +388,7 @@
 				8E234F3AC96F07336ADF2ADF /* LibraryStore.swift in Sources */,
 				8A4202AB7702325067826A43 /* LibraryView.swift in Sources */,
 				96DAD68A313347EA23206E92 /* QuireApp.swift in Sources */,
+				6D024FB0732977B37CBBED6B /* ReaderControlStyle.swift in Sources */,
 				66D8778BB22A24DF06C92822 /* ReaderController.swift in Sources */,
 				48E41311BA571595DB39BC0E /* ReaderScripts.swift in Sources */,
 				9494D848A0A4DFCADE87E721 /* ReaderSettings.swift in Sources */,
@@ -442,7 +446,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 734NXGG7N6;
 				INFOPLIST_FILE = Quire/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -656,7 +659,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 734NXGG7N6;
 				INFOPLIST_FILE = Quire/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

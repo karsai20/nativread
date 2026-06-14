@@ -31,7 +31,7 @@ struct SearchSheet: View {
             .padding(12)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(palette.text.opacity(0.06))
+                    .fill(palette.surface)
             )
             .padding(.horizontal, 20)
             .padding(.top, 20)

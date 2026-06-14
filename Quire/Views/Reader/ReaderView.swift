@@ -235,7 +235,10 @@ struct ReaderView: View {
     private var chromeBackground: some View {
         palette.background
             .opacity(0.94)
-            .overlay(palette.text.opacity(0.04))
+            .overlay(palette.surface.opacity(0.5))
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(palette.hairline).frame(height: 1)
+            }
             .ignoresSafeArea()
     }
 

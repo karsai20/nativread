@@ -11,6 +11,7 @@ struct TypographyPanel: View {
     }
 
     @State private var brightness = UIScreen.main.brightness
+    @State private var showMore = false
 
     var body: some View {
         ScrollView {
@@ -23,7 +24,9 @@ struct TypographyPanel: View {
         }
         .foregroundStyle(palette.text)
         .background(palette.background.ignoresSafeArea())
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(320), .large])
+        .presentationBackgroundInteraction(.enabled(upThrough: .height(320)))
+        .presentationContentInteraction(.scrolls)
         .presentationDragIndicator(.hidden)
     }
 
@@ -32,72 +35,103 @@ struct TypographyPanel: View {
         Group {
             grabber
 
+            sizeRow
+                .panelCard(palette: palette)
+
             themeRow
-
-            autoThemeToggle
-
-            divider
 
             comfortSection
 
-            divider
+            moreDisclosure
+        }
+    }
 
-            flowRow
-            if settings.pageFlow == .paged {
-                transitionRow
-            }
-
-            divider
-
-            fontList
-
-            divider
-
-            sizeRow
-
-            sliderRow(
-                icon: "arrow.up.and.down.text.horizontal",
-                label: "Line spacing",
-                value: settings.lineHeight,
-                range: ReaderSettings.lineHeightRange,
-                step: 0.05
-            ) { newValue in
-                viewModel.updateSettings { current in
-                    var next = current
-                    next.lineHeight = newValue
-                    return next
+    private var moreDisclosure: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showMore.toggle() }
+            } label: {
+                HStack {
+                    Label("More options", systemImage: "slider.horizontal.3")
+                        .font(.system(size: 15))
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .rotationEffect(.degrees(showMore ? 180 : 0))
+                        .foregroundStyle(palette.secondaryText)
                 }
-            }
-
-            sliderRow(
-                icon: "rectangle.compress.vertical",
-                label: "Margins",
-                value: settings.horizontalMargin,
-                range: ReaderSettings.marginRange,
-                step: 2
-            ) { newValue in
-                viewModel.updateSettings { current in
-                    var next = current
-                    next.horizontalMargin = newValue
-                    return next
-                }
-            }
-
-            Toggle(isOn: Binding(
-                get: { settings.isJustified },
-                set: { newValue in
-                    viewModel.updateSettings { current in
-                        var next = current
-                        next.isJustified = newValue
-                        return next
-                    }
-                }
-            )) {
-                Label("Justified text", systemImage: "text.justify")
-                    .font(.system(size: 15))
+                .contentShape(Rectangle())
             }
             .tint(palette.accent)
+            .foregroundStyle(palette.text)
+            .accessibilityIdentifier("panel.more")
+
+            if showMore {
+                VStack(alignment: .leading, spacing: 22) {
+                    autoThemeToggle
+                    divider
+                    fontList
+                    divider
+                    lineSpacingSlider
+                    marginsSlider
+                    justifiedToggle
+                    divider
+                    flowRow
+                    if settings.pageFlow == .paged {
+                        transitionRow
+                    }
+                }
+            }
         }
+    }
+
+    private var lineSpacingSlider: some View {
+        sliderRow(
+            icon: "arrow.up.and.down.text.horizontal",
+            label: "Line spacing",
+            value: settings.lineHeight,
+            range: ReaderSettings.lineHeightRange,
+            step: 0.05
+        ) { newValue in
+            viewModel.updateSettings { current in
+                var next = current
+                next.lineHeight = newValue
+                return next
+            }
+        }
+    }
+
+    private var marginsSlider: some View {
+        sliderRow(
+            icon: "rectangle.compress.vertical",
+            label: "Margins",
+            value: settings.horizontalMargin,
+            range: ReaderSettings.marginRange,
+            step: 2
+        ) { newValue in
+            viewModel.updateSettings { current in
+                var next = current
+                next.horizontalMargin = newValue
+                return next
+            }
+        }
+    }
+
+    private var justifiedToggle: some View {
+        Toggle(isOn: Binding(
+            get: { settings.isJustified },
+            set: { newValue in
+                viewModel.updateSettings { current in
+                    var next = current
+                    next.isJustified = newValue
+                    return next
+                }
+            }
+        )) {
+            Label("Justified text", systemImage: "text.justify")
+                .font(.system(size: 15))
+        }
+        .tint(palette.accent)
     }
 
     // MARK: - Reading flow
@@ -116,20 +150,10 @@ struct TypographyPanel: View {
                         .font(.system(size: 14, weight: .medium))
                         .frame(maxWidth: .infinity, minHeight: 38)
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(candidate == settings.pageFlow
-                            ? palette.accent.opacity(0.16)
-                            : palette.text.opacity(0.05))
+                .segmentedWell(
+                    isSelected: candidate == settings.pageFlow,
+                    palette: palette
                 )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(candidate == settings.pageFlow
-                            ? palette.accent
-                            : palette.text.opacity(0.1))
-                )
-                .foregroundStyle(candidate == settings.pageFlow
-                    ? palette.accent : palette.text)
                 .accessibilityIdentifier("flow.\(candidate.rawValue)")
             }
         }
@@ -154,18 +178,10 @@ struct TypographyPanel: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                 }
-                .background(
-                    Capsule().fill(candidate == settings.pageTransition
-                        ? palette.accent.opacity(0.16) : .clear)
+                .capsulePill(
+                    isSelected: candidate == settings.pageTransition,
+                    palette: palette
                 )
-                .overlay(
-                    Capsule().strokeBorder(
-                        candidate == settings.pageTransition
-                            ? palette.accent
-                            : palette.text.opacity(0.12))
-                )
-                .foregroundStyle(candidate == settings.pageTransition
-                    ? palette.accent : palette.secondaryText)
                 .accessibilityIdentifier(
                     "transition.\(candidate.rawValue)")
             }
@@ -231,7 +247,7 @@ struct TypographyPanel: View {
     }
 
     private var divider: some View {
-        Rectangle().fill(palette.text.opacity(0.08)).frame(height: 1)
+        Rectangle().fill(palette.hairline).frame(height: 1)
     }
 
     // MARK: - Theme swatches
@@ -314,37 +330,42 @@ struct TypographyPanel: View {
     // MARK: - Size
 
     private var sizeRow: some View {
-        HStack(spacing: 0) {
-            Button {
-                adjustFontSize(by: -1)
-            } label: {
-                Text("A")
-                    .font(.system(size: 15, design: .serif))
-                    .frame(maxWidth: .infinity, minHeight: 40)
+        VStack(spacing: 10) {
+            HStack {
+                Label("Text size", systemImage: "textformat.size")
+                    .font(.system(size: 13))
+                    .foregroundStyle(palette.secondaryText)
+                Spacer()
+                Text("\(Int(settings.fontSize.rounded())) pt")
+                    .font(.system(size: 13, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(palette.secondaryText)
             }
-            .accessibilityIdentifier("fontsize.down")
+            HStack(spacing: 0) {
+                Button {
+                    adjustFontSize(by: -1)
+                } label: {
+                    Text("A")
+                        .font(.system(size: 15, design: .serif))
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                }
+                .accessibilityIdentifier("fontsize.down")
 
-            Rectangle()
-                .fill(palette.text.opacity(0.1))
-                .frame(width: 1, height: 22)
+                Rectangle()
+                    .fill(palette.hairline)
+                    .frame(width: 1, height: 22)
 
-            Button {
-                adjustFontSize(by: 1)
-            } label: {
-                Text("A")
-                    .font(.system(size: 24, design: .serif))
-                    .frame(maxWidth: .infinity, minHeight: 40)
+                Button {
+                    adjustFontSize(by: 1)
+                } label: {
+                    Text("A")
+                        .font(.system(size: 24, design: .serif))
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                }
+                .accessibilityIdentifier("fontsize.up")
             }
-            .accessibilityIdentifier("fontsize.up")
+            .segmentedWell(isSelected: false, palette: palette)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(palette.text.opacity(0.05))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .strokeBorder(palette.text.opacity(0.1))
-        )
     }
 
     private func adjustFontSize(by delta: Double) {

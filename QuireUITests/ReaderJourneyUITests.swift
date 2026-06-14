@@ -195,11 +195,19 @@ final class ReaderJourneyUITests: XCTestCase {
     /// the accessibility hierarchy.
     private func expandTypographyPanel() {
         app.buttons["reader.typography"].tap()
-        // Toggles surface as switches in the accessibility tree.
-        XCTAssertTrue(
-            app.switches["theme.auto"].waitForExistence(timeout: 6)
-        )
-        app.swipeUp(velocity: .fast)
+        // Size control is top-level and always present.
+        XCTAssertTrue(app.buttons["fontsize.up"].waitForExistence(timeout: 6))
+        // Open "More" to surface secondary controls into the a11y tree.
+        let more = app.buttons["panel.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 6))
+        let auto = app.switches["theme.auto"]
+        // Tapping "More" expands the secondary controls. Retry the tap if
+        // the disclosure has not surfaced the auto-theme switch yet.
+        for _ in 0..<3 where !auto.exists {
+            more.tap()
+            _ = auto.waitForExistence(timeout: 2)
+        }
+        XCTAssertTrue(auto.waitForExistence(timeout: 6))
     }
 
     func testFlowAndTransitionPickersPersist() {
