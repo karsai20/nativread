@@ -90,6 +90,15 @@ struct VocabularyView: View {
                         Label("Markdown", systemImage: "doc.richtext")
                     }
                 }
+                if let url = ankiExportURL() {
+                    ShareLink(item: url) {
+                        Label(
+                            "Anki deck (.apkg)",
+                            systemImage: "rectangle.stack.badge.plus"
+                        )
+                    }
+                    .accessibilityIdentifier("vocabulary.export.anki")
+                }
             } label: {
                 Label("Export", systemImage: "square.and.arrow.up")
                     .font(.system(size: 13, weight: .semibold))
@@ -233,6 +242,13 @@ struct VocabularyView: View {
         } catch {
             return nil
         }
+    }
+
+    /// Builds a native Anki `.apkg` deck from the saved words and returns
+    /// its temp-file URL for the share sheet, or nil if generation fails —
+    /// so a failure simply hides the option rather than crashing.
+    private func ankiExportURL() -> URL? {
+        try? AnkiPackage.build(for: store.entries)
     }
 }
 

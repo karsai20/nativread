@@ -28,6 +28,7 @@
 		4591FA3CA6CB15970EF1F68E /* CrimsonPro-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 76307C46B1F1D9D062453A36 /* CrimsonPro-VariableFont_wght.ttf */; };
 		48E41311BA571595DB39BC0E /* ReaderScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0447F85F8A550D54F87D3079 /* ReaderScripts.swift */; };
 		4A141469CCA9BE8F2BA8F392 /* LaunchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637179DBC3A639B96BBFD57E /* LaunchView.swift */; };
+		52922A9C7BE9A50657650D51 /* AnkiPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB736DFA6C961E106883B79B /* AnkiPackage.swift */; };
 		568D223C01421604B7DAAA23 /* enhu.idx in Resources */ = {isa = PBXBuildFile; fileRef = 4D24877E7FF0C225E4D13D0F /* enhu.idx */; };
 		56A40DAB6E1305063ED30DF1 /* DefineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7460C2E6C832007CFA3502 /* DefineView.swift */; };
 		596DC004058F200953A0F980 /* SkeletonLines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490831D6F8DBD0DF5A5BA174 /* SkeletonLines.swift */; };
@@ -40,6 +41,7 @@
 		69AEE385314778B72B5CD9DD /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0D6A43F40272AA818F1EAE2B /* OFL.txt */; };
 		6AE2E1AD67D0A92509E662D6 /* VocabularyStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2CF1EA6C67FD7501BCA469C /* VocabularyStoreTests.swift */; };
 		6D024FB0732977B37CBBED6B /* ReaderControlStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51D7D489211623C2240C0B12 /* ReaderControlStyle.swift */; };
+		77F311726108F9CB11A74AA7 /* AnkiPackageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F45AC419015983E1F380910B /* AnkiPackageTests.swift */; };
 		7D0B409F6F37B58722D84AC3 /* ReaderWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */; };
 		819A8136CBF9265E29E9EFF2 /* wordnet.ifo in Resources */ = {isa = PBXBuildFile; fileRef = E6546809B16532ED3140823C /* wordnet.ifo */; };
 		8253F42C72C501DBDE9C1A92 /* CormorantGaramond-Italic-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C291905C45300F569EBA9716 /* CormorantGaramond-Italic-VariableFont_wght.ttf */; };
@@ -164,6 +166,7 @@
 		C291905C45300F569EBA9716 /* CormorantGaramond-Italic-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantGaramond-Italic-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		C79B166BCF724AF224882335 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		D40510A413E24BDD3B749FEB /* sample.epub */ = {isa = PBXFileReference; path = sample.epub; sourceTree = "<group>"; };
+		DB736DFA6C961E106883B79B /* AnkiPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnkiPackage.swift; sourceTree = "<group>"; };
 		DD7460C2E6C832007CFA3502 /* DefineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefineView.swift; sourceTree = "<group>"; };
 		DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		E2BC902B6449B00308B89715 /* DictionaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryService.swift; sourceTree = "<group>"; };
@@ -173,6 +176,7 @@
 		EF2480ED32FEEA5DD408B524 /* QuireTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F09D28B6C8F687332F3FEE10 /* CormorantGaramond-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantGaramond-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		F1FEF220A7C972496821D0EF /* DictionaryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryProvider.swift; sourceTree = "<group>"; };
+		F45AC419015983E1F380910B /* AnkiPackageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnkiPackageTests.swift; sourceTree = "<group>"; };
 		F704CEEB43F0BDCC920E1395 /* EPUBModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBModels.swift; sourceTree = "<group>"; };
 		F97A08937ECCA54D98F5CBDD /* EPUBParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBParser.swift; sourceTree = "<group>"; };
 		FDF232EFA3AE3D93C15B8218 /* Quire.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Quire.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -343,6 +347,7 @@
 		98F82F674CDD65189C2FE07A /* QuireTests */ = {
 			isa = PBXGroup;
 			children = (
+				F45AC419015983E1F380910B /* AnkiPackageTests.swift */,
 				7383221025EC458911953CA3 /* DefinitionFormatterTests.swift */,
 				42675B56181E1EFBB42B9130 /* DictionaryProviderTests.swift */,
 				746CBD8F34F5545219500974 /* DictionaryServiceTests.swift */,
@@ -415,6 +420,7 @@
 		D546506AC66A8596CE3FA588 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				DB736DFA6C961E106883B79B /* AnkiPackage.swift */,
 				F1FEF220A7C972496821D0EF /* DictionaryProvider.swift */,
 				E2BC902B6449B00308B89715 /* DictionaryService.swift */,
 				38676A783C1443976CC05FC0 /* Gunzip.swift */,
@@ -574,6 +580,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				52922A9C7BE9A50657650D51 /* AnkiPackage.swift in Sources */,
 				E98B6EC9A25D3D46316D9786 /* Book.swift in Sources */,
 				238C7EDAAE8329A8C1B7252A /* BookCard.swift in Sources */,
 				861E966ACB7EB33CC6274E28 /* Color+Hex.swift in Sources */,
@@ -630,6 +637,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				77F311726108F9CB11A74AA7 /* AnkiPackageTests.swift in Sources */,
 				D38CDC96D7EC34155B3FB87D /* DefinitionFormatterTests.swift in Sources */,
 				FBE514C4BF6D8DFFEFF6E548 /* DictionaryProviderTests.swift in Sources */,
 				C2951E154B7CC48E3537CDAA /* DictionaryServiceTests.swift in Sources */,
@@ -677,7 +685,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz";
+				OTHER_LDFLAGS = "-lz -lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.quire;
 				PRODUCT_NAME = Quire;
 				SDKROOT = iphoneos;
@@ -891,7 +899,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz";
+				OTHER_LDFLAGS = "-lz -lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.quire;
 				PRODUCT_NAME = Quire;
 				SDKROOT = iphoneos;

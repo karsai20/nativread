@@ -326,6 +326,13 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         XCTAssertTrue(app.buttons["CSV (Cloze)"].exists)
         XCTAssertTrue(app.buttons["Markdown"].exists)
+        // The native Anki deck export is offered alongside CSV/Markdown.
+        XCTAssertTrue(app.buttons["vocabulary.export.anki"].exists)
+
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "vocabulary-export-menu"
+        shot.lifetime = .keepAlways
+        add(shot)
     }
 
     func testBookmarkToggle() {
