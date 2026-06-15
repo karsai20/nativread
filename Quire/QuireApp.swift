@@ -5,6 +5,7 @@ struct QuireApp: App {
     @State private var library: LibraryStore
     @State private var settingsStore: SettingsStore
     @State private var statsStore: StatsStore
+    @State private var dictionaryProvider = DictionaryProvider()
 
     init() {
         let store = LibraryStore()
@@ -25,6 +26,11 @@ struct QuireApp: App {
                 .environment(library)
                 .environment(settingsStore)
                 .environment(statsStore)
+                .environment(dictionaryProvider)
+                .task {
+                    // Load dictionaries in the background; never block launch.
+                    await dictionaryProvider.prepare()
+                }
                 .onOpenURL { url in
                     try? library.importBook(from: url)
                 }
