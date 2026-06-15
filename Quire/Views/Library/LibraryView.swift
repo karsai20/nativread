@@ -5,11 +5,13 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settingsStore
+    @Environment(StatsStore.self) private var statsStore
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var isImporterPresented = false
     @State private var openBook: Book?
     @State private var importError: String?
+    @State private var isStatsPresented = false
 
     /// The shelf chrome follows the active reading theme so the library
     /// and the reader feel like one continuous surface.
@@ -52,8 +54,16 @@ struct LibraryView: View {
         }
         .fullScreenCover(item: $openBook) { book in
             ReaderView(
-                book: book, library: library, settingsStore: settingsStore
+                book: book,
+                library: library,
+                settingsStore: settingsStore,
+                statsStore: statsStore
             )
+        }
+        .sheet(isPresented: $isStatsPresented) {
+            StatsView()
+                .environment(statsStore)
+                .environment(settingsStore)
         }
         .alert(
             "Import failed",
@@ -131,8 +141,27 @@ struct LibraryView: View {
                 .foregroundStyle(palette.secondaryText)
             }
             Spacer()
-            importButton
+            HStack(spacing: 12) {
+                statsButton
+                importButton
+            }
         }
+    }
+
+    private var statsButton: some View {
+        Button {
+            isStatsPresented = true
+        } label: {
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(palette.accent)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle().fill(palette.surface)
+                )
+        }
+        .accessibilityIdentifier("library.stats")
+        .accessibilityLabel("Reading statistics")
     }
 
     private var importButton: some View {

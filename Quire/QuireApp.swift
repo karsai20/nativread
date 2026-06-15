@@ -4,6 +4,7 @@ import SwiftUI
 struct QuireApp: App {
     @State private var library: LibraryStore
     @State private var settingsStore: SettingsStore
+    @State private var statsStore: StatsStore
 
     init() {
         let store = LibraryStore()
@@ -15,6 +16,7 @@ struct QuireApp: App {
         let settings = SettingsStore()
         Self.applyThemeArgument(to: settings)
         _settingsStore = State(initialValue: settings)
+        _statsStore = State(initialValue: StatsStore())
     }
 
     var body: some Scene {
@@ -22,6 +24,7 @@ struct QuireApp: App {
             LibraryView()
                 .environment(library)
                 .environment(settingsStore)
+                .environment(statsStore)
                 .onOpenURL { url in
                     try? library.importBook(from: url)
                 }

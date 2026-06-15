@@ -15,7 +15,12 @@ final class ReaderViewModel {
     let bookID: UUID
     private let library: LibraryStore
     private let settingsStore: SettingsStore
+    private let statsStore: StatsStore
     let controller: ReaderController
+
+    /// Timestamp the current reading session began; nil while no session
+    /// is active. Set on `open()`, consumed on `persistProgressNow()`.
+    private var sessionStart: Date?
 
     private(set) var parsed: ParsedEPUB?
     private(set) var spineIndex = 0
@@ -44,11 +49,13 @@ final class ReaderViewModel {
         book: Book,
         library: LibraryStore,
         settingsStore: SettingsStore,
+        statsStore: StatsStore,
         pageSize: CGSize
     ) {
         self.bookID = book.id
         self.library = library
         self.settingsStore = settingsStore
+        self.statsStore = statsStore
         self.extractedRoot = library.extractedRoot(for: book)
         self.controller = ReaderController(
             pageSize: pageSize,
@@ -88,10 +95,17 @@ final class ReaderViewModel {
         }
     }
 
-    /// Persists any coalesced reading progress right away. Call when the
-    /// reader closes so the last scroll position is never lost.
+    /// Persists any coalesced reading progress right away and records the
+    /// elapsed reading time. Call when the reader closes so neither the
+    /// last scroll position nor the session's time is lost. The
+    /// `StatsStore` ignores non-positive durations and clamps absurd ones
+    /// (e.g. an app left open overnight).
     func persistProgressNow() {
         library.flushPendingSave()
+        if let start = sessionStart {
+            statsStore.record(seconds: Date().timeIntervalSince(start))
+            sessionStart = nil
+        }
     }
 
     private func handleTap(zone: String) {
@@ -110,6 +124,7 @@ final class ReaderViewModel {
     // MARK: - Session
 
     func open() {
+        sessionStart = .now
         do {
             let parsed = try library.parsedEPUB(
                 for: library.book(id: bookID)!

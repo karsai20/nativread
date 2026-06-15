@@ -7,12 +7,18 @@ struct ReaderView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    init(book: Book, library: LibraryStore, settingsStore: SettingsStore) {
+    init(
+        book: Book,
+        library: LibraryStore,
+        settingsStore: SettingsStore,
+        statsStore: StatsStore
+    ) {
         let bounds = UIScreen.main.bounds
         _viewModel = State(initialValue: ReaderViewModel(
             book: book,
             library: library,
             settingsStore: settingsStore,
+            statsStore: statsStore,
             pageSize: bounds.size
         ))
     }
