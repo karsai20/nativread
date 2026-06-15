@@ -82,7 +82,49 @@ struct ContentsSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollView {
+                VStack(spacing: 0) {
+                    exportHeader
+                    highlightScroll
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var exportHeader: some View {
+        if let book = viewModel.book {
+            HStack {
+                Text("^[\(book.highlights.count) highlight](inflect: true)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(palette.secondaryText)
+                Spacer()
+                Menu {
+                    if let markdownURL = exportURL(for: book, format: .markdown) {
+                        ShareLink(item: markdownURL) {
+                            Label("Markdown", systemImage: "doc.richtext")
+                        }
+                    }
+                    if let csvURL = exportURL(for: book, format: .csv) {
+                        ShareLink(item: csvURL) {
+                            Label("CSV", systemImage: "tablecells")
+                        }
+                    }
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(palette.accent)
+                }
+                .accessibilityIdentifier("contents.highlights.export")
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 8)
+        }
+    }
+
+    private var highlightScroll: some View {
+        Group {
+            let highlights = viewModel.book?.highlights ?? []
+            ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(highlights) { highlight in
                             Button {
@@ -126,7 +168,6 @@ struct ContentsSheet: View {
                     }
                 }
                 .accessibilityIdentifier("contents.highlights")
-            }
         }
     }
 
@@ -182,5 +223,53 @@ struct ContentsSheet: View {
                 }
             }
         }
+    }
+
+    private enum ExportFormat {
+        case markdown, csv
+
+        var fileExtension: String {
+            switch self {
+            case .markdown: return "md"
+            case .csv: return "csv"
+            }
+        }
+
+        func contents(for book: Book) -> String {
+            switch self {
+            case .markdown: return HighlightExport.markdown(for: book)
+            case .csv: return HighlightExport.csv(for: book)
+            }
+        }
+    }
+
+    /// Writes the chosen export to a temp file named after the book and
+    /// returns its URL, so the share sheet hands AirDrop/Files/Mail a real
+    /// `.md`/`.csv` document. Returns nil only if the write fails.
+    private func exportURL(for book: Book, format: ExportFormat) -> URL? {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "\(sanitizedFileName(book.title)) Highlights"
+            )
+            .appendingPathExtension(format.fileExtension)
+        do {
+            try format.contents(for: book)
+                .write(to: url, atomically: true, encoding: .utf8)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    /// Strips path-hostile characters so the book title is safe as a
+    /// filename, collapsing the result to a non-empty fallback.
+    private func sanitizedFileName(_ title: String) -> String {
+        let illegal = CharacterSet(charactersIn: "/\\:?%*|\"<>")
+            .union(.newlines)
+        let cleaned = title
+            .components(separatedBy: illegal)
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? "Book" : cleaned
     }
 }
