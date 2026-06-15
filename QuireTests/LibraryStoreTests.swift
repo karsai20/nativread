@@ -122,6 +122,21 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertTrue(makeStore().books.isEmpty, "deletion must persist")
     }
 
+    func testImportCopiesPlainLocalFileIndependently() throws {
+        // The coordinated-read import path must still work for an ordinary,
+        // non-ubiquitous local file: the stored EPUB is a self-contained copy
+        // that survives deletion of the source.
+        let store = makeStore()
+        let book = try store.importBook(from: epubURL)
+
+        try FileManager.default.removeItem(at: epubURL)
+
+        let stored = store.booksDirectory
+            .appendingPathComponent(book.fileName)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: stored.path))
+        XCTAssertEqual(book.title, "Imported Title")
+    }
+
     func testImportFailureRollsBack() throws {
         let store = makeStore()
         let bogus = root.appendingPathComponent("bogus.epub")

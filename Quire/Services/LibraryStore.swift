@@ -52,7 +52,7 @@ final class LibraryStore {
 
         let storedURL = booksDirectory
             .appendingPathComponent("\(id.uuidString).epub")
-        try fileManager.copyItem(at: sourceURL, to: storedURL)
+        try materializedCopy(from: sourceURL, to: storedURL)
 
         do {
             let extractedRoot = extractedDirectory
@@ -97,6 +97,35 @@ final class LibraryStore {
             )
             throw error
         }
+    }
+
+    /// Copies a file from `sourceURL` to `destinationURL`, materializing the
+    /// source first when it is an undownloaded iCloud placeholder. A plain
+    /// local (non-ubiquitous) file is read directly by the coordinator.
+    private func materializedCopy(from sourceURL: URL, to destinationURL: URL) throws {
+        // Kick off the download if iCloud reports the item isn't local yet.
+        // Non-iCloud files simply have no downloading status, which is fine.
+        if let status = try? sourceURL.resourceValues(
+            forKeys: [.ubiquitousItemDownloadingStatusKey]
+        ).ubiquitousItemDownloadingStatus, status == .notDownloaded {
+            try? fileManager.startDownloadingUbiquitousItem(at: sourceURL)
+        }
+
+        // Coordinated reading awaits materialization of a .notDownloaded item.
+        var coordinatorError: NSError?
+        var copyError: Error?
+        let coordinator = NSFileCoordinator()
+        coordinator.coordinate(
+            readingItemAt: sourceURL, options: [], error: &coordinatorError
+        ) { coordinatedURL in
+            do {
+                try fileManager.copyItem(at: coordinatedURL, to: destinationURL)
+            } catch {
+                copyError = error
+            }
+        }
+        if let coordinatorError { throw coordinatorError }
+        if let copyError { throw copyError }
     }
 
     func delete(_ book: Book) {
