@@ -42,6 +42,10 @@ targets:
           - UIInterfaceOrientationPortrait
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
+        UIAppFonts:
+          - CrimsonPro-VariableFont_wght.ttf
+          - CormorantGaramond-VariableFont_wght.ttf
+          - CormorantGaramond-Italic-VariableFont_wght.ttf
         CFBundleDocumentTypes:
           - CFBundleTypeName: EPUB Document
             CFBundleTypeRole: Viewer

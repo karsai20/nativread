@@ -1,0 +1,26 @@
+Bundled reader fonts
+====================
+
+Both font families below are licensed under the SIL Open Font License,
+Version 1.1 (OFL). The full license text is in OFL.txt. The OFL permits
+bundling and embedding in applications (including the inline @font-face
+data: URI used by the reader's WKWebView).
+
+Crimson Pro
+  Files: CrimsonPro-VariableFont_wght.ttf
+  Copyright 2018 The Crimson Pro Project Authors
+  https://github.com/Fonthausen/CrimsonPro
+  License: SIL Open Font License 1.1
+
+Cormorant Garamond
+  Files: CormorantGaramond-VariableFont_wght.ttf
+         CormorantGaramond-Italic-VariableFont_wght.ttf
+  Copyright 2015 The Cormorant Project Authors
+  https://github.com/CatharsisFonts/Cormorant
+  License: SIL Open Font License 1.1
+
+Source: Google Fonts (github.com/google/fonts/ofl).
+
+Note: both are variable fonts (weight axis). The reader embeds the
+upright weight-axis file via @font-face (font-weight: 100 900); the
+italic Cormorant file is registered for in-app SwiftUI use.

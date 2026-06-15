@@ -153,6 +153,44 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(css.contains(".calibre2"))
     }
 
+    // MARK: - Bundled reader fonts
+
+    func testBundledFontStacksNameTheirFamily() {
+        XCTAssertTrue(ReaderFont.crimson.cssFamily.contains("Crimson Pro"))
+        XCTAssertTrue(
+            ReaderFont.cormorant.cssFamily.contains("Cormorant Garamond"))
+        // Bundled fonts declare which .ttf must be embedded; system
+        // fonts declare none.
+        XCTAssertNotNil(ReaderFont.crimson.bundledFontFile)
+        XCTAssertNotNil(ReaderFont.cormorant.bundledFontFile)
+        XCTAssertNil(ReaderFont.newYork.bundledFontFile)
+        XCTAssertNil(ReaderFont.georgia.bundledFontFile)
+    }
+
+    func testSystemFontEmitsNoFontFace() {
+        var settings = ReaderSettings()
+        settings.font = .georgia
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertFalse(css.contains("@font-face"))
+    }
+
+    func testBundledFontEmbedsDataURIWhenResourcePresent() {
+        // The .ttf ships in the app bundle, so the reader CSS must carry
+        // an @font-face with an inline base64 data: src — the WKWebView
+        // does not inherit app-registered fonts.
+        var settings = ReaderSettings()
+        settings.font = .crimson
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains("@font-face"))
+        XCTAssertTrue(css.contains("font-family: 'Crimson Pro'"))
+        XCTAssertTrue(css.contains("src: url(data:font/ttf;base64,"))
+        XCTAssertTrue(css.contains("format('truetype')"))
+    }
+
     // MARK: - Hex blending
 
     func testBlendHexZeroAmountReturnsBase() {

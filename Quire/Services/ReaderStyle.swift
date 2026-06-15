@@ -9,6 +9,45 @@ enum ReaderStyle {
     static let topPadding: Double = 96
     static let bottomPadding: Double = 72
 
+    /// Memoised base64 `data:` URIs for bundled fonts, keyed by resource
+    /// name. The WKWebView runs out-of-process and does not inherit the
+    /// app's registered fonts, so the only robust way to render a custom
+    /// font there is to embed its bytes inline. Encoding a ~1MB TTF on
+    /// every chapter render would be wasteful, so each is encoded once.
+    private static var fontFaceCache: [String: String] = [:]
+
+    /// An `@font-face` rule embedding the given bundled font as a base64
+    /// `data:` URI, or an empty string for system fonts (no embed) and
+    /// when the resource is missing or unreadable — in which case the
+    /// `cssFamily` fallback stack (Georgia, serif) takes over rather than
+    /// the reader crashing or rendering nothing.
+    static func fontFace(for font: ReaderFont) -> String {
+        guard let resource = font.bundledFontFile,
+              let family = font.bundledFontFamily else { return "" }
+
+        if let cached = fontFaceCache[resource] { return cached }
+
+        guard let url = Bundle.main.url(
+                  forResource: resource, withExtension: "ttf"),
+              let data = try? Data(contentsOf: url) else {
+            // Missing/garbled file: skip the @font-face, keep fallbacks.
+            return ""
+        }
+
+        let base64 = data.base64EncodedString()
+        let rule = """
+        @font-face {
+            font-family: '\(family)';
+            src: url(data:font/ttf;base64,\(base64)) format('truetype');
+            font-weight: 100 900;
+            font-style: normal;
+            font-display: swap;
+        }
+        """
+        fontFaceCache[resource] = rule
+        return rule
+    }
+
     /// The stylesheet injected into every chapter document.
     ///
     /// Paged flow lays the chapter out in viewport-wide CSS columns that
@@ -89,7 +128,12 @@ enum ReaderStyle {
             """
         }
 
+        // Only the selected font is embedded, so a render never carries
+        // every bundled font's bytes. System fonts contribute nothing.
+        let fontFaceRule = fontFace(for: settings.font)
+
         return """
+        \(fontFaceRule)
         :root { color-scheme: \(theme.isDark ? "dark" : "light"); }
         \(layout)
         body {

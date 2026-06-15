@@ -19,15 +19,19 @@
 		2843B628C77E8DA60F6363CD /* EPUBXMLDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5087F58DEF2E05C7EF5998CA /* EPUBXMLDelegates.swift */; };
 		29CAE0A933CECF31F1EEF6B0 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7C696BB6959D08083ADE8D /* ModelTests.swift */; };
 		2F7B9DDB23F76FC0EBC5E0F9 /* ReaderJourneyUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6226174F78DC76AF88A5B2 /* ReaderJourneyUITests.swift */; };
+		335E1BE433293AB72ED75ACB /* CormorantGaramond-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F09D28B6C8F687332F3FEE10 /* CormorantGaramond-VariableFont_wght.ttf */; };
 		39DECB90D3BC16DA5DCC4AAC /* sample-nocover.epub in Resources */ = {isa = PBXBuildFile; fileRef = 27FFBB928F332DE63E65B6CD /* sample-nocover.epub */; };
+		4591FA3CA6CB15970EF1F68E /* CrimsonPro-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 76307C46B1F1D9D062453A36 /* CrimsonPro-VariableFont_wght.ttf */; };
 		48E41311BA571595DB39BC0E /* ReaderScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0447F85F8A550D54F87D3079 /* ReaderScripts.swift */; };
 		596DC004058F200953A0F980 /* SkeletonLines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490831D6F8DBD0DF5A5BA174 /* SkeletonLines.swift */; };
 		5B1DCF06B39E6C83D9239C1C /* ContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56309681233397AEF5704C74 /* ContentsSheet.swift */; };
 		619FADE287E7D3D3CB57AD11 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 774E5C38AA7E9F14D2A9B166 /* ZIPFoundation */; };
 		648F760FD110494358737405 /* ReadingStatsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F364E8CE4F8785E11880641 /* ReadingStatsTests.swift */; };
 		66D8778BB22A24DF06C92822 /* ReaderController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F74D253587A86E58E5C814A /* ReaderController.swift */; };
+		69AEE385314778B72B5CD9DD /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0D6A43F40272AA818F1EAE2B /* OFL.txt */; };
 		6D024FB0732977B37CBBED6B /* ReaderControlStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51D7D489211623C2240C0B12 /* ReaderControlStyle.swift */; };
 		7D0B409F6F37B58722D84AC3 /* ReaderWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */; };
+		8253F42C72C501DBDE9C1A92 /* CormorantGaramond-Italic-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C291905C45300F569EBA9716 /* CormorantGaramond-Italic-VariableFont_wght.ttf */; };
 		861E966ACB7EB33CC6274E28 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B43F51DEC0F47BA2A7F4D5A /* Color+Hex.swift */; };
 		887357C3B46D09B628BE0738 /* DictionaryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2BC902B6449B00308B89715 /* DictionaryService.swift */; };
 		8A4202AB7702325067826A43 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FBBD281EC2BE60E0D32A72 /* LibraryView.swift */; };
@@ -76,6 +80,7 @@
 		096B119587CE21EBDCFFE639 /* BookCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookCard.swift; sourceTree = "<group>"; };
 		09C346B4DFF6705973C22B07 /* LoadingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingOverlay.swift; sourceTree = "<group>"; };
 		09DDA93185D3B584EF079DA8 /* HighlightingWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingWebView.swift; sourceTree = "<group>"; };
+		0D6A43F40272AA818F1EAE2B /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		0F1E0B3928480B0177DE7BA5 /* ReaderWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderWebView.swift; sourceTree = "<group>"; };
 		11B63C2BA020E71F06DE4B7F /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		15D964447BD93249D737663D /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
@@ -100,6 +105,7 @@
 		63787889C5CEC6C38F68721F /* ReaderSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderSettings.swift; sourceTree = "<group>"; };
 		6A9F0BBBED69D4B96FE67335 /* QuireUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		746CBD8F34F5545219500974 /* DictionaryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryServiceTests.swift; sourceTree = "<group>"; };
+		76307C46B1F1D9D062453A36 /* CrimsonPro-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CrimsonPro-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		768F5343E29D34D9D3F1C845 /* QuireApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireApp.swift; sourceTree = "<group>"; };
 		866364515E18FE4D73FF35C2 /* SearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchService.swift; sourceTree = "<group>"; };
 		88C65B69ACA6DFB72D2B4F76 /* ReadingStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingStats.swift; sourceTree = "<group>"; };
@@ -112,11 +118,13 @@
 		B8F0BA01774655AC7E582449 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C031A34847954312F90B7A59 /* LibraryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStoreTests.swift; sourceTree = "<group>"; };
 		C06078BDE7D89AD477191C50 /* StatsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStoreTests.swift; sourceTree = "<group>"; };
+		C291905C45300F569EBA9716 /* CormorantGaramond-Italic-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantGaramond-Italic-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		C79B166BCF724AF224882335 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		D40510A413E24BDD3B749FEB /* sample.epub */ = {isa = PBXFileReference; path = sample.epub; sourceTree = "<group>"; };
 		DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		E2BC902B6449B00308B89715 /* DictionaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryService.swift; sourceTree = "<group>"; };
 		EF2480ED32FEEA5DD408B524 /* QuireTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F09D28B6C8F687332F3FEE10 /* CormorantGaramond-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantGaramond-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		F704CEEB43F0BDCC920E1395 /* EPUBModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBModels.swift; sourceTree = "<group>"; };
 		F97A08937ECCA54D98F5CBDD /* EPUBParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBParser.swift; sourceTree = "<group>"; };
 		FDF232EFA3AE3D93C15B8218 /* Quire.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Quire.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -185,6 +193,17 @@
 			path = Library;
 			sourceTree = "<group>";
 		};
+		6E40686B616C20870E61B4BD /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				C291905C45300F569EBA9716 /* CormorantGaramond-Italic-VariableFont_wght.ttf */,
+				F09D28B6C8F687332F3FEE10 /* CormorantGaramond-VariableFont_wght.ttf */,
+				76307C46B1F1D9D062453A36 /* CrimsonPro-VariableFont_wght.ttf */,
+				0D6A43F40272AA818F1EAE2B /* OFL.txt */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
 		72D2851377695801979452E1 /* Reader */ = {
 			isa = PBXGroup;
 			children = (
@@ -204,6 +223,7 @@
 			children = (
 				B8F0BA01774655AC7E582449 /* Assets.xcassets */,
 				81922F0C27D320C0D7D5B89A /* Fixtures */,
+				6E40686B616C20870E61B4BD /* Fonts */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -417,6 +437,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				BA8B1EF3C766765BFBEEA2B5 /* Assets.xcassets in Resources */,
+				8253F42C72C501DBDE9C1A92 /* CormorantGaramond-Italic-VariableFont_wght.ttf in Resources */,
+				335E1BE433293AB72ED75ACB /* CormorantGaramond-VariableFont_wght.ttf in Resources */,
+				4591FA3CA6CB15970EF1F68E /* CrimsonPro-VariableFont_wght.ttf in Resources */,
+				69AEE385314778B72B5CD9DD /* OFL.txt in Resources */,
 				39DECB90D3BC16DA5DCC4AAC /* sample-nocover.epub in Resources */,
 				FE941ACD5EDB9C060D5CE52A /* sample.epub in Resources */,
 			);

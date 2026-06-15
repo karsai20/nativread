@@ -97,7 +97,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
 }
 
 enum ReaderFont: String, Codable, CaseIterable, Identifiable {
-    case newYork, georgia, palatino, charter, sanFrancisco
+    case newYork, georgia, palatino, charter, sanFrancisco, crimson, cormorant
 
     var id: String { rawValue }
 
@@ -108,10 +108,15 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
         case .palatino: return "Palatino"
         case .charter: return "Charter"
         case .sanFrancisco: return "San Francisco"
+        case .crimson: return "Crimson Pro"
+        case .cormorant: return "Cormorant"
         }
     }
 
-    /// CSS font stack injected into the chapter document.
+    /// CSS font stack injected into the chapter document. For bundled
+    /// fonts the leading family matches the `@font-face` family name
+    /// `ReaderStyle` declares, so the embedded TTF is used; the rest of
+    /// the stack is the graceful fallback if the embed ever fails.
     var cssFamily: String {
         switch self {
         case .newYork: return "ui-serif, 'New York', Georgia, serif"
@@ -119,10 +124,37 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
         case .palatino: return "'Palatino', 'Palatino Linotype', 'Book Antiqua', serif"
         case .charter: return "'Charter', 'Iowan Old Style', Georgia, serif"
         case .sanFrancisco: return "-apple-system, ui-sans-serif, 'Helvetica Neue', sans-serif"
+        case .crimson: return "'Crimson Pro', Georgia, serif"
+        case .cormorant: return "'Cormorant Garamond', Georgia, serif"
         }
     }
 
-    /// SwiftUI preview font for the typography panel.
+    /// The `.ttf` resource (no extension) that must be embedded as an
+    /// `@font-face` for this font to render in the reader's WKWebView,
+    /// which does not inherit the app's registered fonts. `nil` for
+    /// system fonts, which need no embed.
+    var bundledFontFile: String? {
+        switch self {
+        case .crimson: return "CrimsonPro-VariableFont_wght"
+        case .cormorant: return "CormorantGaramond-VariableFont_wght"
+        case .newYork, .georgia, .palatino, .charter, .sanFrancisco:
+            return nil
+        }
+    }
+
+    /// The `font-family` name the `@font-face` rule declares for a
+    /// bundled font. Matches the leading family in `cssFamily`.
+    var bundledFontFamily: String? {
+        switch self {
+        case .crimson: return "Crimson Pro"
+        case .cormorant: return "Cormorant Garamond"
+        case .newYork, .georgia, .palatino, .charter, .sanFrancisco:
+            return nil
+        }
+    }
+
+    /// SwiftUI preview font for the typography panel. Bundled fonts use
+    /// the family name iOS exposes once registered via `UIAppFonts`.
     var previewFont: Font {
         switch self {
         case .newYork: return .system(.body, design: .serif)
@@ -130,6 +162,8 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
         case .georgia: return .custom("Georgia", size: 17)
         case .palatino: return .custom("Palatino", size: 17)
         case .charter: return .custom("Charter", size: 17)
+        case .crimson: return .custom("Crimson Pro", size: 17)
+        case .cormorant: return .custom("Cormorant Garamond", size: 17)
         }
     }
 }
