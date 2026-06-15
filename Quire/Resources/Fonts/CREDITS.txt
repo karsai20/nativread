@@ -19,6 +19,13 @@ Cormorant Garamond
   https://github.com/CatharsisFonts/Cormorant
   License: SIL Open Font License 1.1
 
+Cinzel
+  Files: Cinzel-VariableFont_wght.ttf
+  Copyright 2012 The Cinzel Project Authors
+  https://github.com/google/fonts/tree/main/ofl/cinzel
+  License: SIL Open Font License 1.1
+  Used for the launch / brand wordmark ("QUIRE").
+
 Source: Google Fonts (github.com/google/fonts/ofl).
 
 Note: both are variable fonts (weight axis). The reader embeds the

@@ -9,6 +9,7 @@ final class SettingsStore {
 
     private let defaults: UserDefaults
     private static let key = "lumenread.readerSettings.v2"
+    private static let onboardingSeenKey = "quire.onboarding.v1.seen"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -29,6 +30,18 @@ final class SettingsStore {
         }
     }
 
+    /// Whether the first-launch brand splash has already been shown.
+    /// Stored under its own key so it never bloats the codable settings.
+    var hasSeenOnboarding: Bool {
+        defaults.bool(forKey: Self.onboardingSeenKey)
+    }
+
+    /// Records that the launch splash has been seen; subsequent launches
+    /// go straight to the library.
+    func markOnboardingSeen() {
+        defaults.set(true, forKey: Self.onboardingSeenKey)
+    }
+
     /// Applies launch-argument overrides without persisting them, so
     /// forced test/screenshot configurations don't leak between runs.
     func overrideWithoutPersisting(
@@ -41,5 +54,6 @@ final class SettingsStore {
     /// argument so UI tests start from a known configuration.
     static func resetPersisted(in defaults: UserDefaults = .standard) {
         defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: onboardingSeenKey)
     }
 }

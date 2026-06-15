@@ -47,6 +47,7 @@ targets:
           - CrimsonPro-VariableFont_wght.ttf
           - CormorantGaramond-VariableFont_wght.ttf
           - CormorantGaramond-Italic-VariableFont_wght.ttf
+          - Cinzel-VariableFont_wght.ttf
         CFBundleDocumentTypes:
           - CFBundleTypeName: EPUB Document
             CFBundleTypeRole: Viewer

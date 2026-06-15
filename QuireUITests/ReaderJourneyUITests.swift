@@ -10,7 +10,8 @@ final class ReaderJourneyUITests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook"
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipOnboarding"
         ]
         app.launch()
     }
@@ -134,7 +135,7 @@ final class ReaderJourneyUITests: XCTestCase {
         app.terminate()
         app.launchArguments = [
             "-resetLibrary", "-resetSettings", "-seedSampleBook",
-            "-forceFlow", "scroll"
+            "-forceFlow", "scroll", "-skipOnboarding"
         ]
         app.launch()
         openSampleBook()
@@ -154,7 +155,7 @@ final class ReaderJourneyUITests: XCTestCase {
         app.terminate()
         app.launchArguments = [
             "-resetLibrary", "-resetSettings", "-seedSampleBook",
-            "-forceFlow", "scroll"
+            "-forceFlow", "scroll", "-skipOnboarding"
         ]
         app.launch()
         openSampleBook()
@@ -261,7 +262,7 @@ final class ReaderJourneyUITests: XCTestCase {
 
         // Relaunch without resetting: the highlight must survive.
         app.terminate()
-        app.launchArguments = ["-seedSampleBook"]
+        app.launchArguments = ["-seedSampleBook", "-skipOnboarding"]
         app.launch()
         openSampleBook()
         app.buttons["reader.contents"].tap()

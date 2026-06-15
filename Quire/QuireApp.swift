@@ -22,19 +22,31 @@ struct QuireApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LibraryView()
+            RootView(initialShowLaunch: Self.shouldShowLaunch(settingsStore))
                 .environment(library)
                 .environment(settingsStore)
                 .environment(statsStore)
                 .environment(dictionaryProvider)
                 .task {
-                    // Load dictionaries in the background; never block launch.
+                    // Load dictionaries in the background; the launch splash
+                    // (when shown) waits on `isReady`, but this kicks off on
+                    // every launch regardless of the splash.
                     await dictionaryProvider.prepare()
                 }
                 .onOpenURL { url in
                     try? library.importBook(from: url)
                 }
         }
+    }
+
+    /// Decides whether the first-launch splash appears. Shown only the first
+    /// time (until `hasSeenOnboarding`), overridable for tests via
+    /// `-forceOnboarding` (always show) / `-skipOnboarding` (never show).
+    private static func shouldShowLaunch(_ settings: SettingsStore) -> Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-skipOnboarding") { return false }
+        if arguments.contains("-forceOnboarding") { return true }
+        return !settings.hasSeenOnboarding
     }
 
     /// UI-test hooks: `-resetLibrary` wipes the shelf, `-seedSampleBook`
