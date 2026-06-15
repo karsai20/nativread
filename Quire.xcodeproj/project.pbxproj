@@ -24,6 +24,7 @@
 		4264925DFA47299A305E36EA /* wordnet.dict.dz in Resources */ = {isa = PBXBuildFile; fileRef = 5F3DE99362FBF12917CF7DCD /* wordnet.dict.dz */; };
 		4591FA3CA6CB15970EF1F68E /* CrimsonPro-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 76307C46B1F1D9D062453A36 /* CrimsonPro-VariableFont_wght.ttf */; };
 		48E41311BA571595DB39BC0E /* ReaderScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0447F85F8A550D54F87D3079 /* ReaderScripts.swift */; };
+		568D223C01421604B7DAAA23 /* enhu.idx in Resources */ = {isa = PBXBuildFile; fileRef = 4D24877E7FF0C225E4D13D0F /* enhu.idx */; };
 		56A40DAB6E1305063ED30DF1 /* DefineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7460C2E6C832007CFA3502 /* DefineView.swift */; };
 		596DC004058F200953A0F980 /* SkeletonLines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490831D6F8DBD0DF5A5BA174 /* SkeletonLines.swift */; };
 		5B1DCF06B39E6C83D9239C1C /* ContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56309681233397AEF5704C74 /* ContentsSheet.swift */; };
@@ -47,6 +48,7 @@
 		A9720BFB0E9E1CDDCBF35D73 /* SearchServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3B33F795BF7ED4AF30E154 /* SearchServiceTests.swift */; };
 		AA6B534CFAFBFED878B00F98 /* LibraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C031A34847954312F90B7A59 /* LibraryStoreTests.swift */; };
 		AAE9B2F18DEE7F66F81BDE64 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0D53D56C0A6FF6F59A0A4D /* ReaderView.swift */; };
+		B8B17C4D9E3C52DCE20FABF6 /* enhu.dict.dz in Resources */ = {isa = PBXBuildFile; fileRef = 27F0BB5B255F1B0211793037 /* enhu.dict.dz */; };
 		BA8B1EF3C766765BFBEEA2B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B8F0BA01774655AC7E582449 /* Assets.xcassets */; };
 		BD0A4EE713CAB694208B941C /* EPUBModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F704CEEB43F0BDCC920E1395 /* EPUBModels.swift */; };
 		C14404E12F1F5B52D6ED3A25 /* CREDITS.md in Resources */ = {isa = PBXBuildFile; fileRef = 0284D6ECF5F68624A9C2906A /* CREDITS.md */; };
@@ -58,6 +60,7 @@
 		E5C240B7F9265CF92ED7DCB3 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */; };
 		E98B6EC9A25D3D46316D9786 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FA18B541E30B03F8E3B6AC4 /* Book.swift */; };
 		EA52CCCBE597912E2E6055F7 /* StatsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D964447BD93249D737663D /* StatsStore.swift */; };
+		ECBF8E75C8E4616E18EDA703 /* enhu.ifo in Resources */ = {isa = PBXBuildFile; fileRef = 4AA19119D4797CF74D72F8B1 /* enhu.ifo */; };
 		ED10EADB4A13BC79C9E3FE1F /* HighlightingWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09DDA93185D3B584EF079DA8 /* HighlightingWebView.swift */; };
 		EFDD50B437EAA1FFDDD5F369 /* DictionaryProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1FEF220A7C972496821D0EF /* DictionaryProvider.swift */; };
 		F2C007F5152EC9F2AA3123CB /* CREDITS.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8A33C696D81A3BA4F38B967B /* CREDITS.txt */; };
@@ -98,6 +101,7 @@
 		188A0565F753A8D4215E34A3 /* SearchSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSheet.swift; sourceTree = "<group>"; };
 		19A45D4CDE613BF4F2B29685 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		26E97E84CB0E3BD8CA0A77DD /* wordnet.idx */ = {isa = PBXFileReference; path = wordnet.idx; sourceTree = "<group>"; };
+		27F0BB5B255F1B0211793037 /* enhu.dict.dz */ = {isa = PBXFileReference; path = enhu.dict.dz; sourceTree = "<group>"; };
 		27FFBB928F332DE63E65B6CD /* sample-nocover.epub */ = {isa = PBXFileReference; path = "sample-nocover.epub"; sourceTree = "<group>"; };
 		2B43F51DEC0F47BA2A7F4D5A /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		2C8AE53807DE9D78389DC85B /* HighlightExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightExportTests.swift; sourceTree = "<group>"; };
@@ -109,7 +113,9 @@
 		3F74D253587A86E58E5C814A /* ReaderController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderController.swift; sourceTree = "<group>"; };
 		42675B56181E1EFBB42B9130 /* DictionaryProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryProviderTests.swift; sourceTree = "<group>"; };
 		490831D6F8DBD0DF5A5BA174 /* SkeletonLines.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonLines.swift; sourceTree = "<group>"; };
+		4AA19119D4797CF74D72F8B1 /* enhu.ifo */ = {isa = PBXFileReference; path = enhu.ifo; sourceTree = "<group>"; };
 		4C3B33F795BF7ED4AF30E154 /* SearchServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchServiceTests.swift; sourceTree = "<group>"; };
+		4D24877E7FF0C225E4D13D0F /* enhu.idx */ = {isa = PBXFileReference; path = enhu.idx; sourceTree = "<group>"; };
 		4FA18B541E30B03F8E3B6AC4 /* Book.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Book.swift; sourceTree = "<group>"; };
 		5087F58DEF2E05C7EF5998CA /* EPUBXMLDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBXMLDelegates.swift; sourceTree = "<group>"; };
 		51D7D489211623C2240C0B12 /* ReaderControlStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderControlStyle.swift; sourceTree = "<group>"; };
@@ -208,6 +214,7 @@
 			isa = PBXGroup;
 			children = (
 				0284D6ECF5F68624A9C2906A /* CREDITS.md */,
+				9CD2C8818D45E436624284A3 /* enhu */,
 				B4235468CD8163B85977ABAA /* wordnet */,
 			);
 			path = Dictionaries;
@@ -306,6 +313,16 @@
 				C06078BDE7D89AD477191C50 /* StatsStoreTests.swift */,
 			);
 			path = QuireTests;
+			sourceTree = "<group>";
+		};
+		9CD2C8818D45E436624284A3 /* enhu */ = {
+			isa = PBXGroup;
+			children = (
+				27F0BB5B255F1B0211793037 /* enhu.dict.dz */,
+				4D24877E7FF0C225E4D13D0F /* enhu.idx */,
+				4AA19119D4797CF74D72F8B1 /* enhu.ifo */,
+			);
+			path = enhu;
 			sourceTree = "<group>";
 		};
 		A2D1418D537BE83C4B9687D5 /* quire */ = {
@@ -489,6 +506,9 @@
 				335E1BE433293AB72ED75ACB /* CormorantGaramond-VariableFont_wght.ttf in Resources */,
 				4591FA3CA6CB15970EF1F68E /* CrimsonPro-VariableFont_wght.ttf in Resources */,
 				69AEE385314778B72B5CD9DD /* OFL.txt in Resources */,
+				B8B17C4D9E3C52DCE20FABF6 /* enhu.dict.dz in Resources */,
+				568D223C01421604B7DAAA23 /* enhu.idx in Resources */,
+				ECBF8E75C8E4616E18EDA703 /* enhu.ifo in Resources */,
 				39DECB90D3BC16DA5DCC4AAC /* sample-nocover.epub in Resources */,
 				FE941ACD5EDB9C060D5CE52A /* sample.epub in Resources */,
 				4264925DFA47299A305E36EA /* wordnet.dict.dz in Resources */,

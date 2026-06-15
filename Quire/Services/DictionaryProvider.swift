@@ -8,9 +8,11 @@ struct BundledDictionary: Sendable, Equatable {
     let basename: String
 
     static let wordnet = BundledDictionary(folder: "wordnet", basename: "wordnet")
+    static let enhu = BundledDictionary(folder: "enhu", basename: "enhu")
 
-    /// All dictionaries shipped in the app bundle. Add EN→HU here later.
-    static let bundled: [BundledDictionary] = [.wordnet]
+    /// All dictionaries shipped in the app bundle. EN→HU first (Hungarian
+    /// meaning is the priority), then WordNet for the English definition.
+    static let bundled: [BundledDictionary] = [.enhu, .wordnet]
 }
 
 /// Errors raised while preparing bundled dictionaries.

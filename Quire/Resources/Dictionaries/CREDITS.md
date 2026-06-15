@@ -19,3 +19,19 @@ copyright notice and license are retained.
 Full license: https://wordnet.princeton.edu/license-and-commercial-use
 
 More information: https://wordnet.princeton.edu/
+
+## English–Hungarian (Wiktionary)
+
+- **Source:** English Wiktionary translation data, extracted via **DBnary** (GETALP, Université Grenoble Alpes)
+- **Format:** StarDict (`.ifo` / `.idx` / `.dict.dz`), built by `scripts/build_enhu_dict.py`
+- **License:** **CC-BY-SA** (Creative Commons Attribution-ShareAlike) + GFDL — the same license as Wiktionary content
+
+The English→Hungarian dictionary is derived from Wiktionary translation tables.
+Wiktionary content is dual-licensed under CC-BY-SA and the GNU Free Documentation
+License. DBnary extracts this content as RDF; see https://kaiko.getalp.org/about-dbnary/.
+
+> Wiktionary data © Wiktionary contributors, licensed under CC-BY-SA.
+> DBnary: Gilles Sérasset, "DBnary: Wiktionary as a Lemon-Based Multilingual
+> Lexical Resource in RDF." Semantic Web Journal.
+
+More information: https://www.wiktionary.org/ · https://kaiko.getalp.org/about-dbnary/
