@@ -30,6 +30,10 @@ final class ReaderViewModel {
     var activeSheet: ReaderSheet?
     var loadError: String?
 
+    /// The word/phrase the Define sheet should look up; nil while closed.
+    /// Setting it (from the selection menu) presents the sheet.
+    var defineWord: String?
+
     /// True from the moment a chapter starts loading until the engine
     /// reports the page is painted (`onChapterReady`). Drives the reader
     /// skeleton veil so the blank WKWebView frame is never exposed.
@@ -98,6 +102,9 @@ final class ReaderViewModel {
         }
         controller.onHighlightRequested = { [weak self] in
             self?.highlightCurrentSelection()
+        }
+        controller.onDefineRequested = { [weak self] in
+            self?.defineCurrentSelection()
         }
         controller.onChapterReady = { [weak self] in
             self?.finishChapterLoading()
@@ -376,6 +383,32 @@ final class ReaderViewModel {
             self.controller.clearSelection()
             self.applyStoredHighlights()
         }
+    }
+
+    // MARK: - Define
+
+    /// Reads the current selection and, if it is a sensible lookup target,
+    /// presents the Define sheet for it. A define is meant for a word or a
+    /// short phrase: blank selections are ignored, but anything else is
+    /// passed through as-is — the dictionary simply returns nothing for a
+    /// phrase it doesn't carry.
+    func defineCurrentSelection() {
+        controller.selectedText { [weak self] text in
+            guard let self,
+                  let word = Self.defineTarget(from: text) else { return }
+            self.defineWord = word
+        }
+    }
+
+    /// Normalises a raw selection into a dictionary lookup target, or nil
+    /// when the selection is unusable. Trims surrounding whitespace and
+    /// collapses inner runs; rejects empty selections. Pure for testing.
+    static func defineTarget(from raw: String) -> String? {
+        let collapsed = raw
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return collapsed.isEmpty ? nil : collapsed
     }
 
     func goTo(highlight: Highlight) {

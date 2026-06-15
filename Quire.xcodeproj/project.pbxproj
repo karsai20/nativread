@@ -24,6 +24,7 @@
 		4264925DFA47299A305E36EA /* wordnet.dict.dz in Resources */ = {isa = PBXBuildFile; fileRef = 5F3DE99362FBF12917CF7DCD /* wordnet.dict.dz */; };
 		4591FA3CA6CB15970EF1F68E /* CrimsonPro-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 76307C46B1F1D9D062453A36 /* CrimsonPro-VariableFont_wght.ttf */; };
 		48E41311BA571595DB39BC0E /* ReaderScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0447F85F8A550D54F87D3079 /* ReaderScripts.swift */; };
+		56A40DAB6E1305063ED30DF1 /* DefineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7460C2E6C832007CFA3502 /* DefineView.swift */; };
 		596DC004058F200953A0F980 /* SkeletonLines.swift in Sources */ = {isa = PBXBuildFile; fileRef = 490831D6F8DBD0DF5A5BA174 /* SkeletonLines.swift */; };
 		5B1DCF06B39E6C83D9239C1C /* ContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56309681233397AEF5704C74 /* ContentsSheet.swift */; };
 		619FADE287E7D3D3CB57AD11 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 774E5C38AA7E9F14D2A9B166 /* ZIPFoundation */; };
@@ -51,6 +52,7 @@
 		C14404E12F1F5B52D6ED3A25 /* CREDITS.md in Resources */ = {isa = PBXBuildFile; fileRef = 0284D6ECF5F68624A9C2906A /* CREDITS.md */; };
 		C2951E154B7CC48E3537CDAA /* DictionaryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 746CBD8F34F5545219500974 /* DictionaryServiceTests.swift */; };
 		CFDED7D541FC24C6B699E3D6 /* wordnet.idx in Resources */ = {isa = PBXBuildFile; fileRef = 26E97E84CB0E3BD8CA0A77DD /* wordnet.idx */; };
+		D38CDC96D7EC34155B3FB87D /* DefinitionFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7383221025EC458911953CA3 /* DefinitionFormatterTests.swift */; };
 		D7D85E11C06E4A60BD9118F3 /* SearchSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188A0565F753A8D4215E34A3 /* SearchSheet.swift */; };
 		E473E004599001AC1C2F5552 /* ReaderStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB02B4D035464E16827D336B /* ReaderStyle.swift */; };
 		E5C240B7F9265CF92ED7DCB3 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */; };
@@ -117,6 +119,7 @@
 		6140C42FA31E43791B71B866 /* EPUBParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBParserTests.swift; sourceTree = "<group>"; };
 		63787889C5CEC6C38F68721F /* ReaderSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderSettings.swift; sourceTree = "<group>"; };
 		6A9F0BBBED69D4B96FE67335 /* QuireUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = QuireUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7383221025EC458911953CA3 /* DefinitionFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefinitionFormatterTests.swift; sourceTree = "<group>"; };
 		746CBD8F34F5545219500974 /* DictionaryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryServiceTests.swift; sourceTree = "<group>"; };
 		76307C46B1F1D9D062453A36 /* CrimsonPro-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CrimsonPro-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		768F5343E29D34D9D3F1C845 /* QuireApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuireApp.swift; sourceTree = "<group>"; };
@@ -135,6 +138,7 @@
 		C291905C45300F569EBA9716 /* CormorantGaramond-Italic-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantGaramond-Italic-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		C79B166BCF724AF224882335 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		D40510A413E24BDD3B749FEB /* sample.epub */ = {isa = PBXFileReference; path = sample.epub; sourceTree = "<group>"; };
+		DD7460C2E6C832007CFA3502 /* DefineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefineView.swift; sourceTree = "<group>"; };
 		DD7FB4F06A1CC6DEB50F5E1E /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		E2BC902B6449B00308B89715 /* DictionaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryService.swift; sourceTree = "<group>"; };
 		E6546809B16532ED3140823C /* wordnet.ifo */ = {isa = PBXFileReference; path = wordnet.ifo; sourceTree = "<group>"; };
@@ -234,6 +238,7 @@
 			isa = PBXGroup;
 			children = (
 				56309681233397AEF5704C74 /* ContentsSheet.swift */,
+				DD7460C2E6C832007CFA3502 /* DefineView.swift */,
 				51D7D489211623C2240C0B12 /* ReaderControlStyle.swift */,
 				3A0D53D56C0A6FF6F59A0A4D /* ReaderView.swift */,
 				2F13FDA990500EC6E8E97D12 /* ReaderViewModel.swift */,
@@ -288,6 +293,7 @@
 		98F82F674CDD65189C2FE07A /* QuireTests */ = {
 			isa = PBXGroup;
 			children = (
+				7383221025EC458911953CA3 /* DefinitionFormatterTests.swift */,
 				42675B56181E1EFBB42B9130 /* DictionaryProviderTests.swift */,
 				746CBD8F34F5545219500974 /* DictionaryServiceTests.swift */,
 				B4C5659588B5AAB59273494D /* EPUBFixtures.swift */,
@@ -502,6 +508,7 @@
 				238C7EDAAE8329A8C1B7252A /* BookCard.swift in Sources */,
 				861E966ACB7EB33CC6274E28 /* Color+Hex.swift in Sources */,
 				5B1DCF06B39E6C83D9239C1C /* ContentsSheet.swift in Sources */,
+				56A40DAB6E1305063ED30DF1 /* DefineView.swift in Sources */,
 				EFDD50B437EAA1FFDDD5F369 /* DictionaryProvider.swift in Sources */,
 				887357C3B46D09B628BE0738 /* DictionaryService.swift in Sources */,
 				BD0A4EE713CAB694208B941C /* EPUBModels.swift in Sources */,
@@ -546,6 +553,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D38CDC96D7EC34155B3FB87D /* DefinitionFormatterTests.swift in Sources */,
 				FBE514C4BF6D8DFFEFF6E548 /* DictionaryProviderTests.swift in Sources */,
 				C2951E154B7CC48E3537CDAA /* DictionaryServiceTests.swift in Sources */,
 				00924C6207056585B349BDCB /* EPUBFixtures.swift in Sources */,

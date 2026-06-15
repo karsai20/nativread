@@ -351,6 +351,15 @@ enum ReaderScripts {
               return { text: text, occurrence: seen };
             },
 
+            // The current selection's plain text, trimmed, or "" when
+            // nothing usable is selected. Drives the Define lookup.
+            selectedText() {
+              const selection = window.getSelection();
+              if (!selection || selection.isCollapsed
+                  || !selection.rangeCount) { return ""; }
+              return (selection.toString() || "").replace(/\\s+/g, " ").trim();
+            },
+
             clearSelection() {
               const selection = window.getSelection();
               if (selection) { selection.removeAllRanges(); }

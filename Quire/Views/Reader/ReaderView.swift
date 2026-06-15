@@ -77,6 +77,18 @@ struct ReaderView: View {
                 SearchSheet(viewModel: viewModel)
             }
         }
+        .sheet(item: defineItem) { item in
+            DefineView(word: item.word, palette: palette)
+        }
+    }
+
+    /// Bridges the view model's `String?` define target to the
+    /// `Identifiable` value `.sheet(item:)` needs.
+    private var defineItem: Binding<DefineItem?> {
+        Binding(
+            get: { viewModel.defineWord.map(DefineItem.init) },
+            set: { viewModel.defineWord = $0?.word }
+        )
     }
 
     // MARK: - Chapter loading veil
@@ -301,6 +313,13 @@ struct ReaderView: View {
         .foregroundStyle(palette.text)
         .padding(40)
     }
+}
+
+/// Wraps a define target so it can drive `.sheet(item:)`. The word itself
+/// is the identity, so re-selecting the same word re-presents cleanly.
+private struct DefineItem: Identifiable {
+    let word: String
+    var id: String { word }
 }
 
 /// A slim, finger-friendly progress scrubber.

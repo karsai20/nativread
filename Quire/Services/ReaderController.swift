@@ -22,6 +22,11 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         get { webView.onHighlightSelection }
         set { webView.onHighlightSelection = newValue }
     }
+    /// The user picked Define in the selection menu.
+    var onDefineRequested: (() -> Void)? {
+        get { webView.onDefineSelection }
+        set { webView.onDefineSelection = newValue }
+    }
     /// Scroll flow: the user pulled past the chapter edge.
     /// "forward" (bottom) or "backward" (top).
     var onOverscroll: ((String) -> Void)?
@@ -166,6 +171,16 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 return
             }
             completion((text: text, occurrence: occurrence))
+        }
+    }
+
+    /// The current selection's plain text, trimmed; empty when nothing
+    /// usable is selected. Used to seed a dictionary Define lookup.
+    func selectedText(completion: @escaping (String) -> Void) {
+        webView.evaluateJavaScript(
+            "window.lumen && window.lumen.selectedText()"
+        ) { result, _ in
+            completion((result as? String) ?? "")
         }
     }
 
