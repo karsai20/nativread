@@ -105,10 +105,13 @@ final class HighlightExportTests: XCTestCase {
             .split(separator: "\r\n", omittingEmptySubsequences: true)
             .map(String.init)
 
-        XCTAssertEqual(rows.first, "Chapter,Highlight,Date")
+        XCTAssertEqual(rows.first, "Chapter,Highlight,Date,Note")
         XCTAssertEqual(rows.count, 3) // header + two highlights
         XCTAssertTrue(rows[1].hasPrefix("One,alpha,"))
         XCTAssertTrue(rows[2].hasPrefix("Two,beta,"))
+        // No note → trailing empty Note column.
+        XCTAssertTrue(rows[1].hasSuffix(","))
+        XCTAssertTrue(rows[2].hasSuffix(","))
     }
 
     func testCSVEscapesCommaAndQuote() {
@@ -131,6 +134,52 @@ final class HighlightExportTests: XCTestCase {
     func testCSVEmptyHighlightsIsHeaderOnly() {
         let csv = HighlightExport.csv(for: makeBook(highlights: []))
 
-        XCTAssertEqual(csv, "Chapter,Highlight,Date\r\n")
+        XCTAssertEqual(csv, "Chapter,Highlight,Date,Note\r\n")
+    }
+
+    // MARK: - Notes
+
+    func testMarkdownIncludesNoteWhenPresent() {
+        let book = makeBook(highlights: [
+            Highlight(
+                spineIndex: 0, text: "A lantern in the dark",
+                occurrence: 0, chapterTitle: "Part 1",
+                note: "reminds me of the harbour"
+            )
+        ])
+
+        let markdown = HighlightExport.markdown(for: book)
+
+        XCTAssertTrue(markdown.contains("> A lantern in the dark"))
+        XCTAssertTrue(markdown.contains("*Note: reminds me of the harbour*"))
+    }
+
+    func testMarkdownOmitsBlankNote() {
+        let book = makeBook(highlights: [
+            Highlight(
+                spineIndex: 0, text: "x", occurrence: 0,
+                chapterTitle: "Ch", note: "   "
+            )
+        ])
+
+        XCTAssertFalse(HighlightExport.markdown(for: book).contains("Note:"))
+    }
+
+    func testCSVPopulatesAndEscapesNoteColumn() {
+        let book = makeBook(highlights: [
+            Highlight(
+                spineIndex: 0, text: "alpha", occurrence: 0,
+                chapterTitle: "One", note: "a, b \"c\""
+            )
+        ])
+
+        let csv = HighlightExport.csv(for: book)
+        let rows = csv
+            .split(separator: "\r\n", omittingEmptySubsequences: true)
+            .map(String.init)
+
+        XCTAssertEqual(rows.first, "Chapter,Highlight,Date,Note")
+        // The note field with a comma and quotes is wrapped and escaped.
+        XCTAssertTrue(rows[1].hasSuffix(",\"a, b \"\"c\"\"\""))
     }
 }

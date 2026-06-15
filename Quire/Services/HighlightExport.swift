@@ -22,6 +22,10 @@ enum HighlightExport {
             for highlight in book.highlights where highlight.chapterTitle == chapter {
                 lines.append("")
                 lines.append(blockquote(highlight.text))
+                if let note = trimmedNote(highlight) {
+                    lines.append("")
+                    lines.append("*Note: \(note)*")
+                }
                 lines.append("")
                 lines.append("*\(displayDateFormatter.string(from: highlight.createdAt))*")
             }
@@ -30,22 +34,34 @@ enum HighlightExport {
         return lines.joined(separator: "\n") + "\n"
     }
 
-    /// RFC-4180-style CSV. Header `Chapter,Highlight,Date` followed by one
-    /// row per highlight; dates are ISO-8601. Fields are quoted and escaped
-    /// so commas, quotes, and newlines survive a round-trip to a spreadsheet.
+    /// RFC-4180-style CSV. Header `Chapter,Highlight,Date,Note` followed by
+    /// one row per highlight; dates are ISO-8601 and the note is empty when
+    /// absent. Fields are quoted and escaped so commas, quotes, and newlines
+    /// survive a round-trip to a spreadsheet.
     static func csv(for book: Book) -> String {
-        var rows: [String] = [csvRow(["Chapter", "Highlight", "Date"])]
+        var rows: [String] = [csvRow(["Chapter", "Highlight", "Date", "Note"])]
         for highlight in book.highlights {
             rows.append(csvRow([
                 highlight.chapterTitle,
                 highlight.text,
-                isoDateFormatter.string(from: highlight.createdAt)
+                isoDateFormatter.string(from: highlight.createdAt),
+                trimmedNote(highlight) ?? ""
             ]))
         }
         return rows.joined(separator: "\r\n") + "\r\n"
     }
 
     // MARK: - Markdown helpers
+
+    /// A highlight's note with surrounding whitespace stripped, or nil
+    /// when it is absent or blank — so a blank note never exports.
+    private static func trimmedNote(_ highlight: Highlight) -> String? {
+        guard let note = highlight.note?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !note.isEmpty
+        else { return nil }
+        return note
+    }
 
     /// Chapter titles in first-appearance order, without duplicates.
     private static func orderedChapters(of highlights: [Highlight]) -> [String] {

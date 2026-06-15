@@ -345,6 +345,49 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded, highlight)
     }
 
+    func testHighlightWithoutNoteKeyDecodesAsNil() throws {
+        // Highlights persisted before notes existed have no `note` key;
+        // synthesized Codable must tolerate that and yield nil.
+        let legacyJSON = """
+        {"id":"\(UUID().uuidString)","spineIndex":0,"text":"t",
+         "occurrence":0,"chapterTitle":"C","createdAt":700000000}
+        """
+        let decoded = try JSONDecoder().decode(
+            Highlight.self, from: Data(legacyJSON.utf8)
+        )
+        XCTAssertNil(decoded.note)
+    }
+
+    func testBookHighlightsWithoutNoteKeyDecodeAsNil() throws {
+        // A whole Book index written before notes must load with nil notes.
+        let legacyJSON = """
+        {"id":"\(UUID().uuidString)","title":"T","author":"A",
+         "fileName":"f.epub","addedAt":700000000,
+         "progress":{"spineIndex":0,"pageFraction":0,"bookFraction":0},
+         "bookmarks":[],"spineWeights":[1],
+         "highlights":[{"id":"\(UUID().uuidString)","spineIndex":0,
+           "text":"t","occurrence":0,"chapterTitle":"C",
+           "createdAt":700000000}]}
+        """
+        let decoded = try JSONDecoder().decode(
+            Book.self, from: Data(legacyJSON.utf8)
+        )
+        XCTAssertEqual(decoded.highlights.count, 1)
+        XCTAssertNil(decoded.highlights.first?.note)
+    }
+
+    func testHighlightNoteRoundTrips() throws {
+        let highlight = Highlight(
+            spineIndex: 2, text: "a soft amber pulse",
+            occurrence: 1, chapterTitle: "Under the Glass",
+            note: "translation: lágy borostyán lüktetés"
+        )
+        let data = try JSONEncoder().encode(highlight)
+        let decoded = try JSONDecoder().decode(Highlight.self, from: data)
+        XCTAssertEqual(decoded.note, highlight.note)
+        XCTAssertEqual(decoded, highlight)
+    }
+
     func testEinkTransitionShipsFlashOverlay() {
         let script = ReaderScripts.engine(
             pageWidth: 390, flow: .paged, transition: .eink

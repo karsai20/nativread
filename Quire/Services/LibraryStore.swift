@@ -222,6 +222,23 @@ final class LibraryStore {
         save()
     }
 
+    /// Replaces the matching highlight with a copy carrying `note`,
+    /// keeping the array otherwise untouched, then persists.
+    func setHighlightNote(
+        bookID: UUID, highlightID: UUID, note: String?
+    ) {
+        guard let index = books.firstIndex(where: { $0.id == bookID }) else {
+            return
+        }
+        books[index].highlights = books[index].highlights.map { highlight in
+            guard highlight.id == highlightID else { return highlight }
+            var updated = highlight
+            updated.note = note
+            return updated
+        }
+        save()
+    }
+
     func book(id: UUID) -> Book? {
         books.first { $0.id == id }
     }

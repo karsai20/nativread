@@ -4,6 +4,7 @@ import SwiftUI
 struct ContentsSheet: View {
     @Bindable var viewModel: ReaderViewModel
     @State private var section = 0
+    @State private var editingNoteFor: Highlight?
 
     private var palette: ReaderPalette { viewModel.palette }
 
@@ -27,6 +28,14 @@ struct ContentsSheet: View {
         .foregroundStyle(palette.text)
         .background(palette.background.ignoresSafeArea())
         .presentationDetents([.medium, .large])
+        .sheet(item: $editingNoteFor) { highlight in
+            NoteEditor(
+                highlight: highlight,
+                palette: palette
+            ) { newNote in
+                viewModel.setNote(newNote, for: highlight)
+            }
+        }
     }
 
     private var tocList: some View {
@@ -150,6 +159,18 @@ struct ContentsSheet: View {
                                                 cornerRadius: 4
                                             )
                                         )
+                                    if let note = trimmedNote(highlight) {
+                                        Label {
+                                            Text(note)
+                                                .multilineTextAlignment(.leading)
+                                        } icon: {
+                                            Image(systemName: "note.text")
+                                        }
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(palette.secondaryText)
+                                        .lineLimit(4)
+                                        .padding(.top, 2)
+                                    }
                                 }
                                 .frame(
                                     maxWidth: .infinity, alignment: .leading
@@ -158,6 +179,18 @@ struct ContentsSheet: View {
                                 .padding(.vertical, 10)
                             }
                             .contextMenu {
+                                Button {
+                                    editingNoteFor = highlight
+                                } label: {
+                                    Label(
+                                        trimmedNote(highlight) == nil
+                                            ? "Add Note" : "Edit Note",
+                                        systemImage: "note.text"
+                                    )
+                                }
+                                .accessibilityIdentifier(
+                                    "contents.highlights.note.edit"
+                                )
                                 Button(role: .destructive) {
                                     viewModel.removeHighlight(highlight)
                                 } label: {
@@ -169,6 +202,16 @@ struct ContentsSheet: View {
                 }
                 .accessibilityIdentifier("contents.highlights")
         }
+    }
+
+    /// The highlight's note when it has visible content, else nil — so an
+    /// empty or whitespace-only note never renders a stray note row.
+    private func trimmedNote(_ highlight: Highlight) -> String? {
+        guard let note = highlight.note?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !note.isEmpty
+        else { return nil }
+        return note
     }
 
     private var bookmarkList: some View {
@@ -271,5 +314,73 @@ struct ContentsSheet: View {
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return cleaned.isEmpty ? "Book" : cleaned
+    }
+}
+
+/// A small multiline editor for a highlight's personal note. Prefilled
+/// with the current note; Save persists, Cancel discards.
+private struct NoteEditor: View {
+    let highlight: Highlight
+    let palette: ReaderPalette
+    let onSave: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: String
+
+    init(
+        highlight: Highlight,
+        palette: ReaderPalette,
+        onSave: @escaping (String) -> Void
+    ) {
+        self.highlight = highlight
+        self.palette = palette
+        self.onSave = onSave
+        _draft = State(initialValue: highlight.note ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(highlight.text)
+                    .font(.system(size: 13, design: .serif))
+                    .foregroundStyle(palette.secondaryText)
+                    .lineLimit(3)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        palette.accent.opacity(0.16),
+                        in: RoundedRectangle(cornerRadius: 4)
+                    )
+
+                TextEditor(text: $draft)
+                    .font(.system(size: 16, design: .serif))
+                    .foregroundStyle(palette.text)
+                    .scrollContentBackground(.hidden)
+                    .padding(8)
+                    .background(
+                        palette.secondaryText.opacity(0.1),
+                        in: RoundedRectangle(cornerRadius: 8)
+                    )
+                    .accessibilityIdentifier("contents.highlights.note.editor")
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(palette.background.ignoresSafeArea())
+            .navigationTitle("Note")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(draft)
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("contents.highlights.note.save")
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }

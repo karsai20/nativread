@@ -336,6 +336,17 @@ final class ReaderViewModel {
         )
     }
 
+    /// Sets or clears the reader's note on a highlight. A blank or
+    /// whitespace-only note is stored as `nil`, never an empty string.
+    func setNote(_ note: String?, for highlight: Highlight) {
+        let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        library.setHighlightNote(
+            bookID: bookID,
+            highlightID: highlight.id,
+            note: (trimmed?.isEmpty ?? true) ? nil : trimmed
+        )
+    }
+
     func removeHighlight(_ highlight: Highlight) {
         library.removeHighlight(
             bookID: bookID, highlightID: highlight.id

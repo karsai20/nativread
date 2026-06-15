@@ -45,6 +45,9 @@ struct Highlight: Codable, Equatable, Identifiable {
     let occurrence: Int
     let chapterTitle: String
     let createdAt: Date
+    /// The reader's own annotation on this passage. Optional so highlights
+    /// persisted before notes existed decode without a `note` key.
+    var note: String?
 
     init(
         id: UUID = UUID(),
@@ -52,7 +55,8 @@ struct Highlight: Codable, Equatable, Identifiable {
         text: String,
         occurrence: Int,
         chapterTitle: String,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        note: String? = nil
     ) {
         self.id = id
         self.spineIndex = spineIndex
@@ -60,6 +64,7 @@ struct Highlight: Codable, Equatable, Identifiable {
         self.occurrence = occurrence
         self.chapterTitle = chapterTitle
         self.createdAt = createdAt
+        self.note = note
     }
 }
 
