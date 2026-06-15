@@ -7,3 +7,24 @@ build/
 buildServer.json
 .compile
 Signing.xcconfig
+
+# Claude / AI agent local files
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Secrets & credentials
+*.xcconfig
+!*.example.xcconfig
+.env
+.env.*
+*.env
+secrets*
+*.p12
+*.pem
+*.key
+*.cer
+*.mobileprovision
+*.keystore
+*.jks
+GoogleService-Info.plist
