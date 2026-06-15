@@ -201,4 +201,42 @@ enum EPUBParser {
         }
         return parts.joined(separator: "/")
     }
+
+    // MARK: - Content sanitizing
+
+    /// Strips embedded `<script>` from each spine document in place.
+    ///
+    /// EPUB reflowable content never needs its own scripts — the reading
+    /// engine supplies all interactivity — so any author-supplied script is
+    /// removed before the chapter is rendered in the WebView. The WebView
+    /// keeps JavaScript enabled for the app-injected engine; engine scripts
+    /// and `evaluateJavaScript` calls are not affected by this pass.
+    ///
+    /// Best-effort: unreadable, non-UTF-8, or unwritable files are skipped
+    /// and never raise — sanitizing must not block opening a book.
+    static func sanitizeScripts(in spineURLs: [URL]) {
+        for url in spineURLs {
+            guard let original = try? String(contentsOf: url, encoding: .utf8)
+            else { continue }
+            let cleaned = stripScripts(from: original)
+            guard cleaned != original else { continue }
+            try? cleaned.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+
+    /// Removes paired `<script>…</script>` blocks and standalone
+    /// `<script …/>` tags, case-insensitively. EPUB content is XHTML, so
+    /// script elements are well-formed and this targeted pass leaves prose
+    /// untouched.
+    static func stripScripts(from html: String) -> String {
+        let patterns = [
+            "(?is)<script\\b[^>]*>.*?</script\\s*>",
+            "(?is)<script\\b[^>]*/>",
+        ]
+        return patterns.reduce(html) { partial, pattern in
+            partial.replacingOccurrences(
+                of: pattern, with: "", options: .regularExpression
+            )
+        }
+    }
 }

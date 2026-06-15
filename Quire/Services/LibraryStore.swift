@@ -67,6 +67,9 @@ final class LibraryStore {
             }
 
             let parsed = try EPUBParser.parse(extractedRoot: extractedRoot)
+            // Neutralize any author-supplied scripts in the rendered
+            // chapters; the reading engine provides all interactivity.
+            EPUBParser.sanitizeScripts(in: parsed.spineURLs)
 
             var coverFileName: String?
             if let coverSource = parsed.coverImageURL {

@@ -120,4 +120,50 @@ final class EPUBParserTests: XCTestCase {
             "text/ch 1.xhtml"
         )
     }
+
+    // MARK: - Script sanitizing
+
+    func testStripScriptsRemovesPairedAndSelfClosingTags() {
+        let html = """
+        <html><head>\
+        <script type="text/javascript">alert(1)</script>\
+        <script src="evil.js"></script>\
+        <SCRIPT>\nwindow.x = 2;\n</SCRIPT>\
+        <script data-x="y"/>\
+        </head><body><p>Keep me</p></body></html>
+        """
+
+        let cleaned = EPUBParser.stripScripts(from: html)
+
+        XCTAssertFalse(cleaned.lowercased().contains("<script"))
+        XCTAssertFalse(cleaned.contains("alert(1)"))
+        XCTAssertFalse(cleaned.contains("window.x"))
+        XCTAssertTrue(cleaned.contains("<p>Keep me</p>"))
+    }
+
+    func testStripScriptsLeavesScriptlessProseUntouched() {
+        let html = "<body><p>No scripts here — just text.</p></body>"
+        XCTAssertEqual(EPUBParser.stripScripts(from: html), html)
+    }
+
+    func testSanitizeScriptsRewritesSpineFilesInPlace() throws {
+        let chapter = tempDirectory.appendingPathComponent("ch1.xhtml")
+        try """
+        <html><body><p>Hello</p>\
+        <script>fetch("file:///etc/passwd")</script></body></html>
+        """.write(to: chapter, atomically: true, encoding: .utf8)
+
+        EPUBParser.sanitizeScripts(in: [chapter])
+
+        let result = try String(contentsOf: chapter, encoding: .utf8)
+        XCTAssertFalse(result.lowercased().contains("<script"))
+        XCTAssertFalse(result.contains("file:///etc/passwd"))
+        XCTAssertTrue(result.contains("<p>Hello</p>"))
+    }
+
+    func testSanitizeScriptsSkipsMissingFilesWithoutThrowing() {
+        let missing = tempDirectory.appendingPathComponent("nope.xhtml")
+        // Must not throw or crash on unreadable input.
+        EPUBParser.sanitizeScripts(in: [missing])
+    }
 }

@@ -34,6 +34,16 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     /// Dragging past the chapter edge by this much advances chapters.
     private static let overscrollThreshold: CGFloat = 70
 
+    /// Encodes a string as a safe JavaScript string literal (quotes
+    /// included) via JSON, so book or selection text can never break out
+    /// of — or inject into — an evaluated script.
+    private static func jsStringLiteral(_ string: String) -> String {
+        guard let data = try? JSONEncoder().encode(string),
+              let literal = String(data: data, encoding: .utf8)
+        else { return "\"\"" }
+        return literal
+    }
+
     private var settingsCSS: String
     private var flow: PageFlow
     private var transition: PageTransition
@@ -272,12 +282,10 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 if let locate = self.pendingLocate {
                     self.pendingLocate = nil
                     self.pendingFraction = nil
-                    let escaped = locate.query
-                        .replacingOccurrences(of: "\\", with: "\\\\")
-                        .replacingOccurrences(of: "\"", with: "\\\"")
                     self.webView.evaluateJavaScript(
                         """
-                        window.lumen.locate("\(escaped)", \
+                        window.lumen.locate(\
+                        \(Self.jsStringLiteral(locate.query)), \
                         \(locate.occurrence))
                         """
                     )
