@@ -6,6 +6,7 @@ struct ReaderView: View {
     @State private var viewModel: ReaderViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(VocabularyStore.self) private var vocabulary
 
     init(
         book: Book,
@@ -78,7 +79,19 @@ struct ReaderView: View {
             }
         }
         .sheet(item: defineItem) { item in
-            DefineView(word: item.word, palette: palette)
+            DefineView(
+                word: item.word,
+                palette: palette,
+                context: viewModel.defineContext,
+                onSave: { definition, source in
+                    viewModel.saveToVocabulary(
+                        definition: definition,
+                        dictionarySource: source,
+                        into: vocabulary
+                    )
+                },
+                isAlreadySaved: vocabulary.contains(word: item.word)
+            )
         }
     }
 

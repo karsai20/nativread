@@ -5,6 +5,7 @@ struct QuireApp: App {
     @State private var library: LibraryStore
     @State private var settingsStore: SettingsStore
     @State private var statsStore: StatsStore
+    @State private var vocabularyStore: VocabularyStore
     @State private var dictionaryProvider = DictionaryProvider()
 
     init() {
@@ -18,6 +19,9 @@ struct QuireApp: App {
         Self.applyThemeArgument(to: settings)
         _settingsStore = State(initialValue: settings)
         _statsStore = State(initialValue: StatsStore())
+        let vocabulary = VocabularyStore()
+        Self.applyVocabularyArguments(to: vocabulary)
+        _vocabularyStore = State(initialValue: vocabulary)
     }
 
     var body: some Scene {
@@ -26,6 +30,7 @@ struct QuireApp: App {
                 .environment(library)
                 .environment(settingsStore)
                 .environment(statsStore)
+                .environment(vocabularyStore)
                 .environment(dictionaryProvider)
                 .task {
                     // Load dictionaries in the background; the launch splash
@@ -64,6 +69,28 @@ struct QuireApp: App {
                     try? store.importBook(from: url)
                 }
             }
+        }
+    }
+
+    /// UI-test hooks for the saved vocabulary: `-resetVocabulary` empties
+    /// the list, `-seedSampleVocabulary` adds one deterministic entry so
+    /// the My Vocabulary sheet and export can be exercised without driving
+    /// the (hard-to-automate) WKWebView selection → Define → Save flow.
+    @MainActor
+    private static func applyVocabularyArguments(to store: VocabularyStore) {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-resetVocabulary") {
+            for entry in store.entries { store.removeEntry(entry.id) }
+        }
+        if arguments.contains("-seedSampleVocabulary") {
+            store.addEntry(VocabularyEntry(
+                word: "lantern",
+                definition: "a portable case with transparent sides for "
+                    + "holding a light",
+                contextSentence: "She raised the lantern to the dark "
+                    + "doorway.",
+                dictionarySource: "WordNet"
+            ))
         }
     }
 

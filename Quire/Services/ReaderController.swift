@@ -184,6 +184,17 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         }
     }
 
+    /// The sentence the current selection sits in, for saving a word
+    /// with its reading context; empty when none can be derived. Pure
+    /// DOM read — never affects layout or the rendered page.
+    func selectionSentence(completion: @escaping (String) -> Void) {
+        webView.evaluateJavaScript(
+            "window.lumen && window.lumen.selectionSentence()"
+        ) { result, _ in
+            completion((result as? String) ?? "")
+        }
+    }
+
     func clearSelection() {
         webView.evaluateJavaScript(
             "window.lumen && window.lumen.clearSelection()"

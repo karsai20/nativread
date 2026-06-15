@@ -6,12 +6,24 @@ import SwiftUI
 struct DefineView: View {
     let word: String
     let palette: ReaderPalette
+    /// The sentence the word was read in, for saving as context; nil when
+    /// the reader could not capture it.
+    var context: String? = nil
+    /// Invoked with the chosen plain-text definition and its dictionary
+    /// when the reader taps Save; nil disables saving (e.g. previews).
+    var onSave: ((_ definition: String, _ source: String) -> Void)? = nil
+    /// Whether this word is already in the saved vocabulary, reflected on
+    /// open so the action reads "Saved" rather than offering a duplicate.
+    var isAlreadySaved: Bool = false
 
     @Environment(DictionaryProvider.self) private var provider
     @Environment(\.dismiss) private var dismiss
 
     /// nil while the lookup is in flight, then the (possibly empty) results.
     @State private var results: [DictionaryResult]?
+
+    /// Flips to true once the reader taps Save in this session.
+    @State private var didSave = false
 
     var body: some View {
         NavigationStack {
@@ -21,6 +33,11 @@ struct DefineView: View {
                 .navigationTitle("Define")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    if onSave != nil {
+                        ToolbarItem(placement: .cancellationAction) {
+                            saveButton
+                        }
+                    }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }
                             .tint(palette.accent)
@@ -101,6 +118,48 @@ struct DefineView: View {
             .accessibilityAddTraits(.isHeader)
     }
 
+    // MARK: - Save
+
+    /// "Save" → "Saved": disabled once saved (this session or already in
+    /// the list) or while there's nothing to save. Reduced-motion friendly
+    /// — only the label and tint change, no implicit movement.
+    private var saveButton: some View {
+        let saved = didSave || isAlreadySaved
+        return Button {
+            performSave()
+        } label: {
+            Label(saved ? "Saved" : "Save",
+                  systemImage: saved ? "checkmark" : "plus")
+                .font(.system(size: 15, weight: .semibold))
+        }
+        .tint(palette.accent)
+        .disabled(saved || saveDefinition == nil)
+        .accessibilityIdentifier("define.save")
+    }
+
+    private func performSave() {
+        guard let onSave, let definition = saveDefinition,
+              !didSave, !isAlreadySaved else { return }
+        onSave(definition, saveSource ?? "")
+        didSave = true
+    }
+
+    /// The shortest plain-text definition across all results — the most
+    /// flashcard-friendly gloss. HTML entries are stripped to plain text.
+    private var saveDefinition: String? {
+        guard let results else { return nil }
+        let plains = results
+            .flatMap(\.entries)
+            .map { DefinitionFormatter.plainText($0) }
+            .filter { !$0.isEmpty }
+        return plains.min(by: { $0.count < $1.count })
+    }
+
+    /// The dictionary name of the first result, used as the saved source.
+    private var saveSource: String? {
+        results?.first?.bookname
+    }
+
     private func resultBlock(_ result: DictionaryResult) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(result.bookname.uppercased())
@@ -147,6 +206,19 @@ enum DefinitionFormatter {
         result.foregroundColor = palette.text
         result.font = .system(size: 16, design: .serif)
         return result
+    }
+
+    /// The entry's definition as collapsed plain text — HTML stripped for
+    /// `type == "h"` entries, otherwise the raw text trimmed. The basis
+    /// for a saved vocabulary gloss. Pure and `Sendable`-friendly.
+    static func plainText(_ entry: DictionaryEntry) -> String {
+        let raw = entry.type == "h"
+            ? stripTags(entry.definition)
+            : entry.definition
+        return raw
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     /// Renders the entry's definition to an `AttributedString`, parsing

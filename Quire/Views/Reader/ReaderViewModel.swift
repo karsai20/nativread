@@ -34,6 +34,11 @@ final class ReaderViewModel {
     /// Setting it (from the selection menu) presents the sheet.
     var defineWord: String?
 
+    /// The sentence the current Define target was read in, captured from
+    /// the selection when Define was invoked; nil when none could be
+    /// derived. Carried into the saved vocabulary entry as context.
+    private(set) var defineContext: String?
+
     /// True from the moment a chapter starts loading until the engine
     /// reports the page is painted (`onChapterReady`). Drives the reader
     /// skeleton veil so the blank WKWebView frame is never exposed.
@@ -393,11 +398,43 @@ final class ReaderViewModel {
     /// passed through as-is — the dictionary simply returns nothing for a
     /// phrase it doesn't carry.
     func defineCurrentSelection() {
-        controller.selectedText { [weak self] text in
-            guard let self,
-                  let word = Self.defineTarget(from: text) else { return }
-            self.defineWord = word
+        // Capture the surrounding sentence first, while the selection is
+        // still live (the lookup itself never mutates it). A failure to
+        // derive context degrades gracefully to nil — never blocks Define.
+        controller.selectionSentence { [weak self] sentence in
+            guard let self else { return }
+            let trimmed = sentence.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            self.controller.selectedText { [weak self] text in
+                guard let self,
+                      let word = Self.defineTarget(from: text) else { return }
+                // Only keep context that actually contains the word; a
+                // mismatched fragment is worse than no context.
+                self.defineContext = trimmed.isEmpty
+                    || !trimmed.lowercased().contains(word.lowercased())
+                    ? nil : trimmed
+                self.defineWord = word
+            }
         }
+    }
+
+    /// Saves the Define sheet's current word into the global vocabulary,
+    /// stamped with the captured context, chapter and book. Deduped by
+    /// the store, so re-saving the same word is a no-op.
+    func saveToVocabulary(
+        definition: String, dictionarySource: String,
+        into store: VocabularyStore
+    ) {
+        guard let word = defineWord else { return }
+        store.addEntry(VocabularyEntry(
+            word: word,
+            definition: definition,
+            contextSentence: defineContext,
+            dictionarySource: dictionarySource,
+            bookID: bookID,
+            chapterTitle: currentChapterTitle
+        ))
     }
 
     /// Normalises a raw selection into a dictionary lookup target, or nil

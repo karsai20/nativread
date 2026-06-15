@@ -274,6 +274,60 @@ final class ReaderJourneyUITests: XCTestCase {
         )
     }
 
+    func testVocabularyEmptyStateOpensFromLibrary() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-resetVocabulary", "-skipOnboarding"
+        ]
+        app.launch()
+
+        let button = app.buttons["library.vocabulary"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
+
+        XCTAssertTrue(
+            app.otherElements["vocabulary.sheet"]
+                .waitForExistence(timeout: 6)
+            || app.staticTexts["No saved words yet"]
+                .waitForExistence(timeout: 6),
+            "vocabulary sheet should present"
+        )
+        XCTAssertTrue(
+            app.staticTexts["No saved words yet"].exists,
+            "empty vocabulary should show the empty state"
+        )
+    }
+
+    func testVocabularySeededEntryAndExportMenu() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-resetVocabulary", "-seedSampleVocabulary", "-skipOnboarding"
+        ]
+        app.launch()
+
+        let button = app.buttons["library.vocabulary"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
+
+        // The seeded word appears in the list.
+        XCTAssertTrue(
+            app.staticTexts["lantern"].waitForExistence(timeout: 6),
+            "seeded vocabulary word should be listed"
+        )
+
+        // The export menu is present and offers the three formats.
+        let export = app.buttons["vocabulary.export"]
+        XCTAssertTrue(export.waitForExistence(timeout: 6))
+        export.tap()
+        XCTAssertTrue(
+            app.buttons["CSV (Plain)"].waitForExistence(timeout: 6)
+        )
+        XCTAssertTrue(app.buttons["CSV (Cloze)"].exists)
+        XCTAssertTrue(app.buttons["Markdown"].exists)
+    }
+
     func testBookmarkToggle() {
         openSampleBook()
         app.buttons["reader.bookmark"].tap()

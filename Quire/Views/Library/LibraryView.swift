@@ -6,12 +6,14 @@ struct LibraryView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(StatsStore.self) private var statsStore
+    @Environment(VocabularyStore.self) private var vocabularyStore
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var isImporterPresented = false
     @State private var openBook: Book?
     @State private var importError: String?
     @State private var isStatsPresented = false
+    @State private var isVocabularyPresented = false
     @State private var isImporting = false
 
     /// The shelf chrome follows the active reading theme so the library
@@ -71,6 +73,11 @@ struct LibraryView: View {
         .sheet(isPresented: $isStatsPresented) {
             StatsView()
                 .environment(statsStore)
+                .environment(settingsStore)
+        }
+        .sheet(isPresented: $isVocabularyPresented) {
+            VocabularyView()
+                .environment(vocabularyStore)
                 .environment(settingsStore)
         }
         .alert(
@@ -150,10 +157,27 @@ struct LibraryView: View {
             }
             Spacer()
             HStack(spacing: 12) {
+                vocabularyButton
                 statsButton
                 importButton
             }
         }
+    }
+
+    private var vocabularyButton: some View {
+        Button {
+            isVocabularyPresented = true
+        } label: {
+            Image(systemName: "character.book.closed")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(palette.accent)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle().fill(palette.surface)
+                )
+        }
+        .accessibilityIdentifier("library.vocabulary")
+        .accessibilityLabel("My vocabulary")
     }
 
     private var statsButton: some View {
