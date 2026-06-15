@@ -43,6 +43,24 @@ final class DefinitionFormatterTests: XCTestCase {
         XCTAssertTrue(String(result.characters).contains("salt & pepper"))
     }
 
+    func testDecodesHexNumericEntities() {
+        // The EN→HU dictionary emits hex apostrophes (&#x27;).
+        let result = DefinitionFormatter.render(entry("minél &#x27;&#x27;comp.&#x27;"))
+        let plain = String(result.characters)
+        XCTAssertEqual(plain, "minél ''comp.'")
+        XCTAssertFalse(plain.contains("&#"))
+    }
+
+    func testDecodesDecimalNumericEntities() {
+        let result = DefinitionFormatter.render(entry("don&#39;t &#38; can&#39;t"))
+        XCTAssertEqual(String(result.characters), "don't & can't")
+    }
+
+    func testLeavesMalformedNumericEntityUntouched() {
+        let result = DefinitionFormatter.render(entry("a &#zz; b"))
+        XCTAssertEqual(String(result.characters), "a &#zz; b")
+    }
+
     func testStripTagsRemovesMarkup() {
         let stripped = DefinitionFormatter.stripTags(
             "<i>n.</i> a <a href=\"x\">word</a>"

@@ -340,13 +340,50 @@ enum DefinitionFormatter {
 
     /// Decodes the handful of named/numeric entities WordNet uses.
     private static func decodeEntities(_ text: String) -> String {
-        text
-            .replacingOccurrences(of: "&amp;", with: "&")
+        let named = text
             .replacingOccurrences(of: "&lt;", with: "<")
             .replacingOccurrences(of: "&gt;", with: ">")
             .replacingOccurrences(of: "&quot;", with: "\"")
-            .replacingOccurrences(of: "&#39;", with: "'")
             .replacingOccurrences(of: "&apos;", with: "'")
             .replacingOccurrences(of: "&nbsp;", with: " ")
+        // Numeric character references: decimal (&#39;) and hex (&#x27;) — the
+        // EN→HU dictionary emits the hex form, which named-only decoding misses.
+        let numeric = decodeNumericEntities(named)
+        // Decode &amp; last so an escaped "&amp;#x27;" round-trips literally.
+        return numeric.replacingOccurrences(of: "&amp;", with: "&")
+    }
+
+    /// Decodes decimal (`&#39;`) and hexadecimal (`&#x27;` / `&#X27;`) numeric
+    /// character references to their Unicode characters. Malformed or
+    /// out-of-range references are left untouched.
+    private static func decodeNumericEntities(_ text: String) -> String {
+        guard text.contains("&#"),
+              let regex = try? NSRegularExpression(
+                  pattern: "&#([xX])?([0-9A-Fa-f]+);"
+              ) else { return text }
+        let ns = text as NSString
+        var output = ""
+        var cursor = 0
+        for match in regex.matches(
+            in: text, range: NSRange(location: 0, length: ns.length)
+        ) {
+            let full = match.range
+            output += ns.substring(
+                with: NSRange(location: cursor, length: full.location - cursor)
+            )
+            let isHex = match.range(at: 1).location != NSNotFound
+            let digits = ns.substring(with: match.range(at: 2))
+            if let code = UInt32(digits, radix: isHex ? 16 : 10),
+               let scalar = Unicode.Scalar(code) {
+                output.append(Character(scalar))
+            } else {
+                output += ns.substring(with: full)
+            }
+            cursor = full.location + full.length
+        }
+        output += ns.substring(
+            with: NSRange(location: cursor, length: ns.length - cursor)
+        )
+        return output
     }
 }
