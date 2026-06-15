@@ -36,17 +36,10 @@ struct SearchSheet: View {
             .padding(.horizontal, 20)
             .padding(.top, 20)
 
-            if viewModel.searchResults.isEmpty {
-                VStack(spacing: 8) {
-                    Image(systemName: "text.page.badge.magnifyingglass")
-                        .font(.system(size: 28))
-                        .foregroundStyle(palette.secondaryText)
-                    Text(viewModel.searchQuery.count >= 2
-                        ? "No matches" : "Type at least two characters")
-                        .font(.system(.subheadline, design: .serif))
-                        .foregroundStyle(palette.secondaryText)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if viewModel.isSearching {
+                searchingState
+            } else if viewModel.searchResults.isEmpty {
+                emptyState
             } else {
                 resultsList
             }
@@ -55,6 +48,45 @@ struct SearchSheet: View {
         .background(palette.background.ignoresSafeArea())
         .presentationDetents([.medium, .large])
         .onAppear { isFieldFocused = true }
+    }
+
+    /// Shown while a whole-book search is in flight.
+    private var searchingState: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(palette.accent)
+            Text("Searching…")
+                .font(.system(.subheadline, design: .serif))
+                .foregroundStyle(palette.secondaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityIdentifier("search.searching")
+        .accessibilityLabel("Searching")
+    }
+
+    /// Shown before a search runs (hint) or after one finds nothing.
+    private var emptyState: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "text.page.badge.magnifyingglass")
+                .font(.system(size: 28))
+                .foregroundStyle(palette.secondaryText)
+            Text(emptyStateMessage)
+                .font(.system(.subheadline, design: .serif))
+                .foregroundStyle(palette.secondaryText)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyStateMessage: String {
+        guard viewModel.searchQuery.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        ).count >= 2 else {
+            return "Type at least two characters"
+        }
+        // Only claim "no matches" once a search has actually completed;
+        // before that, keep prompting so an empty list never lies.
+        return viewModel.hasSearched ? "No matches" : "Press search to find"
     }
 
     private var resultsList: some View {

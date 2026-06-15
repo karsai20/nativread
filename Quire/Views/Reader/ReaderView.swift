@@ -36,11 +36,16 @@ struct ReaderView: View {
                 // view by the JS engine so native text selection works.
                 ReaderWebView(controller: viewModel.controller)
                     .ignoresSafeArea()
+                chapterLoadingVeil
                 nextChapterAffordance
             }
 
             chrome
         }
+        .animation(
+            .easeOut(duration: 0.2),
+            value: viewModel.isChapterLoading
+        )
         .statusBarHidden(!viewModel.isChromeVisible)
         .preferredColorScheme(
             // In system mode the reader must not override appearance,
@@ -71,6 +76,31 @@ struct ReaderView: View {
             case .search:
                 SearchSheet(viewModel: viewModel)
             }
+        }
+    }
+
+    // MARK: - Chapter loading veil
+
+    /// A skeleton "page" that fills the reading area while a chapter
+    /// loads, hiding the blank/half-painted WKWebView frame. It mirrors
+    /// the reading margins, fades out (~200ms) when the engine reports
+    /// the page is painted, and never covers the chrome bars below it.
+    @ViewBuilder
+    private var chapterLoadingVeil: some View {
+        if viewModel.isChapterLoading {
+            palette.background
+                .overlay(alignment: .topLeading) {
+                    SkeletonLines(palette: palette, lineCount: 9)
+                        .padding(.horizontal, 28)
+                        .padding(.top, 88)
+                }
+                .ignoresSafeArea()
+                .accessibilityIdentifier("reader.loading")
+                .accessibilityLabel("Loading chapter")
+                .transition(.opacity)
+                // Let taps fall through to the web view's tap zones the
+                // instant content is ready; while shown it simply masks.
+                .allowsHitTesting(false)
         }
     }
 

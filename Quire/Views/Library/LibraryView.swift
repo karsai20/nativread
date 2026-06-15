@@ -12,6 +12,7 @@ struct LibraryView: View {
     @State private var openBook: Book?
     @State private var importError: String?
     @State private var isStatsPresented = false
+    @State private var isImporting = false
 
     /// The shelf chrome follows the active reading theme so the library
     /// and the reader feel like one continuous surface.
@@ -35,7 +36,14 @@ struct LibraryView: View {
             } else {
                 shelf
             }
+
+            if isImporting {
+                LoadingOverlay(palette: palette, message: "Importing…")
+                    .accessibilityIdentifier("library.importing")
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeOut(duration: 0.2), value: isImporting)
         .preferredColorScheme(palette.isDark ? .dark : .light)
         .onAppear {
             if ProcessInfo.processInfo.arguments
@@ -174,6 +182,7 @@ struct LibraryView: View {
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(palette.accent))
         }
+        .disabled(isImporting)
         .accessibilityIdentifier("library.import")
         .accessibilityLabel("Import book")
     }
@@ -210,6 +219,7 @@ struct LibraryView: View {
                     .padding(.vertical, 12)
                     .background(Capsule().fill(palette.accent))
             }
+            .disabled(isImporting)
             .accessibilityIdentifier("library.import.empty")
             .padding(.top, 6)
         }
@@ -221,15 +231,42 @@ struct LibraryView: View {
     private func handleImport(_ result: Result<[URL], Error>) {
         switch result {
         case .success(let urls):
-            for url in urls {
-                do {
-                    try library.importBook(from: url)
-                } catch {
-                    importError = error.localizedDescription
-                }
-            }
+            guard !urls.isEmpty else { return }
+            importBooks(from: urls)
         case .failure(let error):
             importError = error.localizedDescription
+        }
+    }
+
+    /// Runs the unzip + EPUB parse off the main thread so large books
+    /// no longer freeze the shelf, then hops back to the main actor to
+    /// surface progress and errors. `LibraryStore` is reference-shared
+    /// and its mutations land via the @Observable book array.
+    private func importBooks(from urls: [URL]) {
+        isImporting = true
+        let library = library
+        Task {
+            let failureMessage = await Task.detached(
+                priority: .userInitiated
+            ) { () -> String? in
+                var firstFailure: String?
+                for url in urls {
+                    do {
+                        try library.importBook(from: url)
+                    } catch {
+                        // Surface the first failure; remaining books in
+                        // the batch are still attempted.
+                        if firstFailure == nil {
+                            firstFailure = error.localizedDescription
+                        }
+                    }
+                }
+                return firstFailure
+            }.value
+            isImporting = false
+            if let failureMessage {
+                importError = failureMessage
+            }
         }
     }
 }

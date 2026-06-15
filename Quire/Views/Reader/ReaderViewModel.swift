@@ -29,8 +29,24 @@ final class ReaderViewModel {
     var isChromeVisible = true
     var activeSheet: ReaderSheet?
     var loadError: String?
+
+    /// True from the moment a chapter starts loading until the engine
+    /// reports the page is painted (`onChapterReady`). Drives the reader
+    /// skeleton veil so the blank WKWebView frame is never exposed.
+    private(set) var isChapterLoading = false
+
+    /// Guards against a missed ready signal leaving the veil stuck on.
+    private var loadingSafetyTask: Task<Void, Never>?
     var searchQuery = ""
     private(set) var searchResults: [SearchResult] = []
+
+    /// True while a whole-book search is in flight. Lets the search sheet
+    /// show a "Searching…" state instead of a premature "no matches".
+    private(set) var isSearching = false
+
+    /// True once a search has actually completed at least once for the
+    /// current query, so "no matches" only appears after a real run.
+    private(set) var hasSearched = false
 
     private var extractedRoot: URL
     private var suppressProgressSave = false
@@ -84,6 +100,7 @@ final class ReaderViewModel {
             self?.highlightCurrentSelection()
         }
         controller.onChapterReady = { [weak self] in
+            self?.finishChapterLoading()
             self?.applyStoredHighlights()
         }
         controller.onOverscroll = { [weak self] direction in
@@ -146,6 +163,7 @@ final class ReaderViewModel {
         guard let parsed, parsed.spineURLs.indices.contains(index) else {
             return
         }
+        beginChapterLoading()
         spineIndex = index
         controller.loadChapter(
             at: parsed.spineURLs[index],
@@ -153,6 +171,24 @@ final class ReaderViewModel {
             fraction: fraction,
             locate: locate
         )
+    }
+
+    /// Raises the loading veil and arms a safety timer so a dropped
+    /// `ready` message can never leave the reader stuck behind a skeleton.
+    private func beginChapterLoading() {
+        isChapterLoading = true
+        loadingSafetyTask?.cancel()
+        loadingSafetyTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            self?.finishChapterLoading()
+        }
+    }
+
+    private func finishChapterLoading() {
+        loadingSafetyTask?.cancel()
+        loadingSafetyTask = nil
+        isChapterLoading = false
     }
 
     private func handleState(page: Int, pageCount: Int) {
@@ -375,7 +411,30 @@ final class ReaderViewModel {
 
     func runSearch() {
         guard let parsed else { return }
-        searchResults = SearchService.search(query: searchQuery, in: parsed)
+        let query = searchQuery
+        // Below two characters there is nothing to search; clear without
+        // entering the searching state so the hint copy stays visible.
+        guard query.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2
+        else {
+            searchResults = []
+            hasSearched = false
+            isSearching = false
+            return
+        }
+        isSearching = true
+        hasSearched = false
+        // Whole-book search reads and plain-texts every spine file, so it
+        // runs off the main thread to keep the sheet responsive.
+        Task {
+            let results = await Task.detached(priority: .userInitiated) {
+                SearchService.search(query: query, in: parsed)
+            }.value
+            // Ignore a stale result if the query changed meanwhile.
+            guard query == self.searchQuery else { return }
+            self.searchResults = results
+            self.isSearching = false
+            self.hasSearched = true
+        }
     }
 
     // MARK: - Settings
