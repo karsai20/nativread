@@ -5,6 +5,10 @@ import SwiftUI
 struct BookCard: View {
     let book: Book
     let coverURL: URL?
+    /// Caption colours follow the active reading theme so the metadata
+    /// under each cover stays in harmony with the shelf chrome.
+    let titleColor: Color
+    let captionColor: Color
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -24,10 +28,11 @@ struct BookCard: View {
                 Text(book.title)
                     .font(.system(size: 14, weight: .semibold,
                                   design: .serif))
+                    .foregroundStyle(titleColor)
                     .lineLimit(2)
                 Text(book.author)
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(captionColor)
                     .lineLimit(1)
             }
         }

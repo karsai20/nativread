@@ -5,14 +5,17 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settingsStore
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var isImporterPresented = false
     @State private var openBook: Book?
     @State private var importError: String?
 
-    private let paper = Color(hex: "#F7F2E9")
-    private let ink = Color(hex: "#211C15")
-    private let accent = Color(hex: "#9A3B2E")
+    /// The shelf chrome follows the active reading theme so the library
+    /// and the reader feel like one continuous surface.
+    private var palette: ReaderPalette {
+        settingsStore.settings.palette(systemDark: colorScheme == .dark)
+    }
 
     private var sortedBooks: [Book] {
         library.books.sorted {
@@ -23,7 +26,7 @@ struct LibraryView: View {
 
     var body: some View {
         ZStack {
-            paper.ignoresSafeArea()
+            palette.background.ignoresSafeArea()
 
             if library.books.isEmpty {
                 emptyState
@@ -31,7 +34,7 @@ struct LibraryView: View {
                 shelf
             }
         }
-        .preferredColorScheme(.light)
+        .preferredColorScheme(palette.isDark ? .dark : .light)
         .onAppear {
             if ProcessInfo.processInfo.arguments
                 .contains("-autoOpenFirstBook") {
@@ -89,7 +92,9 @@ struct LibraryView: View {
                         } label: {
                             BookCard(
                                 book: book,
-                                coverURL: library.coverURL(for: book)
+                                coverURL: library.coverURL(for: book),
+                                titleColor: palette.text,
+                                captionColor: palette.secondaryText
                             )
                         }
                         .buttonStyle(.plain)
@@ -118,12 +123,12 @@ struct LibraryView: View {
                     .font(.system(size: 34, weight: .semibold,
                                   design: .serif))
                     .italic()
-                    .foregroundStyle(ink)
+                    .foregroundStyle(palette.text)
                 Text(
                     "\(library.books.count) book\(library.books.count == 1 ? "" : "s") on the shelf"
                 )
                 .font(.system(size: 13))
-                .foregroundStyle(ink.opacity(0.55))
+                .foregroundStyle(palette.secondaryText)
             }
             Spacer()
             importButton
@@ -136,9 +141,9 @@ struct LibraryView: View {
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(paper)
+                .foregroundStyle(palette.background)
                 .frame(width: 40, height: 40)
-                .background(Circle().fill(accent))
+                .background(Circle().fill(palette.accent))
         }
         .accessibilityIdentifier("library.import")
         .accessibilityLabel("Import book")
@@ -150,31 +155,31 @@ struct LibraryView: View {
         VStack(spacing: 18) {
             ZStack {
                 Circle()
-                    .fill(accent.opacity(0.08))
+                    .fill(palette.surface)
                     .frame(width: 120, height: 120)
                 Image(systemName: "books.vertical")
                     .font(.system(size: 44, weight: .light))
-                    .foregroundStyle(accent)
+                    .foregroundStyle(palette.accent)
             }
             VStack(spacing: 6) {
                 Text("Your shelf is empty")
                     .font(.system(size: 24, weight: .semibold,
                                   design: .serif))
                     .italic()
-                    .foregroundStyle(ink)
+                    .foregroundStyle(palette.text)
                 Text("Add an EPUB from Files and start reading.")
                     .font(.system(size: 14))
-                    .foregroundStyle(ink.opacity(0.55))
+                    .foregroundStyle(palette.secondaryText)
             }
             Button {
                 isImporterPresented = true
             } label: {
                 Label("Add a book", systemImage: "plus")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(paper)
+                    .foregroundStyle(palette.background)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
-                    .background(Capsule().fill(accent))
+                    .background(Capsule().fill(palette.accent))
             }
             .accessibilityIdentifier("library.import.empty")
             .padding(.top, 6)
