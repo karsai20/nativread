@@ -3,7 +3,7 @@ import SwiftUI
 /// The four reading atmospheres. Chrome colours follow the page so the
 /// whole screen feels like one sheet of paper, the way Apple Books does it.
 enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
-    case paper, sepia, dusk, ink
+    case paper, sepia, dusk, ink, academia
 
     var id: String { rawValue }
 
@@ -13,6 +13,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "Sepia"
         case .dusk: return "Dusk"
         case .ink: return "Ink"
+        case .academia: return "Academia"
         }
     }
 
@@ -22,6 +23,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#F2E5CF"
         case .dusk: return "#23262C"
         case .ink: return "#000000"
+        case .academia: return "#152319"
         }
     }
 
@@ -31,6 +33,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#41311E"
         case .dusk: return "#C8CAD1"
         case .ink: return "#ABABAB"
+        case .academia: return "#ECE3CE"
         }
     }
 
@@ -40,6 +43,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#94805F"
         case .dusk: return "#7C7F88"
         case .ink: return "#6E6E6E"
+        case .academia: return "#A6B29C"
         }
     }
 
@@ -49,6 +53,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#8F4B26"
         case .dusk: return "#D08770"
         case .ink: return "#B3552F"
+        case .academia: return "#CFA94E"
         }
     }
 
@@ -71,13 +76,14 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return 0.12
         case .dusk:  return 0.30
         case .ink:   return 0.42
+        case .academia: return 0.40
         }
     }
 
     var isDark: Bool {
         switch self {
         case .paper, .sepia: return false
-        case .dusk, .ink: return true
+        case .dusk, .ink, .academia: return true
         }
     }
 

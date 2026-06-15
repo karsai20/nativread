@@ -268,6 +268,20 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded.pageTransition, .slide)
     }
 
+    func testAcademiaThemeDecodesAndExposesDarkBrassAccent() throws {
+        let json = """
+        {"theme":"academia","fontSize":18}
+        """
+        let decoded = try JSONDecoder().decode(
+            ReaderSettings.self, from: Data(json.utf8)
+        )
+        XCTAssertEqual(decoded.theme, .academia)
+        XCTAssertTrue(decoded.theme.isDark)
+        XCTAssertEqual(decoded.theme.accentHex, "#CFA94E")
+        XCTAssertEqual(decoded.theme.backgroundHex, "#152319")
+        XCTAssertEqual(decoded.theme.label, "Academia")
+    }
+
     func testSettingsDecodeFromRemovedTransitionFallsBackToDefault() throws {
         // "fade" was removed as a transition. A user who saved it must
         // not have their whole settings decode fail; the removed raw
