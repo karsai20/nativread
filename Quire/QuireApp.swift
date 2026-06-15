@@ -46,7 +46,7 @@ struct QuireApp: App {
         }
     }
 
-    /// `-forceTheme dusk`, `-forceFlow scroll`, `-forceTransition fade`
+    /// `-forceTheme dusk`, `-forceFlow scroll`, `-forceTransition eink`
     /// pin reading settings for UI tests and screenshot automation.
     private static func applyThemeArgument(to store: SettingsStore) {
         let arguments = ProcessInfo.processInfo.arguments

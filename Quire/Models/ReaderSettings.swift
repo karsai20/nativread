@@ -158,14 +158,13 @@ enum PageFlow: String, Codable, CaseIterable, Identifiable {
 
 /// The animation used when turning a page in paged flow.
 enum PageTransition: String, Codable, CaseIterable, Identifiable {
-    case slide, fade, eink, instant
+    case slide, eink, instant
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
         case .slide: return "Slide"
-        case .fade: return "Fade"
         case .eink: return "E-Ink"
         case .instant: return "None"
         }
@@ -290,9 +289,12 @@ extension ReaderSettings {
             Double.self, forKey: .warmth) ?? defaults.warmth
         pageFlow = try container.decodeIfPresent(
             PageFlow.self, forKey: .pageFlow) ?? defaults.pageFlow
-        pageTransition = try container.decodeIfPresent(
+        // Tolerant: a removed raw value ("fade") is present but no longer
+        // decodable, so `try?` lets it fall back to the default instead of
+        // failing the whole settings decode.
+        pageTransition = (try? container.decodeIfPresent(
             PageTransition.self, forKey: .pageTransition
-        ) ?? defaults.pageTransition
+        )) ?? defaults.pageTransition
         font = try container.decodeIfPresent(
             ReaderFont.self, forKey: .font) ?? defaults.font
         fontSize = try container.decodeIfPresent(

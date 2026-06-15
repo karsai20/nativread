@@ -54,24 +54,24 @@ enum ReaderStyle {
                 column-gap: \(margin * 2)px;
                 column-fill: auto;
             }
-            body.lumen-fade {
-                transition: opacity 110ms ease-in-out;
-            }
             #lumen-eink {
                 position: fixed;
                 inset: 0;
-                /* A real e-ink full refresh flashes to black. Use the
+                /* A real e-ink full refresh flashes to solid ink. Use the
                    dark ink in every theme — in dark themes the text
                    colour is light, which would flash white. */
                 background: \(theme.isDark ? "#000000" : theme.textHex);
                 opacity: 0;
                 pointer-events: none;
-                transition: opacity 60ms linear;
+                /* Clearing the fill: a quick, crisp wipe back to the page. */
+                transition: opacity 70ms linear;
                 z-index: 99;
             }
             #lumen-eink.lumen-eink-on {
+                /* Full, opaque ink. Snap it on almost instantly so the
+                   blink reads as a deliberate refresh, not a fade-in. */
                 opacity: 1;
-                transition: opacity 40ms linear;
+                transition: opacity 16ms linear;
             }
             """
         case .scroll:

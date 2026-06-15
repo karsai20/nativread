@@ -268,6 +268,23 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded.pageTransition, .slide)
     }
 
+    func testSettingsDecodeFromRemovedTransitionFallsBackToDefault() throws {
+        // "fade" was removed as a transition. A user who saved it must
+        // not have their whole settings decode fail; the removed raw
+        // value falls back to the default transition.
+        let json = """
+        {"theme":"paper","pageTransition":"fade","fontSize":18}
+        """
+        let decoded = try JSONDecoder().decode(
+            ReaderSettings.self, from: Data(json.utf8)
+        )
+        XCTAssertEqual(decoded.pageTransition, .slide)
+        XCTAssertEqual(decoded.theme, .paper)
+        XCTAssertFalse(
+            PageTransition.allCases.contains { $0.rawValue == "fade" }
+        )
+    }
+
     // MARK: - Page flow
 
     func testReaderStyleScrollModeOmitsColumnsAndAllowsFlow() {
@@ -290,10 +307,10 @@ final class ModelTests: XCTestCase {
 
     func testEngineScriptCarriesFlowAndTransition() {
         let paged = ReaderScripts.engine(
-            pageWidth: 390, flow: .paged, transition: .fade
+            pageWidth: 390, flow: .paged, transition: .eink
         )
         XCTAssertTrue(paged.contains("\"paged\""))
-        XCTAssertTrue(paged.contains("\"fade\""))
+        XCTAssertTrue(paged.contains("\"eink\""))
 
         let scroll = ReaderScripts.engine(
             pageWidth: 390, flow: .scroll, transition: .slide

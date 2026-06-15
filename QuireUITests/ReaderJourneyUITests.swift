@@ -215,15 +215,15 @@ final class ReaderJourneyUITests: XCTestCase {
         expandTypographyPanel()
 
         // Transition picker is only visible in paged flow.
-        let fade = app.buttons["transition.fade"]
-        XCTAssertTrue(fade.waitForExistence(timeout: 6))
-        fade.tap()
+        let eink = app.buttons["transition.eink"]
+        XCTAssertTrue(eink.waitForExistence(timeout: 6))
+        eink.tap()
 
         let scroll = app.buttons["flow.scroll"]
         XCTAssertTrue(scroll.waitForExistence(timeout: 6))
         scroll.tap()
         // Switching to scroll hides the transition row.
-        XCTAssertFalse(fade.exists)
+        XCTAssertFalse(eink.exists)
 
         // Reopen the panel: choices must have persisted.
         app.swipeDown(velocity: .fast)
@@ -234,7 +234,7 @@ final class ReaderJourneyUITests: XCTestCase {
         let paged = app.buttons["flow.paged"]
         XCTAssertTrue(paged.waitForExistence(timeout: 6))
         paged.tap()
-        XCTAssertTrue(fade.waitForExistence(timeout: 6))
+        XCTAssertTrue(eink.waitForExistence(timeout: 6))
     }
 
     func testHighlightSelectionPersistsAcrossRelaunch() {

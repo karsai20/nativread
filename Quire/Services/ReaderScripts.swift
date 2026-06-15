@@ -90,29 +90,22 @@ enum ReaderScripts {
             movePaged(animate) {
               const body = document.body;
               if (animate && this.transition === "slide") {
-                body.classList.remove("lumen-fade");
                 body.style.opacity = "1";
                 this.postScroll(true);
-              } else if (animate && this.transition === "fade") {
-                body.classList.add("lumen-fade");
-                body.style.opacity = "0";
-                setTimeout(() => {
-                  this.postScroll(false);
-                  body.style.opacity = "1";
-                }, 110);
               } else if (animate && this.transition === "eink") {
-                body.classList.remove("lumen-fade");
                 this.einkFlash(() => this.postScroll(false));
               } else {
-                body.classList.remove("lumen-fade");
                 body.style.opacity = "1";
                 this.postScroll(false);
               }
             },
 
-            // The signature e-ink refresh: the screen blinks to ink
-            // while the page is swapped underneath. The overlay lives
-            // outside <body> so the page transform can't move it.
+            // The signature e-ink refresh: the screen snaps to a solid
+            // ink fill, the page is swapped underneath, then the fill
+            // clears — a crisp, deliberate blink rather than a dissolve.
+            // The overlay lives outside <body> so the page transform
+            // can't move it. The swap happens at peak opacity so the
+            // reader never sees the pages cross-fade.
             einkFlash(move) {
               let flash = document.getElementById("lumen-eink");
               if (!flash) {
@@ -121,10 +114,12 @@ enum ReaderScripts {
                 document.documentElement.appendChild(flash);
               }
               flash.classList.add("lumen-eink-on");
+              // Hold the solid fill for a beat (CSS snaps it on fast),
+              // swap the page behind it, then drop the fill.
               setTimeout(() => {
                 move();
                 flash.classList.remove("lumen-eink-on");
-              }, 90);
+              }, 80);
             },
 
             goTo(page, animate) {
