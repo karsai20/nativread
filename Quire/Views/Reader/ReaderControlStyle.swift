@@ -2,11 +2,14 @@ import SwiftUI
 
 /// Shared visual language for reader controls: one corner radius, one tap
 /// target, one spacing rhythm, and accent reserved for the selected state.
+///
+/// Numeric constants now forward to `Spacing` tokens so the reader shares
+/// the same shape vocabulary as the library chrome.
 enum ReaderControlStyle {
-    static let cornerRadius: CGFloat = 10
-    static let cardCornerRadius: CGFloat = 14
-    static let minTapTarget: CGFloat = 44
-    static let rowSpacing: CGFloat = 8
+    static let cornerRadius: CGFloat = Spacing.radiusSmall
+    static let cardCornerRadius: CGFloat = Spacing.radiusCard
+    static let minTapTarget: CGFloat = Spacing.minTapTarget
+    static let rowSpacing: CGFloat = Spacing.xs
     static let selectedAccentOpacity: Double = 0.16
 }
 
@@ -41,7 +44,7 @@ extension View {
     /// Raised card for the top "live" group: surfaceRaised fill, hairline
     /// stroke, subtle per-theme shadow — intentional depth, no re-theming.
     func panelCard(palette: ReaderPalette) -> some View {
-        padding(14)
+        padding(Spacing.md)
         .background(
             RoundedRectangle(cornerRadius: ReaderControlStyle.cardCornerRadius)
                 .fill(palette.surfaceRaised))

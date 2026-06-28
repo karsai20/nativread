@@ -9,12 +9,13 @@ struct SearchSheet: View {
     private var palette: ReaderPalette { viewModel.palette }
 
     var body: some View {
-        VStack(spacing: 14) {
-            HStack(spacing: 10) {
+        VStack(spacing: Spacing.md) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(palette.secondaryText)
                 TextField("Search in book", text: $viewModel.searchQuery)
                     .focused($isFieldFocused)
+                    .font(Typography.body())
                     .submitLabel(.search)
                     .autocorrectionDisabled()
                     .onSubmit { viewModel.runSearch() }
@@ -28,13 +29,13 @@ struct SearchSheet: View {
                     }
                 }
             }
-            .padding(12)
+            .padding(Spacing.sm)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: Spacing.sm)
                     .fill(palette.surface)
             )
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.horizontal, Spacing.md)
+            .padding(.top, Spacing.md)
 
             if viewModel.isSearching {
                 searchingState
@@ -52,12 +53,12 @@ struct SearchSheet: View {
 
     /// Shown while a whole-book search is in flight.
     private var searchingState: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: Spacing.sm) {
             ProgressView()
                 .progressViewStyle(.circular)
                 .tint(palette.accent)
             Text("Searching…")
-                .font(.system(.subheadline, design: .serif))
+                .font(Typography.title())
                 .foregroundStyle(palette.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -67,12 +68,12 @@ struct SearchSheet: View {
 
     /// Shown before a search runs (hint) or after one finds nothing.
     private var emptyState: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Spacing.xs) {
             Image(systemName: "text.page.badge.magnifyingglass")
                 .font(.system(size: 28))
                 .foregroundStyle(palette.secondaryText)
             Text(emptyStateMessage)
-                .font(.system(.subheadline, design: .serif))
+                .font(Typography.title())
                 .foregroundStyle(palette.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -82,40 +83,50 @@ struct SearchSheet: View {
         guard viewModel.searchQuery.trimmingCharacters(
             in: .whitespacesAndNewlines
         ).count >= 2 else {
-            return "Type at least two characters"
+            // Localized at the String level: `Text(String)` is verbatim, so
+            // these must resolve through the catalog here, not in the view.
+            return String(localized: "Type at least two characters")
         }
         // Only claim "no matches" once a search has actually completed;
         // before that, keep prompting so an empty list never lies.
-        return viewModel.hasSearched ? "No matches" : "Press search to find"
+        return viewModel.hasSearched
+            ? String(localized: "No matches")
+            : String(localized: "Press search to find")
     }
 
     private var resultsList: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                Text("\(viewModel.searchResults.count) result\(viewModel.searchResults.count == 1 ? "" : "s")")
-                    .font(.system(size: 12, weight: .medium))
+                // Eyebrow count: tracked uppercase reads as metadata, not a heading.
+                Text("\(String(viewModel.searchResults.count)) result\(viewModel.searchResults.count == 1 ? "" : "s")")
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
                     .foregroundStyle(palette.secondaryText)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 6)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.xxs + 2)
                     .accessibilityIdentifier("search.resultCount")
 
                 ForEach(viewModel.searchResults) { result in
                     Button {
                         viewModel.goTo(result: result)
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            // Chapter location in eyebrow style.
                             Text(result.chapterTitle)
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(Typography.eyebrow)
+                                .tracking(Typography.eyebrowTracking)
+                                .textCase(.uppercase)
                                 .foregroundStyle(palette.accent)
                             highlightedSnippet(result.snippet)
-                                .font(.system(size: 14, design: .serif))
+                                .font(Typography.body(14))
                                 .foregroundStyle(palette.text)
                                 .multilineTextAlignment(.leading)
                                 .lineLimit(3)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.vertical, Spacing.xs)
                     }
                 }
             }

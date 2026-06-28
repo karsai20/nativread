@@ -6,22 +6,44 @@ struct QuireApp: App {
     @State private var settingsStore: SettingsStore
     @State private var statsStore: StatsStore
     @State private var vocabularyStore: VocabularyStore
-    @State private var dictionaryProvider = DictionaryProvider()
+    @State private var localizationStore: LocalizationStore
+    @State private var dictionaryProvider: DictionaryProvider
 
     init() {
         let store = LibraryStore()
         Self.applyLaunchArguments(to: store)
         _library = State(initialValue: store)
+
         if ProcessInfo.processInfo.arguments.contains("-resetSettings") {
             SettingsStore.resetPersisted()
         }
+        if ProcessInfo.processInfo.arguments.contains("-resetLanguage") {
+            LocalizationStore.resetPersisted()
+        }
+
         let settings = SettingsStore()
         Self.applyThemeArgument(to: settings)
         _settingsStore = State(initialValue: settings)
+
         _statsStore = State(initialValue: StatsStore())
+
         let vocabulary = VocabularyStore()
         Self.applyVocabularyArguments(to: vocabulary)
         _vocabularyStore = State(initialValue: vocabulary)
+
+        // Build LocalizationStore first so the initial dictionary set can be
+        // derived from the already-persisted language choice (or from the
+        // `-forceLanguage` hook).
+        let locStore = LocalizationStore()
+        Self.applyLanguageArgument(to: locStore)
+        _localizationStore = State(initialValue: locStore)
+
+        // Derive the initial dictionary list from the effective dictionary
+        // language — honouring an independent Define language choice when set.
+        let dictionaries = BundledDictionary.bundled(for: locStore.dictionaryLanguage)
+        _dictionaryProvider = State(
+            initialValue: DictionaryProvider(dictionaries: dictionaries)
+        )
     }
 
     var body: some Scene {
@@ -31,7 +53,11 @@ struct QuireApp: App {
                 .environment(settingsStore)
                 .environment(statsStore)
                 .environment(vocabularyStore)
+                .environment(localizationStore)
                 .environment(dictionaryProvider)
+                // Apply the chosen locale to the entire view tree so SwiftUI
+                // Text nodes use the right String Catalog translation.
+                .environment(\.locale, localizationStore.resolvedLocale)
                 .task {
                     // Load dictionaries in the background; the launch splash
                     // (when shown) waits on `isReady`, but this kicks off on
@@ -122,6 +148,21 @@ struct QuireApp: App {
             if let flow { next.pageFlow = flow }
             if let transition { next.pageTransition = transition }
             return next
+        }
+    }
+
+    /// `-forceLanguage <code>` (en/es/de/hu) pins the app language for UI
+    /// tests without persisting it; subsequent launches revert to the stored
+    /// value. `-resetLanguage` is handled in `init()` via `resetPersisted()`.
+    private static func applyLanguageArgument(to store: LocalizationStore) {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flagIndex = arguments.firstIndex(of: "-forceLanguage"),
+              arguments.indices.contains(flagIndex + 1) else {
+            return
+        }
+        let code = arguments[flagIndex + 1]
+        if let language = AppLanguage(rawValue: code) {
+            store.overrideWithoutPersisting(language)
         }
     }
 }

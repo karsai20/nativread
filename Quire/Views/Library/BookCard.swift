@@ -5,18 +5,20 @@ import SwiftUI
 struct BookCard: View {
     let book: Book
     let coverURL: URL?
-    /// Caption colours follow the active reading theme so the metadata
-    /// under each cover stays in harmony with the shelf chrome.
+    /// Caption colours follow the shelf's brand palette so the metadata
+    /// under each cover stays in harmony with the editorial chrome.
     let titleColor: Color
     let captionColor: Color
+    /// The shelf accent, used for the in-progress reading bar.
+    let accentColor: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            cover
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Self.cover(book: book, coverURL: coverURL)
                 .aspectRatio(2 / 3, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: Spacing.radiusSmall)
                         .strokeBorder(.black.opacity(0.08))
                 )
                 .shadow(
@@ -26,20 +28,22 @@ struct BookCard: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(book.title)
-                    .font(.system(size: 14, weight: .semibold,
-                                  design: .serif))
+                    .font(Typography.title(15))
                     .foregroundStyle(titleColor)
                     .lineLimit(2)
                 Text(book.author)
-                    .font(.system(size: 12))
+                    .font(Typography.meta(12))
                     .foregroundStyle(captionColor)
                     .lineLimit(1)
             }
         }
     }
 
+    /// The cover artwork: the EPUB's own image when it ships one, otherwise a
+    /// deterministic generated cover. Shared with the library's hero so both
+    /// render a book identically.
     @ViewBuilder
-    private var cover: some View {
+    static func cover(book: Book, coverURL: URL?) -> some View {
         if let coverURL,
            let image = UIImage(contentsOfFile: coverURL.path) {
             Image(uiImage: image)
@@ -57,7 +61,7 @@ struct BookCard: View {
                 ZStack(alignment: .leading) {
                     Rectangle().fill(.black.opacity(0.35))
                     Rectangle()
-                        .fill(Color(hex: "#E8B04B"))
+                        .fill(accentColor)
                         .frame(
                             width: proxy.size.width
                                 * book.progress.bookFraction
@@ -67,7 +71,8 @@ struct BookCard: View {
             .frame(height: 3)
             .clipShape(
                 UnevenRoundedRectangle(
-                    bottomLeadingRadius: 6, bottomTrailingRadius: 6
+                    bottomLeadingRadius: Spacing.radiusSmall,
+                    bottomTrailingRadius: Spacing.radiusSmall
                 )
             )
         } else if book.isFinished {

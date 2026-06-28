@@ -7,6 +7,8 @@ struct LibraryView: View {
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(StatsStore.self) private var statsStore
     @Environment(VocabularyStore.self) private var vocabularyStore
+    @Environment(LocalizationStore.self) private var localizationStore
+    @Environment(DictionaryProvider.self) private var dictionaryProvider
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var isImporterPresented = false
@@ -14,12 +16,14 @@ struct LibraryView: View {
     @State private var importError: String?
     @State private var isStatsPresented = false
     @State private var isVocabularyPresented = false
+    @State private var isSettingsPresented = false
     @State private var isImporting = false
 
-    /// The shelf chrome follows the active reading theme so the library
-    /// and the reader feel like one continuous surface.
-    private var palette: ReaderPalette {
-        settingsStore.settings.palette(systemDark: colorScheme == .dark)
+    /// The shelf now carries its own editorial identity rather than morphing
+    /// with the reading theme — the library is a place, the reader is the book.
+    /// It follows the system light/dark appearance.
+    private var palette: BrandPalette {
+        BrandPalette.resolve(systemDark: colorScheme == .dark)
     }
 
     private var sortedBooks: [Book] {
@@ -27,6 +31,11 @@ struct LibraryView: View {
             ($0.lastOpenedAt ?? $0.addedAt)
                 > ($1.lastOpenedAt ?? $1.addedAt)
         }
+    }
+
+    /// The most recently touched in-progress book, featured as the hero.
+    private var nowReadingBook: Book? {
+        sortedBooks.first { $0.isStarted && !$0.isFinished }
     }
 
     var body: some View {
@@ -46,7 +55,6 @@ struct LibraryView: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: isImporting)
-        .preferredColorScheme(palette.isDark ? .dark : .light)
         .onAppear {
             if ProcessInfo.processInfo.arguments
                 .contains("-autoOpenFirstBook") {
@@ -80,6 +88,11 @@ struct LibraryView: View {
                 .environment(vocabularyStore)
                 .environment(settingsStore)
         }
+        .sheet(isPresented: $isSettingsPresented) {
+            SettingsView()
+                .environment(localizationStore)
+                .environment(dictionaryProvider)
+        }
         .alert(
             "Import failed",
             isPresented: Binding(
@@ -99,9 +112,19 @@ struct LibraryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 header
-                    .padding(.horizontal, 24)
-                    .padding(.top, 18)
-                    .padding(.bottom, 26)
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.top, Spacing.md)
+                    .padding(.bottom, Spacing.lg)
+
+                if let book = nowReadingBook {
+                    nowReadingHero(book)
+                        .padding(.horizontal, Spacing.lg)
+                        .padding(.bottom, Spacing.xl)
+                }
+
+                sectionLabel("Library")
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.md)
 
                 LazyVGrid(
                     columns: [
@@ -119,7 +142,8 @@ struct LibraryView: View {
                                 book: book,
                                 coverURL: library.coverURL(for: book),
                                 titleColor: palette.text,
-                                captionColor: palette.secondaryText
+                                captionColor: palette.secondaryText,
+                                accentColor: palette.accent
                             )
                         }
                         .buttonStyle(.plain)
@@ -135,30 +159,123 @@ struct LibraryView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, Spacing.lg)
                 .padding(.bottom, 40)
             }
         }
     }
 
+    /// A small uppercase, tracked section label with a trailing hairline rule —
+    /// the editorial device that paces the shelf into named regions.
+    private func sectionLabel(_ text: String) -> some View {
+        HStack(spacing: Spacing.sm) {
+            // LocalizedStringKey(text) so a String argument still localizes —
+            // Text(String) would be verbatim and skip the catalog.
+            Text(LocalizedStringKey(text))
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
+                .foregroundStyle(palette.secondaryText)
+            Rectangle()
+                .fill(palette.hairline)
+                .frame(height: Spacing.hairlineWidth)
+        }
+    }
+
+    // MARK: - Now Reading hero
+
+    /// The featured in-progress book: an oversized cover beside its title,
+    /// author, and a russet progress rule. The shelf's editorial anchor.
+    private func nowReadingHero(_ book: Book) -> some View {
+        Button {
+            openBook = book
+        } label: {
+            HStack(alignment: .top, spacing: Spacing.md) {
+                BookCard.cover(
+                    book: book,
+                    coverURL: library.coverURL(for: book)
+                )
+                .frame(width: 104)
+                .aspectRatio(2 / 3, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Spacing.radiusSmall)
+                        .strokeBorder(palette.hairline)
+                )
+                .shadow(
+                    color: .black.opacity(palette.shadowOpacity),
+                    radius: 12, x: 0, y: 6
+                )
+
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text("Now Reading")
+                        .font(Typography.eyebrow)
+                        .tracking(Typography.eyebrowTracking)
+                        .textCase(.uppercase)
+                        .foregroundStyle(palette.accent)
+
+                    Text(book.title)
+                        .font(Typography.display(26))
+                        .foregroundStyle(palette.text)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(book.author)
+                        .font(Typography.meta())
+                        .foregroundStyle(palette.secondaryText)
+                        .lineLimit(1)
+
+                    Spacer(minLength: Spacing.xs)
+
+                    heroProgress(book)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("library.nowReading")
+        .accessibilityLabel("Now reading \(book.title)")
+    }
+
+    private func heroProgress(_ book: Book) -> some View {
+        let fraction = book.progress.bookFraction
+        return VStack(alignment: .leading, spacing: Spacing.xxs) {
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(palette.hairline)
+                    Capsule()
+                        .fill(palette.accent)
+                        .frame(width: max(2, proxy.size.width * fraction))
+                }
+            }
+            .frame(height: 3)
+
+            Text("\(Int((fraction * 100).rounded()))%")
+                .font(Typography.meta(11))
+                .foregroundStyle(palette.secondaryText)
+        }
+    }
+
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Quire")
-                    .font(.system(size: 34, weight: .semibold,
-                                  design: .serif))
-                    .italic()
+                    .font(Typography.display(40))
                     .foregroundStyle(palette.text)
+                // Count interpolated as a String so the generated key is
+                // "%@ book%@ on the shelf" (matches the catalog); Hungarian
+                // renders the count and ignores the plural suffix.
                 Text(
-                    "\(library.books.count) book\(library.books.count == 1 ? "" : "s") on the shelf"
+                    "\(String(library.books.count)) book\(library.books.count == 1 ? "" : "s") on the shelf"
                 )
-                .font(.system(size: 13))
+                .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
             }
             Spacer()
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.sm) {
                 vocabularyButton
                 statsButton
+                settingsButton
                 importButton
             }
         }
@@ -196,6 +313,22 @@ struct LibraryView: View {
         .accessibilityLabel("Reading statistics")
     }
 
+    private var settingsButton: some View {
+        Button {
+            isSettingsPresented = true
+        } label: {
+            Image(systemName: "gearshape")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(palette.accent)
+                .frame(width: 40, height: 40)
+                .background(
+                    Circle().fill(palette.surface)
+                )
+        }
+        .accessibilityIdentifier("library.settings")
+        .accessibilityLabel("Settings")
+    }
+
     private var importButton: some View {
         Button {
             isImporterPresented = true
@@ -225,12 +358,10 @@ struct LibraryView: View {
             }
             VStack(spacing: 6) {
                 Text("Your shelf is empty")
-                    .font(.system(size: 24, weight: .semibold,
-                                  design: .serif))
-                    .italic()
+                    .font(Typography.display(28))
                     .foregroundStyle(palette.text)
                 Text("Add an EPUB from Files and start reading.")
-                    .font(.system(size: 14))
+                    .font(Typography.meta(14))
                     .foregroundStyle(palette.secondaryText)
             }
             Button {

@@ -145,14 +145,15 @@ struct ReaderView: View {
                 Button {
                     viewModel.goToNextChapter()
                 } label: {
-                    HStack(spacing: 7) {
+                    HStack(spacing: Spacing.xxs + 3) {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 12, weight: .semibold))
                         Text(viewModel.nextChapterTitle.isEmpty
                             ? "Next chapter"
                             : viewModel.nextChapterTitle)
-                            .font(.system(size: 13, weight: .medium,
-                                          design: .serif))
+                            // Crimson Pro at 13pt feels like a deliberate label,
+                            // not a system-default tappable hint.
+                            .font(Typography.body(13))
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 14)
@@ -200,7 +201,7 @@ struct ReaderView: View {
     }
 
     private var topBar: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: Spacing.md) {
             Button {
                 dismiss()
             } label: {
@@ -209,12 +210,16 @@ struct ReaderView: View {
             }
             .accessibilityIdentifier("reader.back")
 
-            VStack(spacing: 1) {
+            VStack(spacing: 2) {
                 Text(viewModel.book?.title ?? "")
-                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    // Literary title — Crimson Pro carries it cleanly at reading sizes.
+                    .font(Typography.title(15))
                     .lineLimit(1)
                 Text(viewModel.currentChapterTitle)
-                    .font(.system(size: 11))
+                    // Eyebrow treatment: uppercase + tracked, signals "location label".
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
                     .foregroundStyle(palette.secondaryText)
                     .lineLimit(1)
             }
@@ -231,17 +236,17 @@ struct ReaderView: View {
         }
         .foregroundStyle(palette.text)
         .tint(palette.accent)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.xs)
         .background(chromeBackground)
     }
 
     private var bottomBar: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: Spacing.xs) {
             ScrubberView(
                 fraction: viewModel.bookFraction,
                 accent: palette.accent,
-                track: palette.secondaryText.opacity(0.25)
+                track: palette.hairline.opacity(0.6)
             ) { fraction in
                 viewModel.scrub(toBookFraction: fraction)
             }
@@ -258,8 +263,9 @@ struct ReaderView: View {
 
                 Spacer()
 
+                // Meta role: monospaced digits, unobtrusive at its utility size.
                 Text(pageLabel)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(Typography.meta(12))
                     .foregroundStyle(palette.secondaryText)
                     .monospacedDigit()
                     .accessibilityIdentifier("reader.pageLabel")
@@ -277,19 +283,19 @@ struct ReaderView: View {
                 Button {
                     viewModel.activeSheet = .typography
                 } label: {
+                    // Crimson Pro "Aa" echoes the typeface the reader uses.
                     Text("Aa")
-                        .font(.system(size: 17, weight: .semibold,
-                                      design: .serif))
+                        .font(Typography.title(17))
                 }
-                .padding(.leading, 18)
+                .padding(.leading, Spacing.md)
                 .accessibilityIdentifier("reader.typography")
             }
         }
         .foregroundStyle(palette.text)
         .tint(palette.accent)
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        .padding(.horizontal, Spacing.md)
+        .padding(.top, Spacing.sm)
+        .padding(.bottom, Spacing.xs)
         .background(chromeBackground)
     }
 
@@ -309,14 +315,14 @@ struct ReaderView: View {
     }
 
     private func errorView(_ message: String) -> some View {
-        VStack(spacing: 14) {
+        VStack(spacing: Spacing.md) {
             Image(systemName: "book.closed")
                 .font(.system(size: 40))
                 .foregroundStyle(palette.secondaryText)
             Text("This book could not be opened")
-                .font(.system(.headline, design: .serif))
+                .font(Typography.title(17))
             Text(message)
-                .font(.footnote)
+                .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
                 .multilineTextAlignment(.center)
             Button("Back to Library") { dismiss() }
@@ -324,7 +330,7 @@ struct ReaderView: View {
                 .tint(palette.accent)
         }
         .foregroundStyle(palette.text)
-        .padding(40)
+        .padding(Spacing.xl)
     }
 }
 

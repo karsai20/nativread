@@ -2,7 +2,8 @@ import SwiftUI
 
 /// The global saved-vocabulary sheet: every word the reader kept from the
 /// Define popup, with its reading context and definition, plus Anki-ready
-/// CSV / Markdown export. Follows the Highlights-tab house style.
+/// CSV / Markdown export. Uses BrandPalette — launched from the library
+/// header, so it lives in ambient app chrome, not a reading surface.
 struct VocabularyView: View {
     @Environment(VocabularyStore.self) private var store
     @Environment(SettingsStore.self) private var settingsStore
@@ -11,8 +12,9 @@ struct VocabularyView: View {
 
     @State private var editingNoteFor: VocabularyEntry?
 
-    private var palette: ReaderPalette {
-        settingsStore.settings.palette(systemDark: colorScheme == .dark)
+    /// Brand palette follows system appearance, matching the library.
+    private var palette: BrandPalette {
+        BrandPalette.resolve(systemDark: colorScheme == .dark)
     }
 
     var body: some View {
@@ -51,27 +53,31 @@ struct VocabularyView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: Spacing.sm) {
             Image(systemName: "character.book.closed")
-                .font(.system(size: 30))
+                .font(.system(size: 32))
                 .foregroundStyle(palette.secondaryText)
             Text("No saved words yet")
-                .font(.system(.headline, design: .serif))
+                .font(Typography.title())
                 .foregroundStyle(palette.text)
             Text("Tap Define while reading, then Save to keep a word here.")
-                .font(.system(size: 13))
+                .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(32)
+        .padding(Spacing.xl)
         .accessibilityIdentifier("vocabulary.empty")
     }
 
     private var exportHeader: some View {
         HStack {
+            // Eyebrow count label — tracks how many words are saved without
+            // visually competing with the word entries below.
             Text("^[\(store.entries.count) word](inflect: true)")
-                .font(.system(size: 12, weight: .semibold))
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
                 .foregroundStyle(palette.secondaryText)
             Spacer()
             Menu {
@@ -101,14 +107,14 @@ struct VocabularyView: View {
                 }
             } label: {
                 Label("Export", systemImage: "square.and.arrow.up")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(Typography.meta())
                     .foregroundStyle(palette.accent)
             }
             .accessibilityIdentifier("vocabulary.export")
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 14)
-        .padding(.bottom, 8)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.md)
+        .padding(.bottom, Spacing.xs)
     }
 
     private var list: some View {
@@ -142,14 +148,17 @@ struct VocabularyView: View {
     }
 
     private func row(for entry: VocabularyEntry) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            // The word itself gets title-weight serif — editorial emphasis
+            // without the full grandeur of display.
             Text(entry.word)
-                .font(.system(size: 17, weight: .semibold, design: .serif))
+                .font(Typography.title())
                 .foregroundStyle(palette.accent)
 
             if let context = trimmedContext(entry) {
+                // Context quote: body italic for the literary quoting convention.
                 Text(context)
-                    .font(.system(size: 13, design: .serif))
+                    .font(Typography.body())
                     .italic()
                     .foregroundStyle(palette.secondaryText)
                     .multilineTextAlignment(.leading)
@@ -158,7 +167,7 @@ struct VocabularyView: View {
 
             if !entry.definition.isEmpty {
                 Text(entry.definition)
-                    .font(.system(size: 14))
+                    .font(Typography.body())
                     .foregroundStyle(palette.text)
                     .multilineTextAlignment(.leading)
                     .lineLimit(3)
@@ -170,21 +179,21 @@ struct VocabularyView: View {
                 } icon: {
                     Image(systemName: "note.text")
                 }
-                .font(.system(size: 12))
+                .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
                 .lineLimit(4)
-                .padding(.top, 2)
+                .padding(.top, Spacing.xxs)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.vertical, Spacing.sm)
         .accessibilityIdentifier("vocabulary.entry")
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(palette.hairline)
-                .frame(height: 1)
-                .padding(.horizontal, 24)
+                .frame(height: Spacing.hairlineWidth)
+                .padding(.horizontal, Spacing.lg)
         }
     }
 
@@ -253,10 +262,12 @@ struct VocabularyView: View {
 }
 
 /// A small multiline editor for a saved word's personal note. Prefilled
-/// with the current note; Save persists, Cancel discards.
+/// with the current note; Save persists, Cancel discards. Accepts
+/// `any PaletteColors` so it can be driven by either BrandPalette or
+/// ReaderPalette without a conversion shim.
 private struct VocabularyNoteEditor: View {
     let entry: VocabularyEntry
-    let palette: ReaderPalette
+    let palette: any PaletteColors
     let onSave: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -264,7 +275,7 @@ private struct VocabularyNoteEditor: View {
 
     init(
         entry: VocabularyEntry,
-        palette: ReaderPalette,
+        palette: any PaletteColors,
         onSave: @escaping (String) -> Void
     ) {
         self.entry = entry
@@ -275,24 +286,23 @@ private struct VocabularyNoteEditor: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
                 Text(entry.word)
-                    .font(.system(size: 17, weight: .semibold,
-                                  design: .serif))
+                    .font(Typography.title())
                     .foregroundStyle(palette.accent)
 
                 TextEditor(text: $draft)
-                    .font(.system(size: 16, design: .serif))
+                    .font(Typography.body())
                     .foregroundStyle(palette.text)
                     .scrollContentBackground(.hidden)
-                    .padding(8)
+                    .padding(Spacing.xs)
                     .background(
                         palette.secondaryText.opacity(0.1),
-                        in: RoundedRectangle(cornerRadius: 8)
+                        in: RoundedRectangle(cornerRadius: Spacing.radiusSmall)
                     )
                     .accessibilityIdentifier("vocabulary.entry.note.editor")
             }
-            .padding(20)
+            .padding(Spacing.lg)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(palette.background.ignoresSafeArea())
             .navigationTitle("Note")

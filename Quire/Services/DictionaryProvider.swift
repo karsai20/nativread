@@ -8,11 +8,34 @@ struct BundledDictionary: Sendable, Equatable {
     let basename: String
 
     static let wordnet = BundledDictionary(folder: "wordnet", basename: "wordnet")
-    static let enhu = BundledDictionary(folder: "enhu", basename: "enhu")
+    /// English → Hungarian (Wiktionary / DBnary, CC-BY-SA). Real resource.
+    static let enhu    = BundledDictionary(folder: "enhu",   basename: "enhu")
+    /// English → Spanish. Resource not yet bundled — see CREDITS.md for status.
+    static let enes    = BundledDictionary(folder: "enes",   basename: "enes")
+    /// English → German. Resource not yet bundled — see CREDITS.md for status.
+    static let ende    = BundledDictionary(folder: "ende",   basename: "ende")
 
-    /// All dictionaries shipped in the app bundle. EN→HU first (Hungarian
-    /// meaning is the priority), then WordNet for the English definition.
-    static let bundled: [BundledDictionary] = [.enhu, .wordnet]
+    /// Returns the dictionary set appropriate for the given app language.
+    /// The bilingual dictionary is placed first so bilingual results appear
+    /// before WordNet's English definitions. When the bilingual resource for a
+    /// language is absent (e.g. `enes`/`ende`) the provider's `compactMap`
+    /// silently drops it and only WordNet is loaded — a graceful fallback.
+    static func bundled(for language: AppLanguage) -> [BundledDictionary] {
+        switch language {
+        case .hu, .system where AppLanguage.matchingDevice() == .hu:
+            return [.enhu, .wordnet]
+        case .es:
+            // TODO: Bundle an EN→ES StarDict dictionary (OFL/CC-licensed).
+            // See Quire/Resources/Dictionaries/CREDITS.md for sourcing notes.
+            return [.enes, .wordnet]
+        case .de:
+            // TODO: Bundle an EN→DE StarDict dictionary (OFL/CC-licensed).
+            // See Quire/Resources/Dictionaries/CREDITS.md for sourcing notes.
+            return [.ende, .wordnet]
+        case .en, .system:
+            return [.wordnet]
+        }
+    }
 }
 
 /// Errors raised while preparing bundled dictionaries.
@@ -28,6 +51,9 @@ enum DictionaryProviderError: Error, Equatable {
 /// and non-empty), then a `StarDictionary` is built from the bundled
 /// `.ifo`/`.idx` plus the unpacked `.dict`. Heavy work runs off the main
 /// thread; `service`/`isReady` are published on the main actor.
+///
+/// Call `reprepare(for:)` if the language selection changes during the
+/// onboarding flow so the session loads the correct bilingual dictionary.
 @Observable
 @MainActor
 final class DictionaryProvider {
@@ -35,10 +61,14 @@ final class DictionaryProvider {
     private(set) var service: DictionaryService?
     var isReady: Bool { service != nil }
 
-    private let dictionaries: [BundledDictionary]
+    private var dictionaries: [BundledDictionary]
     private let resourceLoader: ResourceLoader
     private let supportDirectory: URL
     private var didStart = false
+
+    /// Bumped on every (re)build so a stale overlapping build can detect it is
+    /// no longer the latest and discard its result. See `rebuild(dictionaries:)`.
+    private var rebuildGeneration = 0
 
     /// Resolves a bundled resource trio. Injectable so tests avoid `Bundle.main`.
     struct ResourceLoader: Sendable {
@@ -74,7 +104,7 @@ final class DictionaryProvider {
     }
 
     init(
-        dictionaries: [BundledDictionary] = BundledDictionary.bundled,
+        dictionaries: [BundledDictionary] = BundledDictionary.bundled(for: .system),
         resourceLoader: ResourceLoader = .main,
         supportDirectory: URL? = nil
     ) {
@@ -84,23 +114,35 @@ final class DictionaryProvider {
     }
 
     /// Decompresses and builds every dictionary, then publishes the service.
-    /// Safe to call multiple times — only the first call does work.
+    /// Safe to call multiple times — only the first call does work (use
+    /// `reprepare(for:)` if the language needs to change mid-session).
     func prepare() async {
         guard !didStart else { return }
         didStart = true
+        await rebuild(dictionaries: dictionaries)
+    }
 
-        let dictionaries = self.dictionaries
-        let loader = self.resourceLoader
-        let support = self.supportDirectory
+    /// Switches to the dictionary set for `language` and rebuilds the service.
+    /// Used after the onboarding language picker so the session immediately
+    /// uses the right bilingual dictionary without requiring a relaunch.
+    func reprepare(for language: AppLanguage) async {
+        let next = BundledDictionary.bundled(for: language)
+        guard next != dictionaries else { return }
+        dictionaries = next
+        await rebuild(dictionaries: next)
+    }
 
-        let built = await Task.detached(priority: .utility) {
-            Self.buildService(
-                dictionaries: dictionaries,
-                loader: loader,
-                supportDirectory: support
-            )
-        }.value
-
+    /// Builds the service for `dictionaries` and publishes it — but only if no
+    /// newer rebuild started while this one was awaiting. Rapidly switching
+    /// languages (e.g. tapping several in Settings) starts overlapping builds;
+    /// without this generation guard the slowest build could finish last and
+    /// leave the wrong dictionary set loaded. The current service stays in
+    /// place during the rebuild so lookups never hit an empty window.
+    private func rebuild(dictionaries: [BundledDictionary]) async {
+        rebuildGeneration &+= 1
+        let generation = rebuildGeneration
+        let built = await buildServiceAsync(dictionaries: dictionaries)
+        guard generation == rebuildGeneration else { return }
         service = built
     }
 
@@ -110,6 +152,20 @@ final class DictionaryProvider {
     }
 
     // MARK: - Build (off the main actor)
+
+    private func buildServiceAsync(
+        dictionaries: [BundledDictionary]
+    ) async -> DictionaryService? {
+        let loader = self.resourceLoader
+        let support = self.supportDirectory
+        return await Task.detached(priority: .utility) {
+            Self.buildService(
+                dictionaries: dictionaries,
+                loader: loader,
+                supportDirectory: support
+            )
+        }.value
+    }
 
     /// Builds a `DictionaryService` from the given dictionaries, unpacking each
     /// `.dict.dz` into `supportDirectory` as needed. Returns `nil` only if no

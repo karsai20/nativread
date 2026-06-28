@@ -15,12 +15,12 @@ struct TypographyPanel: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
                 panelContent
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 10)
-            .padding(.bottom, 28)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.xs)
+            .padding(.bottom, Spacing.xl)
         }
         .foregroundStyle(palette.text)
         .background(palette.background.ignoresSafeArea())
@@ -47,13 +47,13 @@ struct TypographyPanel: View {
     }
 
     private var moreDisclosure: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { showMore.toggle() }
             } label: {
                 HStack {
                     Label("More options", systemImage: "slider.horizontal.3")
-                        .font(.system(size: 15))
+                        .font(Typography.body(15))
                     Spacer()
                     Image(systemName: "chevron.down")
                         .font(.system(size: 13, weight: .semibold))
@@ -67,7 +67,7 @@ struct TypographyPanel: View {
             .accessibilityIdentifier("panel.more")
 
             if showMore {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: Spacing.md) {
                     autoThemeToggle
                     divider
                     fontList
@@ -91,7 +91,8 @@ struct TypographyPanel: View {
             label: "Line spacing",
             value: settings.lineHeight,
             range: ReaderSettings.lineHeightRange,
-            step: 0.05
+            step: 0.05,
+            valueText: String(format: "%.2f", settings.lineHeight)
         ) { newValue in
             viewModel.updateSettings { current in
                 var next = current
@@ -107,7 +108,8 @@ struct TypographyPanel: View {
             label: "Margins",
             value: settings.horizontalMargin,
             range: ReaderSettings.marginRange,
-            step: 2
+            step: 2,
+            valueText: "\(Int(settings.horizontalMargin.rounded())) pt"
         ) { newValue in
             viewModel.updateSettings { current in
                 var next = current
@@ -129,7 +131,7 @@ struct TypographyPanel: View {
             }
         )) {
             Label("Justified text", systemImage: "text.justify")
-                .font(.system(size: 15))
+                .font(Typography.body(15))
         }
         .tint(palette.accent)
     }
@@ -137,7 +139,7 @@ struct TypographyPanel: View {
     // MARK: - Reading flow
 
     private var flowRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.xs) {
             ForEach(PageFlow.allCases) { candidate in
                 Button {
                     viewModel.updateSettings { current in
@@ -147,8 +149,8 @@ struct TypographyPanel: View {
                     }
                 } label: {
                     Label(candidate.label, systemImage: candidate.icon)
-                        .font(.system(size: 14, weight: .medium))
-                        .frame(maxWidth: .infinity, minHeight: 38)
+                        .font(Typography.body(14))
+                        .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget - 6)
                 }
                 .segmentedWell(
                     isSelected: candidate == settings.pageFlow,
@@ -160,9 +162,12 @@ struct TypographyPanel: View {
     }
 
     private var transitionRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.xs) {
+            // Eyebrow label: tracked uppercase identifies this as a settings category.
             Label("Page turn", systemImage: "arrow.right.square")
-                .font(.system(size: 13))
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
                 .foregroundStyle(palette.secondaryText)
             Spacer()
             ForEach(PageTransition.allCases) { candidate in
@@ -174,9 +179,9 @@ struct TypographyPanel: View {
                     }
                 } label: {
                     Text(candidate.label)
-                        .font(.system(size: 13, weight: .medium))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
+                        .font(Typography.meta(13))
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, Spacing.xxs + 3)
                 }
                 .capsulePill(
                     isSelected: candidate == settings.pageTransition,
@@ -203,7 +208,7 @@ struct TypographyPanel: View {
         )) {
             Label("Match system appearance",
                   systemImage: "circle.lefthalf.filled")
-                .font(.system(size: 15))
+                .font(Typography.body(15))
         }
         .tint(palette.accent)
         .accessibilityIdentifier("theme.auto")
@@ -216,7 +221,8 @@ struct TypographyPanel: View {
             label: "Warm light",
             value: settings.warmth,
             range: ReaderSettings.warmthRange,
-            step: 0.05
+            step: 0.05,
+            valueText: "\(Int((settings.warmth * 100).rounded()))%"
         ) { newValue in
             viewModel.updateSettings { current in
                 var next = current
@@ -231,7 +237,8 @@ struct TypographyPanel: View {
             label: "Brightness",
             value: brightness,
             range: 0.05...1,
-            step: 0.05
+            step: 0.05,
+            valueText: "\(Int((brightness * 100).rounded()))%"
         ) { newValue in
             brightness = newValue
             UIScreen.main.brightness = newValue
@@ -279,13 +286,15 @@ struct TypographyPanel: View {
                                         lineWidth: candidate == activeTheme ? 2 : 1
                                     )
                                 )
-                                .frame(width: 44, height: 44)
+                                .frame(width: Spacing.minTapTarget,
+                                       height: Spacing.minTapTarget)
                             Text("Aa")
-                                .font(.system(size: 15, design: .serif))
+                                .font(Typography.title(15))
                                 .foregroundStyle(candidate.text)
                         }
+                        // Meta role signals this is a caption, not a nav target.
                         Text(candidate.label)
-                            .font(.system(size: 11))
+                            .font(Typography.meta(11))
                             .foregroundStyle(
                                 candidate == activeTheme
                                     ? palette.accent : palette.secondaryText
@@ -330,14 +339,17 @@ struct TypographyPanel: View {
     // MARK: - Size
 
     private var sizeRow: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: Spacing.xs) {
             HStack {
+                // Eyebrow label: tracked uppercase signals "settings category".
                 Label("Text size", systemImage: "textformat.size")
-                    .font(.system(size: 13))
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
                     .foregroundStyle(palette.secondaryText)
                 Spacer()
                 Text("\(Int(settings.fontSize.rounded())) pt")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(Typography.meta(13))
                     .monospacedDigit()
                     .foregroundStyle(palette.secondaryText)
             }
@@ -346,20 +358,20 @@ struct TypographyPanel: View {
                     adjustFontSize(by: -1)
                 } label: {
                     Text("A")
-                        .font(.system(size: 15, design: .serif))
+                        .font(Typography.title(15))
                         .frame(maxWidth: .infinity, minHeight: 40)
                 }
                 .accessibilityIdentifier("fontsize.down")
 
                 Rectangle()
                     .fill(palette.hairline)
-                    .frame(width: 1, height: 22)
+                    .frame(width: Spacing.hairlineWidth, height: 22)
 
                 Button {
                     adjustFontSize(by: 1)
                 } label: {
                     Text("A")
-                        .font(.system(size: 24, design: .serif))
+                        .font(Typography.title(24))
                         .frame(maxWidth: .infinity, minHeight: 40)
                 }
                 .accessibilityIdentifier("fontsize.up")
@@ -383,12 +395,27 @@ struct TypographyPanel: View {
         value: Double,
         range: ClosedRange<Double>,
         step: Double,
+        valueText: String? = nil,
         onChange: @escaping (Double) -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(label, systemImage: icon)
-                .font(.system(size: 13))
-                .foregroundStyle(palette.secondaryText)
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            // Eyebrow label distinguishes control categories from body copy.
+            // Optional trailing readout mirrors sizeRow's numeric display.
+            HStack {
+                // LocalizedStringKey so the String argument still localizes.
+                Label(LocalizedStringKey(label), systemImage: icon)
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
+                    .foregroundStyle(palette.secondaryText)
+                if let valueText {
+                    Spacer()
+                    Text(valueText)
+                        .font(Typography.meta(13))
+                        .monospacedDigit()
+                        .foregroundStyle(palette.secondaryText)
+                }
+            }
             Slider(
                 value: Binding(get: { value }, set: onChange),
                 in: range,

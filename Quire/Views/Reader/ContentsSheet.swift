@@ -9,15 +9,15 @@ struct ContentsSheet: View {
     private var palette: ReaderPalette { viewModel.palette }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: Spacing.md) {
             Picker("Section", selection: $section) {
                 Text("Contents").tag(0)
                 Text("Bookmarks").tag(1)
                 Text("Highlights").tag(2)
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
+            .padding(.horizontal, Spacing.md)
+            .padding(.top, Spacing.md + 2)
 
             switch section {
             case 0: tocList
@@ -47,13 +47,11 @@ struct ContentsSheet: View {
                     } label: {
                         HStack {
                             Text(entry.title)
-                                .font(.system(
-                                    size: entry.depth == 0 ? 16 : 14,
-                                    weight: entry.spineIndex
-                                        == viewModel.spineIndex
-                                        ? .semibold : .regular,
-                                    design: .serif
-                                ))
+                                // Top-level chapters get the full title role;
+                                // nested entries step down to body for hierarchy.
+                                .font(entry.depth == 0
+                                    ? Typography.title(16)
+                                    : Typography.body(14))
                                 .foregroundStyle(
                                     entry.spineIndex == viewModel.spineIndex
                                         ? palette.accent : palette.text
@@ -62,9 +60,9 @@ struct ContentsSheet: View {
                             Spacer()
                         }
                         .padding(.leading,
-                                 CGFloat(entry.depth) * 18 + 24)
-                        .padding(.trailing, 24)
-                        .padding(.vertical, 11)
+                                 CGFloat(entry.depth) * 18 + Spacing.lg)
+                        .padding(.trailing, Spacing.lg)
+                        .padding(.vertical, Spacing.xs + 3)
                     }
                     .disabled(entry.spineIndex == nil)
                     .opacity(entry.spineIndex == nil ? 0.4 : 1)
@@ -78,15 +76,15 @@ struct ContentsSheet: View {
         Group {
             let highlights = viewModel.book?.highlights ?? []
             if highlights.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: Spacing.xs) {
                     Image(systemName: "highlighter")
                         .font(.system(size: 28))
                         .foregroundStyle(palette.secondaryText)
                     Text("No highlights yet")
-                        .font(.system(.subheadline, design: .serif))
+                        .font(Typography.title())
                         .foregroundStyle(palette.secondaryText)
                     Text("Select text while reading to highlight it")
-                        .font(.system(size: 12))
+                        .font(Typography.meta())
                         .foregroundStyle(palette.secondaryText)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -103,8 +101,11 @@ struct ContentsSheet: View {
     private var exportHeader: some View {
         if let book = viewModel.book {
             HStack {
+                // Eyebrow count label — tracked uppercase reinforces "metadata, not prose".
                 Text("^[\(book.highlights.count) highlight](inflect: true)")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
                     .foregroundStyle(palette.secondaryText)
                 Spacer()
                 Menu {
@@ -120,13 +121,13 @@ struct ContentsSheet: View {
                     }
                 } label: {
                     Label("Export", systemImage: "square.and.arrow.up")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(Typography.meta(13))
                         .foregroundStyle(palette.accent)
                 }
                 .accessibilityIdentifier("contents.highlights.export")
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 8)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.bottom, Spacing.xs)
         }
     }
 
@@ -139,24 +140,23 @@ struct ContentsSheet: View {
                             Button {
                                 viewModel.goTo(highlight: highlight)
                             } label: {
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                    // Chapter location — eyebrow style echoes the TOC header.
                                     Text(highlight.chapterTitle)
-                                        .font(.system(
-                                            size: 12, weight: .semibold
-                                        ))
+                                        .font(Typography.eyebrow)
+                                        .tracking(Typography.eyebrowTracking)
+                                        .textCase(.uppercase)
                                         .foregroundStyle(palette.accent)
                                     Text(highlight.text)
-                                        .font(.system(
-                                            size: 14, design: .serif
-                                        ))
+                                        .font(Typography.body(14))
                                         .foregroundStyle(palette.text)
                                         .multilineTextAlignment(.leading)
                                         .lineLimit(3)
-                                        .padding(.horizontal, 6)
+                                        .padding(.horizontal, Spacing.xxs + 2)
                                         .background(
                                             palette.accent.opacity(0.16),
                                             in: RoundedRectangle(
-                                                cornerRadius: 4
+                                                cornerRadius: Spacing.xxs
                                             )
                                         )
                                     if let note = trimmedNote(highlight) {
@@ -166,17 +166,17 @@ struct ContentsSheet: View {
                                         } icon: {
                                             Image(systemName: "note.text")
                                         }
-                                        .font(.system(size: 12))
+                                        .font(Typography.meta())
                                         .foregroundStyle(palette.secondaryText)
                                         .lineLimit(4)
-                                        .padding(.top, 2)
+                                        .padding(.top, Spacing.xxs / 2)
                                     }
                                 }
                                 .frame(
                                     maxWidth: .infinity, alignment: .leading
                                 )
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 10)
+                                .padding(.horizontal, Spacing.lg)
+                                .padding(.vertical, Spacing.xs)
                             }
                             .contextMenu {
                                 Button {
@@ -218,12 +218,12 @@ struct ContentsSheet: View {
         Group {
             let bookmarks = viewModel.book?.bookmarks ?? []
             if bookmarks.isEmpty {
-                VStack(spacing: 8) {
+                VStack(spacing: Spacing.xs) {
                     Image(systemName: "bookmark")
                         .font(.system(size: 28))
                         .foregroundStyle(palette.secondaryText)
                     Text("No bookmarks yet")
-                        .font(.system(.subheadline, design: .serif))
+                        .font(Typography.title())
                         .foregroundStyle(palette.secondaryText)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -234,16 +234,15 @@ struct ContentsSheet: View {
                             Button {
                                 viewModel.goTo(bookmark: bookmark)
                             } label: {
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                    // Eyebrow chapter location.
                                     Text(bookmark.chapterTitle)
-                                        .font(.system(
-                                            size: 12, weight: .semibold
-                                        ))
+                                        .font(Typography.eyebrow)
+                                        .tracking(Typography.eyebrowTracking)
+                                        .textCase(.uppercase)
                                         .foregroundStyle(palette.accent)
                                     Text(bookmark.snippet)
-                                        .font(.system(
-                                            size: 14, design: .serif
-                                        ))
+                                        .font(Typography.body(14))
                                         .foregroundStyle(palette.text)
                                         .multilineTextAlignment(.leading)
                                         .lineLimit(2)
@@ -251,8 +250,8 @@ struct ContentsSheet: View {
                                 .frame(
                                     maxWidth: .infinity, alignment: .leading
                                 )
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 10)
+                                .padding(.horizontal, Spacing.lg)
+                                .padding(.vertical, Spacing.xs)
                             }
                             .contextMenu {
                                 Button(role: .destructive) {
@@ -340,30 +339,31 @@ private struct NoteEditor: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                // The quoted passage — body role at a slightly smaller size.
                 Text(highlight.text)
-                    .font(.system(size: 13, design: .serif))
+                    .font(Typography.body(13))
                     .foregroundStyle(palette.secondaryText)
                     .lineLimit(3)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, Spacing.xxs + 2)
+                    .padding(.vertical, Spacing.xxs)
                     .background(
                         palette.accent.opacity(0.16),
-                        in: RoundedRectangle(cornerRadius: 4)
+                        in: RoundedRectangle(cornerRadius: Spacing.xxs)
                     )
 
                 TextEditor(text: $draft)
-                    .font(.system(size: 16, design: .serif))
+                    .font(Typography.body(16))
                     .foregroundStyle(palette.text)
                     .scrollContentBackground(.hidden)
-                    .padding(8)
+                    .padding(Spacing.xs)
                     .background(
                         palette.secondaryText.opacity(0.1),
-                        in: RoundedRectangle(cornerRadius: 8)
+                        in: RoundedRectangle(cornerRadius: Spacing.xs)
                     )
                     .accessibilityIdentifier("contents.highlights.note.editor")
             }
-            .padding(20)
+            .padding(Spacing.md)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(palette.background.ignoresSafeArea())
             .navigationTitle("Note")

@@ -9,11 +9,11 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .paper: return "Paper"
-        case .sepia: return "Sepia"
-        case .dusk: return "Dusk"
-        case .ink: return "Ink"
-        case .academia: return "Academia"
+        case .paper:    return Bundle.main.localizedString(forKey: "theme.label.paper", value: "Paper", table: nil)
+        case .sepia:    return Bundle.main.localizedString(forKey: "theme.label.sepia", value: "Sepia", table: nil)
+        case .dusk:     return Bundle.main.localizedString(forKey: "theme.label.dusk", value: "Dusk", table: nil)
+        case .ink:      return Bundle.main.localizedString(forKey: "theme.label.ink", value: "Ink", table: nil)
+        case .academia: return Bundle.main.localizedString(forKey: "theme.label.academia", value: "Academia", table: nil)
         }
     }
 
@@ -103,13 +103,13 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .newYork: return "New York"
-        case .georgia: return "Georgia"
-        case .palatino: return "Palatino"
-        case .charter: return "Charter"
-        case .sanFrancisco: return "San Francisco"
-        case .crimson: return "Crimson Pro"
-        case .cormorant: return "Cormorant"
+        case .newYork:      return Bundle.main.localizedString(forKey: "font.label.newYork", value: "New York", table: nil)
+        case .georgia:      return Bundle.main.localizedString(forKey: "font.label.georgia", value: "Georgia", table: nil)
+        case .palatino:     return Bundle.main.localizedString(forKey: "font.label.palatino", value: "Palatino", table: nil)
+        case .charter:      return Bundle.main.localizedString(forKey: "font.label.charter", value: "Charter", table: nil)
+        case .sanFrancisco: return Bundle.main.localizedString(forKey: "font.label.sanFrancisco", value: "San Francisco", table: nil)
+        case .crimson:      return Bundle.main.localizedString(forKey: "font.label.crimson", value: "Crimson Pro", table: nil)
+        case .cormorant:    return Bundle.main.localizedString(forKey: "font.label.cormorant", value: "Cormorant", table: nil)
         }
     }
 
@@ -183,8 +183,8 @@ enum PageFlow: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .paged: return "Pages"
-        case .scroll: return "Scroll"
+        case .paged:  return Bundle.main.localizedString(forKey: "flow.label.paged", value: "Pages", table: nil)
+        case .scroll: return Bundle.main.localizedString(forKey: "flow.label.scroll", value: "Scroll", table: nil)
         }
     }
 
@@ -204,9 +204,9 @@ enum PageTransition: String, Codable, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .slide: return "Slide"
-        case .eink: return "E-Ink"
-        case .instant: return "None"
+        case .slide:   return Bundle.main.localizedString(forKey: "transition.label.slide", value: "Slide", table: nil)
+        case .eink:    return Bundle.main.localizedString(forKey: "transition.label.eink", value: "E-Ink", table: nil)
+        case .instant: return Bundle.main.localizedString(forKey: "transition.label.none", value: "None", table: nil)
         }
     }
 }
@@ -243,7 +243,10 @@ struct ReaderSettings: Codable, Equatable {
     var warmth: Double = 0
     var pageFlow: PageFlow = .paged
     var pageTransition: PageTransition = .slide
-    var font: ReaderFont = .newYork
+    // Defaults to the bundled Crimson Pro so a fresh reader matches the
+    // editorial library/onboarding type out of the box. Persisted settings
+    // from earlier versions keep whatever the reader already chose.
+    var font: ReaderFont = .crimson
     var fontSize: Double = 18
     var lineHeight: Double = 1.55
     var horizontalMargin: Double = 26

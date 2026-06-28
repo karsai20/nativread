@@ -1,24 +1,25 @@
 import SwiftUI
 
-/// First-launch dark-academia brand splash. Covers the one-time dictionary
+/// First-launch editorial brand splash. Covers the one-time dictionary
 /// unpacking work and gives a "flawless first-use" feel, then crossfades into
-/// the library. The palette is a fixed brand moment — it deliberately ignores
-/// the user's current reader theme.
+/// the library. Uses the editorial `BrandPalette` so the splash, the language
+/// picker, and the library all read as one warm paper surface.
 struct LaunchView: View {
     /// Called once readiness and the minimum display time are both satisfied.
     var onFinished: () -> Void
 
     @Environment(DictionaryProvider.self) private var dictionaryProvider
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
-    // MARK: - Brand constants (easily editable)
+    // MARK: - Brand copy
 
     private let tagline = "A quiet place to read"
 
-    private static let pine = Color(hex: "#152319")
-    private static let pineDeep = Color(hex: "#0E1812")
-    private static let brass = Color(hex: "#CFA94E")
-    private static let parchment = Color(hex: "#ECE3CE")
+    /// The chrome palette resolved against the system appearance.
+    private var palette: BrandPalette {
+        BrandPalette.resolve(systemDark: colorScheme == .dark)
+    }
 
     /// Never flash: keep the splash up for at least this long even if the
     /// dictionaries are already prepared. Long enough for the wordmark and
@@ -33,37 +34,45 @@ struct LaunchView: View {
 
     var body: some View {
         ZStack {
+            // A barely-there vertical lift from the page toward its raised
+            // surface — paper depth, not a coloured wash.
             LinearGradient(
-                colors: [Self.pine, Self.pineDeep],
+                colors: [palette.background, palette.surface],
                 startPoint: .top,
                 endPoint: .bottom
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 18) {
-                Text("QUIRE")
-                    .font(.custom("Cinzel", size: 46))
-                    .fontWeight(.semibold)
-                    .tracking(8)
-                    .foregroundStyle(Self.brass)
+            VStack(spacing: 14) {
+                Text("Quire")
+                    .font(Typography.display(64))
+                    .tracking(1)
+                    .foregroundStyle(palette.text)
                     .opacity(wordmarkShown ? 1 : 0)
                     .offset(y: wordmarkShown ? 0 : 8)
                     .accessibilityLabel("Quire")
                     .accessibilityIdentifier("onboarding.wordmark")
 
+                // Editorial accent: a short russet rule under the wordmark.
+                Capsule()
+                    .fill(palette.accent)
+                    .frame(width: 44, height: 2)
+                    .opacity(wordmarkShown ? 1 : 0)
+
                 Text(tagline)
-                    .font(.custom("Cormorant Garamond", size: 20))
+                    .font(Typography.display(22))
                     .italic()
-                    .tracking(1.5)
-                    .foregroundStyle(Self.parchment.opacity(0.85))
-                    .opacity(taglineShown ? 0.85 : 0)
+                    .tracking(0.5)
+                    .foregroundStyle(palette.secondaryText)
+                    .opacity(taglineShown ? 1 : 0)
+                    .padding(.top, 2)
             }
 
             VStack {
                 Spacer()
                 SweepIndicator(
-                    track: Self.parchment.opacity(0.14),
-                    sweep: Self.brass,
+                    track: palette.hairline,
+                    sweep: palette.accent,
                     isAnimated: !reduceMotion
                 )
                 .frame(width: 132, height: 2)

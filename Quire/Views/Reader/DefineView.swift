@@ -66,12 +66,12 @@ struct DefineView: View {
     }
 
     private var preparingState: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: Spacing.md) {
             ProgressView()
                 .progressViewStyle(.circular)
                 .tint(palette.accent)
             Text("Preparing dictionary…")
-                .font(.system(size: 14, weight: .medium, design: .serif))
+                .font(Typography.body(14))
                 .foregroundStyle(palette.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -80,40 +80,42 @@ struct DefineView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: Spacing.xs) {
             Image(systemName: "character.book.closed")
                 .font(.system(size: 30))
                 .foregroundStyle(palette.secondaryText)
             wordTitle
             Text("No definition found")
-                .font(.system(size: 13))
+                .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(30)
+        .padding(Spacing.xl)
         .accessibilityIdentifier("define.empty")
     }
 
     private func resultsScroll(_ results: [DictionaryResult]) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
                 wordTitle
-                    .padding(.bottom, 2)
+                    .padding(.bottom, Spacing.xxs)
 
                 ForEach(Array(results.enumerated()), id: \.offset) { _, result in
                     resultBlock(result)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
-            .padding(.vertical, 18)
+            .padding(.horizontal, Spacing.lg)
+            .padding(.vertical, Spacing.md + 2)
         }
         .accessibilityIdentifier("define.result")
     }
 
     private var wordTitle: some View {
+        // Display role: Cormorant Garamond at 28pt anchors the definition sheet
+        // with the same grand editorial presence used on covers and pull-quotes.
         Text(word)
-            .font(.system(size: 26, weight: .semibold, design: .serif))
+            .font(Typography.display(28))
             .foregroundStyle(palette.text)
             .accessibilityAddTraits(.isHeader)
     }
@@ -130,7 +132,7 @@ struct DefineView: View {
         } label: {
             Label(saved ? "Saved" : "Save",
                   systemImage: saved ? "checkmark" : "plus")
-                .font(.system(size: 15, weight: .semibold))
+                .font(Typography.body(15))
         }
         .tint(palette.accent)
         .disabled(saved || saveDefinition == nil)
@@ -161,10 +163,13 @@ struct DefineView: View {
     }
 
     private func resultBlock(_ result: DictionaryResult) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(result.bookname.uppercased())
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(0.8)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            // Dictionary source name as an eyebrow — tracked uppercase,
+            // consistent with how chapter labels appear in search results.
+            Text(result.bookname)
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
                 .foregroundStyle(palette.accent)
 
             ForEach(Array(result.entries.enumerated()), id: \.offset) { _, entry in
@@ -204,7 +209,8 @@ enum DefinitionFormatter {
         // Theme the whole fragment with the reader's body colour so it
         // reads as part of the sheet rather than as system body text.
         result.foregroundColor = palette.text
-        result.font = .system(size: 16, design: .serif)
+        // Body role: Crimson Pro at 16pt matches the reader's default feel.
+        result.font = Typography.body(16)
         return result
     }
 

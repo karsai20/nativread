@@ -14,7 +14,8 @@ struct SkeletonLines: View {
     /// like a paragraph rather than a uniform grid.
     var widths: [CGFloat] = [1, 0.92, 0.97, 0.6, 1, 0.88, 0.95, 0.45]
     var lineHeight: CGFloat = 13
-    var spacing: CGFloat = 16
+    // Spacing.md (16 pt) keeps line-gaps harmonious with the token scale.
+    var spacing: CGFloat = Spacing.md
 
     var body: some View {
         GeometryReader { proxy in

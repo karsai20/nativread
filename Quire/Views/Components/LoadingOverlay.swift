@@ -1,12 +1,13 @@
 import SwiftUI
 
 /// A centred "card over a dimmed backdrop" loading indicator, themed by
-/// the active reader palette. Used for blocking async work such as book
-/// import where the result must land before the user continues.
+/// whichever palette owns the surface behind it — the reader's reading
+/// palette or the library's brand palette. Used for blocking async work
+/// such as book import where the result must land before the user continues.
 struct LoadingOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    let palette: ReaderPalette
+    let palette: any PaletteColors
     let message: String
 
     var body: some View {
@@ -16,7 +17,7 @@ struct LoadingOverlay: View {
                 .opacity(0.45)
                 .ignoresSafeArea()
 
-            VStack(spacing: 14) {
+            VStack(spacing: Spacing.md) {
                 ProgressView()
                     .progressViewStyle(.circular)
                     .tint(palette.accent)
@@ -24,23 +25,23 @@ struct LoadingOverlay: View {
                     // but we avoid any extra animation of our own.
                     .scaleEffect(reduceMotion ? 1.0 : 1.1)
 
-                Text(message)
-                    .font(.system(size: 14, weight: .medium, design: .serif))
+                Text(LocalizedStringKey(message))
+                    .font(Typography.body())
                     .foregroundStyle(palette.text)
             }
-            .padding(.horizontal, 30)
-            .padding(.vertical, 26)
+            .padding(.horizontal, Spacing.xl)
+            .padding(.vertical, Spacing.lg)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: Spacing.radiusSheet, style: .continuous)
                     .fill(palette.surfaceRaised)
                     .shadow(
                         color: .black.opacity(0.18),
-                        radius: 18, y: 8
+                        radius: Spacing.radiusSheet, y: Spacing.xs
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(palette.hairline, lineWidth: 1)
+                RoundedRectangle(cornerRadius: Spacing.radiusSheet, style: .continuous)
+                    .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
             )
         }
         .transition(.opacity)
