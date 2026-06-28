@@ -20,6 +20,24 @@ Full license: https://wordnet.princeton.edu/license-and-commercial-use
 
 More information: https://wordnet.princeton.edu/
 
+## English–Spanish (gap — not yet bundled)
+
+- **Status:** `BundledDictionary.enes` is wired in `DictionaryProvider`; the
+  resource folder `enes/` is not yet present. When the Spanish language is
+  chosen the provider silently falls back to WordNet only.
+- **Next step:** Obtain an OFL- or CC-licensed EN→ES StarDict dictionary (e.g.
+  from FreeDict <https://freedict.org/> or a Wiktionary extraction comparable
+  to the EN→HU pipeline). Place the `enes.ifo`, `enes.idx`, and `enes.dict.dz`
+  under `Quire/Resources/Dictionaries/enes/` and add it to the Xcode target.
+
+## English–German (gap — not yet bundled)
+
+- **Status:** `BundledDictionary.ende` is wired in `DictionaryProvider`; the
+  resource folder `ende/` is not yet present. When German is chosen the
+  provider silently falls back to WordNet only.
+- **Next step:** Same as EN→ES above — FreeDict has a `deu-eng` / `eng-deu`
+  pair under GPL/FDL. Check license compatibility and adapt the build script.
+
 ## English–Hungarian (Wiktionary)
 
 - **Source:** English Wiktionary translation data, extracted via **DBnary** (GETALP, Université Grenoble Alpes)
