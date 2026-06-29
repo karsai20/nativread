@@ -1,6 +1,6 @@
 import SwiftUI
 import XCTest
-@testable import Quire
+@testable import NativRead
 
 final class ModelTests: XCTestCase {
 

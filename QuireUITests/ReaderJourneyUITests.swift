@@ -37,9 +37,8 @@ final class ReaderJourneyUITests: XCTestCase {
     }
 
     func testShelfShowsSeededBook() {
-        XCTAssertTrue(
-            app.staticTexts["Quire"].waitForExistence(timeout: 10)
-        )
+        // The brand wordmark was removed from the library header; the shelf is
+        // identified by its seeded content instead.
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10)

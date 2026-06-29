@@ -1,5 +1,5 @@
 import XCTest
-@testable import Quire
+@testable import NativRead
 
 /// Covers `LocalizationStore` persistence, locale derivation, and the
 /// language → `BundledDictionary` mapping used by `DictionaryProvider`.

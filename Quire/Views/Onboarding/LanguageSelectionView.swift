@@ -61,7 +61,8 @@ struct LanguageSelectionView: View {
                     Text(
                         localizationStore.localizedString(
                             "onboarding.language.eyebrow",
-                            value: "Language"
+                            value: "Language",
+                            for: selected
                         )
                     )
                     .font(Typography.eyebrow)
@@ -72,22 +73,22 @@ struct LanguageSelectionView: View {
                     Text(
                         localizationStore.localizedString(
                             "onboarding.language.title",
-                            value: "Choose your language"
+                            value: "Choose your language",
+                            for: selected
                         )
                     )
-                    .font(Typography.display(30))
+                    .font(Typography.control(28, weight: .semibold))
                     .foregroundStyle(palette.text)
                     .multilineTextAlignment(.center)
 
                     Text(
                         localizationStore.localizedString(
                             "onboarding.language.subtitle",
-                            value: "You can change this at any time in Settings."
+                            value: "You can change this at any time in Settings.",
+                            for: selected
                         )
                     )
-                    .font(Typography.display(18))
-                    .italic()
-                    .tracking(0.3)
+                    .font(Typography.control(15))
                     .foregroundStyle(palette.secondaryText)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -133,7 +134,8 @@ struct LanguageSelectionView: View {
                     Text(
                         localizationStore.localizedString(
                             "onboarding.language.continue",
-                            value: "Continue"
+                            value: "Continue",
+                            for: selected
                         )
                     )
                     .font(Typography.eyebrow)
@@ -190,9 +192,7 @@ private struct LanguageRow: View {
     var body: some View {
         HStack {
             Text(language.endonym)
-                .font(Typography.display(22))
-                .fontWeight(isSelected ? .semibold : .regular)
-                .tracking(0.3)
+                .font(Typography.control(18, weight: isSelected ? .semibold : .regular))
                 .foregroundStyle(
                     isSelected ? palette.accent : palette.text
                 )

@@ -242,7 +242,7 @@ struct VocabularyView: View {
     /// nil only if the write fails.
     private func exportURL(format: ExportFormat) -> URL? {
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Quire Vocabulary")
+            .appendingPathComponent("NativRead Vocabulary")
             .appendingPathExtension(format.fileExtension)
         do {
             try format.contents(for: store.entries)

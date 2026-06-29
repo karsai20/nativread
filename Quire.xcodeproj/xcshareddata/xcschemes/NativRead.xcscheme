@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
-               BuildableName = "Quire.app"
+               BuildableName = "NativRead.app"
                BlueprintName = "Quire"
                ReferencedContainer = "container:Quire.xcodeproj">
             </BuildableReference>
@@ -62,7 +62,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
-            BuildableName = "Quire.app"
+            BuildableName = "NativRead.app"
             BlueprintName = "Quire"
             ReferencedContainer = "container:Quire.xcodeproj">
          </BuildableReference>
@@ -109,7 +109,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
-            BuildableName = "Quire.app"
+            BuildableName = "NativRead.app"
             BlueprintName = "Quire"
             ReferencedContainer = "container:Quire.xcodeproj">
          </BuildableReference>
@@ -128,7 +128,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
-            BuildableName = "Quire.app"
+            BuildableName = "NativRead.app"
             BlueprintName = "Quire"
             ReferencedContainer = "container:Quire.xcodeproj">
          </BuildableReference>

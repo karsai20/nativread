@@ -22,7 +22,9 @@ struct BundledDictionary: Sendable, Equatable {
     /// silently drops it and only WordNet is loaded — a graceful fallback.
     static func bundled(for language: AppLanguage) -> [BundledDictionary] {
         switch language {
-        case .hu, .system where AppLanguage.matchingDevice() == .hu:
+        case .hu:
+            return [.enhu, .wordnet]
+        case .system where AppLanguage.matchingDevice() == .hu:
             return [.enhu, .wordnet]
         case .es:
             // TODO: Bundle an EN→ES StarDict dictionary (OFL/CC-licensed).

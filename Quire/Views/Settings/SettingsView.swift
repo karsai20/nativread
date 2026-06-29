@@ -7,6 +7,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(LocalizationStore.self) private var localizationStore
     @Environment(DictionaryProvider.self) private var dictionaryProvider
+    @Environment(SettingsStore.self) private var settingsStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -14,10 +15,24 @@ struct SettingsView: View {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
     }
 
+    // Staged selections — nil means "unchanged from the store". Tapping a row
+    // only stages locally (checkmark moves, app does not switch); the change is
+    // committed on Done so the UI never re-localises out from under the user.
+    @State private var pendingAppLanguage: AppLanguage?
+    @State private var pendingDefineLanguage: AppLanguage?
+
+    private var selectedAppLanguage: AppLanguage {
+        pendingAppLanguage ?? localizationStore.appLanguage
+    }
+    private var selectedDefineLanguage: AppLanguage {
+        pendingDefineLanguage ?? localizationStore.defineLanguage
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
+                    appearanceSection
                     appLanguageSection
                     defineLanguageSection
                 }
@@ -28,13 +43,83 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") { applyAndDismiss() }
                         .tint(palette.accent)
                         .accessibilityIdentifier("settings.done")
                 }
             }
         }
         .accessibilityIdentifier("settings.sheet")
+    }
+
+    // MARK: - Commit
+
+    /// Applies any staged language changes, then dismisses. Tapping rows only
+    /// stages; nothing re-localises until Done so the screen never flips
+    /// language mid-edit.
+    private func applyAndDismiss() {
+        var changed = false
+        if let pendingAppLanguage,
+           pendingAppLanguage != localizationStore.appLanguage {
+            localizationStore.setLanguage(pendingAppLanguage)
+            changed = true
+        }
+        if let pendingDefineLanguage,
+           pendingDefineLanguage != localizationStore.defineLanguage {
+            localizationStore.setDefineLanguage(pendingDefineLanguage)
+            changed = true
+        }
+        if changed {
+            Task {
+                await dictionaryProvider.reprepare(
+                    for: localizationStore.dictionaryLanguage
+                )
+            }
+        }
+        dismiss()
+    }
+
+    // MARK: - Appearance
+
+    /// Light / Dark / System toggle. `System` follows the device — applied
+    /// instantly on tap (unlike language) so the change is its own feedback.
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            sectionLabel("Appearance")
+
+            VStack(spacing: Spacing.xs) {
+                ForEach(AppAppearance.allCases, id: \.rawValue) { appearance in
+                    SettingsChoiceRow(
+                        title: appearanceLabel(appearance),
+                        isSelected: settingsStore.appAppearance == appearance,
+                        palette: palette
+                    )
+                    .onTapGesture { settingsStore.setAppearance(appearance) }
+                    .accessibilityIdentifier(
+                        "settings.appearance.\(appearance.rawValue)"
+                    )
+                    .accessibilityLabel(appearanceLabel(appearance))
+                    .accessibilityAddTraits(
+                        settingsStore.appAppearance == appearance
+                            ? [.isSelected] : []
+                    )
+                }
+            }
+        }
+    }
+
+    private func appearanceLabel(_ appearance: AppAppearance) -> String {
+        switch appearance {
+        case .system:
+            return localizationStore.localizedString(
+                "settings.appearance.system", value: "System")
+        case .light:
+            return localizationStore.localizedString(
+                "settings.appearance.light", value: "Light")
+        case .dark:
+            return localizationStore.localizedString(
+                "settings.appearance.dark", value: "Dark")
+        }
     }
 
     // MARK: - App Language
@@ -45,25 +130,18 @@ struct SettingsView: View {
 
             VStack(spacing: Spacing.xs) {
                 ForEach(AppLanguage.pickable, id: \.rawValue) { language in
-                    SettingsLanguageRow(
-                        language: language,
-                        isSelected: localizationStore.appLanguage == language,
+                    SettingsChoiceRow(
+                        title: language.endonym,
+                        isSelected: selectedAppLanguage == language,
                         palette: palette
                     )
-                    .onTapGesture {
-                        localizationStore.setLanguage(language)
-                        Task {
-                            await dictionaryProvider.reprepare(
-                                for: localizationStore.dictionaryLanguage
-                            )
-                        }
-                    }
+                    .onTapGesture { pendingAppLanguage = language }
                     .accessibilityIdentifier(
                         "settings.applang.\(language.rawValue)"
                     )
                     .accessibilityLabel(language.endonym)
                     .accessibilityAddTraits(
-                        localizationStore.appLanguage == language
+                        selectedAppLanguage == language
                             ? [.isSelected] : []
                     )
                 }
@@ -79,25 +157,18 @@ struct SettingsView: View {
 
             VStack(spacing: Spacing.xs) {
                 ForEach(AppLanguage.definePickable, id: \.rawValue) { language in
-                    SettingsLanguageRow(
-                        language: language,
-                        isSelected: localizationStore.defineLanguage == language,
+                    SettingsChoiceRow(
+                        title: language.endonym,
+                        isSelected: selectedDefineLanguage == language,
                         palette: palette
                     )
-                    .onTapGesture {
-                        localizationStore.setDefineLanguage(language)
-                        Task {
-                            await dictionaryProvider.reprepare(
-                                for: localizationStore.dictionaryLanguage
-                            )
-                        }
-                    }
+                    .onTapGesture { pendingDefineLanguage = language }
                     .accessibilityIdentifier(
                         "settings.definelang.\(language.rawValue)"
                     )
                     .accessibilityLabel(language.endonym)
                     .accessibilityAddTraits(
-                        localizationStore.defineLanguage == language
+                        selectedDefineLanguage == language
                             ? [.isSelected] : []
                     )
                 }
@@ -131,21 +202,20 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Language row
+// MARK: - Choice row
 
-/// A single tappable row in a Settings language picker. Selected row warms to
-/// a russet tint with a hairline ring — mirrors `LanguageRow` in onboarding.
-private struct SettingsLanguageRow: View {
-    let language: AppLanguage
+/// A single tappable row in a Settings picker (language or appearance).
+/// Selected row warms to the accent tint with a hairline ring. Uses the clean
+/// `control` font so chrome stays modern and consistent, not serif.
+private struct SettingsChoiceRow: View {
+    let title: String
     let isSelected: Bool
     let palette: BrandPalette
 
     var body: some View {
         HStack {
-            Text(language.endonym)
-                .font(Typography.display(22))
-                .fontWeight(isSelected ? .semibold : .regular)
-                .tracking(0.3)
+            Text(title)
+                .font(Typography.control(17, weight: isSelected ? .semibold : .regular))
                 .foregroundStyle(isSelected ? palette.accent : palette.text)
             Spacer()
             if isSelected {

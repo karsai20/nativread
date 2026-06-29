@@ -187,4 +187,24 @@ final class LocalizationStore {
     ) -> String {
         bundle.localizedString(forKey: key, value: defaultValue, table: nil)
     }
+
+    /// Localises `key` against a **specific** language's `.lproj`, independent
+    /// of the current `appLanguage`. Used by the onboarding picker so the
+    /// heading and Continue button preview the highlighted language live —
+    /// tapping "Magyar" flips "Continue" to "Folytatás" before confirming.
+    /// Falls back to the current bundle when the language has no `.lproj`.
+    func localizedString(
+        _ key: String,
+        value defaultValue: String = "",
+        for language: AppLanguage
+    ) -> String {
+        guard let code = language.languageCode,
+              let path = Bundle.main.path(forResource: code, ofType: "lproj"),
+              let languageBundle = Bundle(path: path) else {
+            return localizedString(key, value: defaultValue)
+        }
+        return languageBundle.localizedString(
+            forKey: key, value: defaultValue, table: nil
+        )
+    }
 }

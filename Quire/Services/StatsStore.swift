@@ -25,7 +25,7 @@ final class StatsStore {
         } else {
             let documents = FileManager.default
                 .urls(for: .documentDirectory, in: .userDomainMask)[0]
-            self.root = documents.appendingPathComponent("Quire")
+            self.root = documents.appendingPathComponent("NativRead")
         }
         try? fileManager.createDirectory(
             at: root, withIntermediateDirectories: true

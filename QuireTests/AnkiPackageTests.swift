@@ -1,7 +1,7 @@
 import XCTest
 import SQLite3
 import ZIPFoundation
-@testable import Quire
+@testable import NativRead
 
 /// Round-trips a generated `.apkg`: unzips it, opens the SQLite collection,
 /// and asserts the structural invariants Anki requires to import a deck

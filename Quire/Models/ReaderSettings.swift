@@ -17,43 +17,47 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    // Eye-friendly, modern set: no pure white or black, warm low-blue-light
+    // tones, and a unified calm sage accent that ties to the NativRead brand.
+    // `academia` is the deliberate exception — it keeps a gold accent for its
+    // dark-academia character.
     var backgroundHex: String {
         switch self {
-        case .paper: return "#FAF6EE"
-        case .sepia: return "#F2E5CF"
-        case .dusk: return "#23262C"
-        case .ink: return "#000000"
-        case .academia: return "#152319"
+        case .paper: return "#F5F1E8"
+        case .sepia: return "#F1E6CF"
+        case .dusk: return "#21252B"
+        case .ink: return "#181A18"
+        case .academia: return "#18241B"
         }
     }
 
     var textHex: String {
         switch self {
-        case .paper: return "#1F1A14"
-        case .sepia: return "#41311E"
-        case .dusk: return "#C8CAD1"
-        case .ink: return "#ABABAB"
-        case .academia: return "#ECE3CE"
+        case .paper: return "#2B2A26"
+        case .sepia: return "#3B3020"
+        case .dusk: return "#CBCED4"
+        case .ink: return "#E7E3D8"
+        case .academia: return "#E8E0CD"
         }
     }
 
     var secondaryTextHex: String {
         switch self {
-        case .paper: return "#8A8070"
-        case .sepia: return "#94805F"
-        case .dusk: return "#7C7F88"
-        case .ink: return "#6E6E6E"
-        case .academia: return "#A6B29C"
+        case .paper: return "#706E66"
+        case .sepia: return "#8C7B5C"
+        case .dusk: return "#868B93"
+        case .ink: return "#9B9A8F"
+        case .academia: return "#A2AE97"
         }
     }
 
     var accentHex: String {
         switch self {
-        case .paper: return "#9A3B2E"
-        case .sepia: return "#8F4B26"
-        case .dusk: return "#D08770"
-        case .ink: return "#B3552F"
-        case .academia: return "#CFA94E"
+        case .paper: return "#6F7E68"
+        case .sepia: return "#6E7A5F"
+        case .dusk: return "#A6B49E"
+        case .ink: return "#A6B49E"
+        case .academia: return "#C6A24A"
         }
     }
 
@@ -75,7 +79,7 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .paper: return 0.10
         case .sepia: return 0.12
         case .dusk:  return 0.30
-        case .ink:   return 0.42
+        case .ink:   return 0.38
         case .academia: return 0.40
         }
     }
@@ -163,7 +167,7 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
         case .palatino: return .custom("Palatino", size: 17)
         case .charter: return .custom("Charter", size: 17)
         case .crimson: return .custom("Crimson Pro", size: 17)
-        case .cormorant: return .custom("Cormorant Garamond", size: 17)
+        case .cormorant: return .custom(Typography.displayFamily, size: 17)
         }
     }
 }
@@ -238,15 +242,18 @@ struct ReaderSettings: Codable, Equatable {
     var theme: ReaderTheme = .paper
     /// Theme used in system mode when the device is in dark appearance.
     var darkTheme: ReaderTheme = .dusk
-    var themeMode: ThemeMode = .manual
+    // Follow the device/app appearance by default: light → Paper, dark → Dusk.
+    // Keeps the reader consistent with the library (no bright/dark flip when a
+    // book opens). Users can still pin a specific theme in the typography panel.
+    var themeMode: ThemeMode = .system
     /// 0 = neutral page, 1 = strongest amber shift (blue light cut).
     var warmth: Double = 0
     var pageFlow: PageFlow = .paged
     var pageTransition: PageTransition = .slide
-    // Defaults to the bundled Crimson Pro so a fresh reader matches the
-    // editorial library/onboarding type out of the box. Persisted settings
-    // from earlier versions keep whatever the reader already chose.
-    var font: ReaderFont = .crimson
+    // Defaults to Charter ('Charter' / 'Iowan Old Style' / Georgia) so a
+    // fresh reader matches the warm book serif used across the app chrome.
+    // Persisted settings from earlier versions keep whatever the reader chose.
+    var font: ReaderFont = .charter
     var fontSize: Double = 18
     var lineHeight: Double = 1.55
     var horizontalMargin: Double = 26

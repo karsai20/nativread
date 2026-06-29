@@ -44,13 +44,13 @@ struct LaunchView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 14) {
-                Text("Quire")
+                Text("NativRead")
                     .font(Typography.display(64))
                     .tracking(1)
                     .foregroundStyle(palette.text)
                     .opacity(wordmarkShown ? 1 : 0)
                     .offset(y: wordmarkShown ? 0 : 8)
-                    .accessibilityLabel("Quire")
+                    .accessibilityLabel("NativRead")
                     .accessibilityIdentifier("onboarding.wordmark")
 
                 // Editorial accent: a short russet rule under the wordmark.

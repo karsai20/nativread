@@ -1,6 +1,10 @@
 import SwiftUI
 
 /// The "Aa" appearance sheet: themes, typeface, size, spacing, margins.
+///
+/// Primary controls (theme, size, brightness) sit up top in the compact
+/// detent; typeface and fine-tuning live behind "More". All sliders are the
+/// hand-built `EditorialSlider`; swatches are page-like `ThemeTile`s.
 struct TypographyPanel: View {
     @Bindable var viewModel: ReaderViewModel
 
@@ -11,124 +15,211 @@ struct TypographyPanel: View {
     }
 
     @State private var brightness = UIScreen.main.brightness
-    @State private var showMore = false
+    @State private var tab: AppearanceTab = Self.initialTab
+
+    /// UI-test hook: `-appearanceTab text|layout` opens a specific tab for
+    /// screenshots, mirroring the existing `-showTypographyPanel` argument.
+    private static var initialTab: AppearanceTab {
+        let args = ProcessInfo.processInfo.arguments
+        if let i = args.firstIndex(of: "-appearanceTab"), i + 1 < args.count,
+           let forced = AppearanceTab(rawValue: args[i + 1]) {
+            return forced
+        }
+        return .theme
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.md) {
-                panelContent
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            grabber
+            SegmentedTabs(selection: $tab, palette: palette)
+            ScrollView {
+                tabContent
+                    .padding(.top, Spacing.xs)
+                    .padding(.bottom, Spacing.lg)
             }
-            .padding(.horizontal, Spacing.lg)
-            .padding(.top, Spacing.xs)
-            .padding(.bottom, Spacing.xl)
+            .scrollBounceBehavior(.basedOnSize)
         }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.xs)
         .foregroundStyle(palette.text)
         .background(palette.background.ignoresSafeArea())
-        .presentationDetents([.height(320), .large])
-        .presentationBackgroundInteraction(.enabled(upThrough: .height(320)))
+        .presentationDetents([.height(450), .large])
+        .presentationBackgroundInteraction(.enabled(upThrough: .height(450)))
         .presentationContentInteraction(.scrolls)
         .presentationDragIndicator(.hidden)
     }
 
-    @ViewBuilder
-    private var panelContent: some View {
-        Group {
-            grabber
+    /// The active tab's controls. Each tab is a calm, uncrowded column —
+    /// no disclosure, no long scroll in the default detent.
+    @ViewBuilder private var tabContent: some View {
+        switch tab {
+        case .theme:  themeTab
+        case .text:   textTab
+        case .layout: layoutTab
+        }
+    }
 
-            sizeRow
-                .panelCard(palette: palette)
-
+    private var themeTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
             themeRow
-
-            comfortSection
-
-            moreDisclosure
+            autoThemeToggle
+            divider
+            warmthGroup
+            brightnessGroup
         }
     }
 
-    private var moreDisclosure: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) { showMore.toggle() }
-            } label: {
-                HStack {
-                    Label("More options", systemImage: "slider.horizontal.3")
-                        .font(Typography.body(15))
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .rotationEffect(.degrees(showMore ? 180 : 0))
-                        .foregroundStyle(palette.secondaryText)
-                }
-                .contentShape(Rectangle())
-            }
-            .tint(palette.accent)
-            .foregroundStyle(palette.text)
-            .accessibilityIdentifier("panel.more")
+    private var textTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            sizeGroup
+            divider
+            fontList
+            divider
+            lineSpacingGroup
+            justifiedToggle
+        }
+    }
 
-            if showMore {
-                VStack(alignment: .leading, spacing: Spacing.md) {
-                    autoThemeToggle
-                    divider
-                    fontList
-                    divider
-                    lineSpacingSlider
-                    marginsSlider
-                    justifiedToggle
-                    divider
-                    flowRow
-                    if settings.pageFlow == .paged {
-                        transitionRow
-                    }
-                }
+    private var layoutTab: some View {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            marginsGroup
+            divider
+            flowGroup
+            if settings.pageFlow == .paged {
+                transitionRow
             }
         }
     }
 
-    private var lineSpacingSlider: some View {
-        sliderRow(
+    // MARK: - Theme tiles
+
+    private var themeRow: some View {
+        HStack(spacing: Spacing.sm) {
+            ForEach(ReaderTheme.allCases) { candidate in
+                ThemeTile(
+                    theme: candidate,
+                    isSelected: candidate == activeTheme,
+                    palette: palette
+                ) {
+                    selectTheme(candidate)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private func selectTheme(_ candidate: ReaderTheme) {
+        viewModel.updateSettings { current in
+            var next = current
+            if current.themeMode == .system, viewModel.systemDark {
+                next.darkTheme = candidate
+            } else {
+                next.theme = candidate
+            }
+            return next
+        }
+    }
+
+    // MARK: - Text size
+
+    private var sizeGroup: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            ControlLabel(
+                title: "Text size",
+                icon: "textformat.size",
+                palette: palette
+            )
+            SizeStepper(
+                size: settings.fontSize,
+                range: ReaderSettings.fontSizeRange,
+                palette: palette,
+                onStep: adjustFontSize
+            )
+        }
+    }
+
+    private func adjustFontSize(by delta: Double) {
+        viewModel.updateSettings { current in
+            var next = current
+            next.fontSize = (current.fontSize + delta)
+                .clamped(to: ReaderSettings.fontSizeRange)
+            return next
+        }
+    }
+
+    // MARK: - Brightness
+
+    private var brightnessGroup: some View {
+        sliderGroup(
+            title: "Brightness",
+            icon: "sun.max",
+            valueText: "\(Int((brightness * 100).rounded()))%",
+            value: brightness,
+            range: 0.05...1,
+            step: 0.05,
+            leadingSymbol: "sun.min",
+            trailingSymbol: "sun.max"
+        ) { newValue in
+            brightness = newValue
+            UIScreen.main.brightness = newValue
+        }
+        .accessibilityIdentifier("comfort.brightness")
+    }
+
+    // MARK: - Fine-tuning sliders
+
+    private var warmthGroup: some View {
+        sliderGroup(
+            title: "Warm light",
+            icon: "thermometer.sun",
+            valueText: "\(Int((settings.warmth * 100).rounded()))%",
+            value: settings.warmth,
+            range: ReaderSettings.warmthRange,
+            step: 0.05,
+            leadingSymbol: "moon",
+            trailingSymbol: "thermometer.sun"
+        ) { newValue in
+            updateSettings { $0.warmth = newValue }
+        }
+        .accessibilityIdentifier("comfort.warmth")
+    }
+
+    private var lineSpacingGroup: some View {
+        sliderGroup(
+            title: "Line spacing",
             icon: "arrow.up.and.down.text.horizontal",
-            label: "Line spacing",
+            valueText: String(format: "%.2f", settings.lineHeight),
             value: settings.lineHeight,
             range: ReaderSettings.lineHeightRange,
             step: 0.05,
-            valueText: String(format: "%.2f", settings.lineHeight)
+            leadingSymbol: "text.alignleft",
+            trailingSymbol: "text.justify"
         ) { newValue in
-            viewModel.updateSettings { current in
-                var next = current
-                next.lineHeight = newValue
-                return next
-            }
+            updateSettings { $0.lineHeight = newValue }
         }
     }
 
-    private var marginsSlider: some View {
-        sliderRow(
+    private var marginsGroup: some View {
+        sliderGroup(
+            title: "Margins",
             icon: "rectangle.compress.vertical",
-            label: "Margins",
+            valueText: "\(Int(settings.horizontalMargin.rounded())) pt",
             value: settings.horizontalMargin,
             range: ReaderSettings.marginRange,
             step: 2,
-            valueText: "\(Int(settings.horizontalMargin.rounded())) pt"
+            leadingSymbol: "rectangle.compress.vertical",
+            trailingSymbol: "rectangle.expand.vertical"
         ) { newValue in
-            viewModel.updateSettings { current in
-                var next = current
-                next.horizontalMargin = newValue
-                return next
-            }
+            updateSettings { $0.horizontalMargin = newValue }
         }
     }
+
+    // MARK: - Toggles
 
     private var justifiedToggle: some View {
         Toggle(isOn: Binding(
             get: { settings.isJustified },
-            set: { newValue in
-                viewModel.updateSettings { current in
-                    var next = current
-                    next.isJustified = newValue
-                    return next
-                }
-            }
+            set: { newValue in updateSettings { $0.isJustified = newValue } }
         )) {
             Label("Justified text", systemImage: "text.justify")
                 .font(Typography.body(15))
@@ -136,17 +227,35 @@ struct TypographyPanel: View {
         .tint(palette.accent)
     }
 
+    private var autoThemeToggle: some View {
+        Toggle(isOn: Binding(
+            get: { settings.themeMode == .system },
+            set: { isOn in
+                updateSettings { $0.themeMode = isOn ? .system : .manual }
+            }
+        )) {
+            Label("Match system appearance",
+                  systemImage: "circle.lefthalf.filled")
+                .font(Typography.body(15))
+        }
+        .tint(palette.accent)
+        .accessibilityIdentifier("theme.auto")
+    }
+
     // MARK: - Reading flow
+
+    private var flowGroup: some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            ControlLabel(title: "Page flow", icon: "book.pages", palette: palette)
+            flowRow
+        }
+    }
 
     private var flowRow: some View {
         HStack(spacing: Spacing.xs) {
             ForEach(PageFlow.allCases) { candidate in
                 Button {
-                    viewModel.updateSettings { current in
-                        var next = current
-                        next.pageFlow = candidate
-                        return next
-                    }
+                    updateSettings { $0.pageFlow = candidate }
                 } label: {
                     Label(candidate.label, systemImage: candidate.icon)
                         .font(Typography.body(14))
@@ -163,7 +272,6 @@ struct TypographyPanel: View {
 
     private var transitionRow: some View {
         HStack(spacing: Spacing.xs) {
-            // Eyebrow label: tracked uppercase identifies this as a settings category.
             Label("Page turn", systemImage: "arrow.right.square")
                 .font(Typography.eyebrow)
                 .tracking(Typography.eyebrowTracking)
@@ -172,11 +280,7 @@ struct TypographyPanel: View {
             Spacer()
             ForEach(PageTransition.allCases) { candidate in
                 Button {
-                    viewModel.updateSettings { current in
-                        var next = current
-                        next.pageTransition = candidate
-                        return next
-                    }
+                    updateSettings { $0.pageTransition = candidate }
                 } label: {
                     Text(candidate.label)
                         .font(Typography.meta(13))
@@ -187,122 +291,7 @@ struct TypographyPanel: View {
                     isSelected: candidate == settings.pageTransition,
                     palette: palette
                 )
-                .accessibilityIdentifier(
-                    "transition.\(candidate.rawValue)")
-            }
-        }
-    }
-
-    // MARK: - Eye comfort
-
-    private var autoThemeToggle: some View {
-        Toggle(isOn: Binding(
-            get: { settings.themeMode == .system },
-            set: { isOn in
-                viewModel.updateSettings { current in
-                    var next = current
-                    next.themeMode = isOn ? .system : .manual
-                    return next
-                }
-            }
-        )) {
-            Label("Match system appearance",
-                  systemImage: "circle.lefthalf.filled")
-                .font(Typography.body(15))
-        }
-        .tint(palette.accent)
-        .accessibilityIdentifier("theme.auto")
-    }
-
-    @ViewBuilder
-    private var comfortSection: some View {
-        sliderRow(
-            icon: "thermometer.sun",
-            label: "Warm light",
-            value: settings.warmth,
-            range: ReaderSettings.warmthRange,
-            step: 0.05,
-            valueText: "\(Int((settings.warmth * 100).rounded()))%"
-        ) { newValue in
-            viewModel.updateSettings { current in
-                var next = current
-                next.warmth = newValue
-                return next
-            }
-        }
-        .accessibilityIdentifier("comfort.warmth")
-
-        sliderRow(
-            icon: "sun.max",
-            label: "Brightness",
-            value: brightness,
-            range: 0.05...1,
-            step: 0.05,
-            valueText: "\(Int((brightness * 100).rounded()))%"
-        ) { newValue in
-            brightness = newValue
-            UIScreen.main.brightness = newValue
-        }
-        .accessibilityIdentifier("comfort.brightness")
-    }
-
-    private var grabber: some View {
-        Capsule()
-            .fill(palette.secondaryText.opacity(0.4))
-            .frame(width: 36, height: 4)
-            .frame(maxWidth: .infinity)
-    }
-
-    private var divider: some View {
-        Rectangle().fill(palette.hairline).frame(height: 1)
-    }
-
-    // MARK: - Theme swatches
-
-    private var themeRow: some View {
-        HStack(spacing: 14) {
-            ForEach(ReaderTheme.allCases) { candidate in
-                Button {
-                    viewModel.updateSettings { current in
-                        var next = current
-                        if current.themeMode == .system,
-                           viewModel.systemDark {
-                            next.darkTheme = candidate
-                        } else {
-                            next.theme = candidate
-                        }
-                        return next
-                    }
-                } label: {
-                    VStack(spacing: 6) {
-                        ZStack {
-                            Circle()
-                                .fill(candidate.background)
-                                .overlay(
-                                    Circle().strokeBorder(
-                                        candidate == activeTheme
-                                            ? candidate.accent
-                                            : palette.text.opacity(0.15),
-                                        lineWidth: candidate == activeTheme ? 2 : 1
-                                    )
-                                )
-                                .frame(width: Spacing.minTapTarget,
-                                       height: Spacing.minTapTarget)
-                            Text("Aa")
-                                .font(Typography.title(15))
-                                .foregroundStyle(candidate.text)
-                        }
-                        // Meta role signals this is a caption, not a nav target.
-                        Text(candidate.label)
-                            .font(Typography.meta(11))
-                            .foregroundStyle(
-                                candidate == activeTheme
-                                    ? palette.accent : palette.secondaryText
-                            )
-                    }
-                }
-                .accessibilityIdentifier("theme.\(candidate.rawValue)")
-                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("transition.\(candidate.rawValue)")
             }
         }
     }
@@ -313,11 +302,7 @@ struct TypographyPanel: View {
         VStack(spacing: 0) {
             ForEach(ReaderFont.allCases) { candidate in
                 Button {
-                    viewModel.updateSettings { current in
-                        var next = current
-                        next.font = candidate
-                        return next
-                    }
+                    updateSettings { $0.font = candidate }
                 } label: {
                     HStack {
                         Text(candidate.label)
@@ -330,104 +315,63 @@ struct TypographyPanel: View {
                         }
                     }
                     .padding(.vertical, 9)
+                    .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("font.\(candidate.rawValue)")
             }
         }
     }
 
-    // MARK: - Size
+    // MARK: - Chrome
 
-    private var sizeRow: some View {
-        VStack(spacing: Spacing.xs) {
-            HStack {
-                // Eyebrow label: tracked uppercase signals "settings category".
-                Label("Text size", systemImage: "textformat.size")
-                    .font(Typography.eyebrow)
-                    .tracking(Typography.eyebrowTracking)
-                    .textCase(.uppercase)
-                    .foregroundStyle(palette.secondaryText)
-                Spacer()
-                Text("\(Int(settings.fontSize.rounded())) pt")
-                    .font(Typography.meta(13))
-                    .monospacedDigit()
-                    .foregroundStyle(palette.secondaryText)
-            }
-            HStack(spacing: 0) {
-                Button {
-                    adjustFontSize(by: -1)
-                } label: {
-                    Text("A")
-                        .font(Typography.title(15))
-                        .frame(maxWidth: .infinity, minHeight: 40)
-                }
-                .accessibilityIdentifier("fontsize.down")
-
-                Rectangle()
-                    .fill(palette.hairline)
-                    .frame(width: Spacing.hairlineWidth, height: 22)
-
-                Button {
-                    adjustFontSize(by: 1)
-                } label: {
-                    Text("A")
-                        .font(Typography.title(24))
-                        .frame(maxWidth: .infinity, minHeight: 40)
-                }
-                .accessibilityIdentifier("fontsize.up")
-            }
-            .segmentedWell(isSelected: false, palette: palette)
-        }
+    private var grabber: some View {
+        Capsule()
+            .fill(palette.secondaryText.opacity(0.4))
+            .frame(width: 36, height: 4)
+            .frame(maxWidth: .infinity)
     }
 
-    private func adjustFontSize(by delta: Double) {
-        viewModel.updateSettings { current in
-            var next = current
-            next.fontSize = (current.fontSize + delta)
-                .clamped(to: ReaderSettings.fontSizeRange)
-            return next
-        }
+    private var divider: some View {
+        Rectangle().fill(palette.hairline).frame(height: 1)
     }
 
-    private func sliderRow(
+    // MARK: - Helpers
+
+    /// One slider section: eyebrow label + readout, then an `EditorialSlider`.
+    private func sliderGroup(
+        title: LocalizedStringKey,
         icon: String,
-        label: String,
+        valueText: String,
         value: Double,
         range: ClosedRange<Double>,
         step: Double,
-        valueText: String? = nil,
+        leadingSymbol: String,
+        trailingSymbol: String,
         onChange: @escaping (Double) -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            // Eyebrow label distinguishes control categories from body copy.
-            // Optional trailing readout mirrors sizeRow's numeric display.
-            HStack {
-                // LocalizedStringKey so the String argument still localizes.
-                Label(LocalizedStringKey(label), systemImage: icon)
-                    .font(Typography.eyebrow)
-                    .tracking(Typography.eyebrowTracking)
-                    .textCase(.uppercase)
-                    .foregroundStyle(palette.secondaryText)
-                if let valueText {
-                    Spacer()
-                    Text(valueText)
-                        .font(Typography.meta(13))
-                        .monospacedDigit()
-                        .foregroundStyle(palette.secondaryText)
-                }
-            }
-            Slider(
-                value: Binding(get: { value }, set: onChange),
-                in: range,
-                step: step
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            ControlLabel(
+                title: title, icon: icon, value: valueText, palette: palette
             )
-            .tint(palette.accent)
+            EditorialSlider(
+                value: value,
+                range: range,
+                step: step,
+                leadingSymbol: leadingSymbol,
+                trailingSymbol: trailingSymbol,
+                palette: palette,
+                onChange: onChange
+            )
         }
     }
-}
 
-private extension Double {
-    func clamped(to range: ClosedRange<Double>) -> Double {
-        Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
+    /// Mutate the live settings with a single in-out edit, the shared shape
+    /// behind every control's binding here.
+    private func updateSettings(_ mutate: (inout ReaderSettings) -> Void) {
+        viewModel.updateSettings { current in
+            var next = current
+            mutate(&next)
+            return next
+        }
     }
 }

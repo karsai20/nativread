@@ -1,5 +1,5 @@
 import XCTest
-@testable import Quire
+@testable import NativRead
 
 /// Covers the first-launch onboarding-seen flag persisted alongside (but
 /// separate from) the codable reader settings.

@@ -75,19 +75,25 @@ final class ReaderViewModel {
         library: LibraryStore,
         settingsStore: SettingsStore,
         statsStore: StatsStore,
-        pageSize: CGSize
+        pageSize: CGSize,
+        initialSystemDark: Bool = false
     ) {
         self.bookID = book.id
         self.library = library
         self.settingsStore = settingsStore
         self.statsStore = statsStore
+        // Seed the appearance before building the initial CSS/palette so the
+        // very first painted frame already matches the device (no light→dark
+        // flash when a book opens in dark mode).
+        self.systemDark = initialSystemDark
         self.extractedRoot = library.extractedRoot(for: book)
         self.controller = ReaderController(
             pageSize: pageSize,
             initialCSS: ReaderStyle.css(
                 settings: settingsStore.settings,
                 pageWidth: pageSize.width,
-                pageHeight: pageSize.height
+                pageHeight: pageSize.height,
+                systemDark: initialSystemDark
             ),
             flow: settingsStore.settings.pageFlow,
             transition: settingsStore.settings.pageTransition

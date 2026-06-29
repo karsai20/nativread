@@ -1,5 +1,5 @@
 import XCTest
-@testable import Quire
+@testable import NativRead
 
 final class VocabularyExportTests: XCTestCase {
 

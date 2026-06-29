@@ -1,5 +1,16 @@
 import SwiftUI
 
+extension AppAppearance {
+    /// The SwiftUI colour scheme to force, or `nil` to follow the device.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light:  return .light
+        case .dark:   return .dark
+        }
+    }
+}
+
 /// App-level colour palette for chrome surfaces — the editorial identity
 /// layer that wraps the reader. Mirrors `ReaderPalette`'s API so views can
 /// switch between reading and ambient contexts without re-learning the contract.
@@ -27,16 +38,17 @@ struct BrandPalette: Equatable {
 }
 
 extension BrandPalette {
-    /// Warm parchment light theme — editorial and inviting without being
-    /// clinical. Accent is a muted terracotta-red that ages like ink on paper.
+    /// "Papír" — warm, eye-friendly light theme. No pure white; low-blue-light
+    /// paper tones keep the focus on text. Accent is a calm, desaturated sage
+    /// that ties to the NativRead wordmark and rests the eye.
     static let light: BrandPalette = {
-        let bg = "#F7F3EC"
-        let fg = "#1A1714"
+        let bg = "#F5F1E8"
+        let fg = "#2B2A26"
         return BrandPalette(
             backgroundHex:    bg,
             textHex:          fg,
-            secondaryTextHex: "#6B6258",
-            accentHex:        "#9A3B2E",
+            secondaryTextHex: "#706E66",
+            accentHex:        "#6F7E68",
             surfaceHex:       Color.blendHex(bg, toward: fg, amount: 0.05),
             surfaceRaisedHex: Color.blendHex(bg, toward: fg, amount: 0.08),
             hairlineHex:      Color.blendHex(bg, toward: fg, amount: 0.12),
@@ -45,17 +57,17 @@ extension BrandPalette {
         )
     }()
 
-    /// Deep ink dark theme — the academic night mode, complementing the
-    /// reader's "academia" atmosphere. Surfaces are lifted via the same
-    /// blend amounts used by dark `ReaderTheme` cases.
+    /// "Tinta" — warm charcoal dark theme. Background is never pure black and
+    /// text is a warm off-white, which reduces halation and night-time glare.
+    /// Sage accent lightens here to hold contrast against the dark surface.
     static let dark: BrandPalette = {
-        let bg = "#1C1916"
-        let fg = "#E9E2D6"
+        let bg = "#181A18"
+        let fg = "#E7E3D8"
         return BrandPalette(
             backgroundHex:    bg,
             textHex:          fg,
-            secondaryTextHex: "#9C9387",
-            accentHex:        "#C25A45",
+            secondaryTextHex: "#9B9A8F",
+            accentHex:        "#A6B49E",
             surfaceHex:       Color.blendHex(bg, toward: fg, amount: 0.10),
             surfaceRaisedHex: Color.blendHex(bg, toward: fg, amount: 0.16),
             hairlineHex:      Color.blendHex(bg, toward: fg, amount: 0.20),

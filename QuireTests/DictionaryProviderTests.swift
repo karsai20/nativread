@@ -1,6 +1,6 @@
 import XCTest
 import zlib
-@testable import Quire
+@testable import NativRead
 
 final class DictionaryProviderTests: XCTestCase {
 

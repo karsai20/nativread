@@ -259,11 +259,22 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
 
     // MARK: - Engine messages
 
+    /// Fire-and-forget JS eval. Routing through a synchronous method keeps the
+    /// "use the async alternative" suggestion from firing when called inside an
+    /// async `Task`, while preserving the existing non-awaiting behaviour.
+    private func evaluate(_ javaScript: String) {
+        webView.evaluateJavaScript(javaScript, completionHandler: nil)
+    }
+
     nonisolated func userContentController(
         _ userContentController: WKUserContentController,
         didReceive message: WKScriptMessage
     ) {
-        guard let body = message.body as? [String: Any],
+        // WebKit invokes this handler on the main thread; `message.body` is
+        // main-actor isolated, so read it via `assumeIsolated` before hopping
+        // off to the (also main-actor) Task below.
+        let rawBody = MainActor.assumeIsolated { message.body }
+        guard let body = rawBody as? [String: Any],
               let type = body["type"] as? String else { return }
         let page = body["page"] as? Int ?? 0
         let pageCount = body["pageCount"] as? Int ?? 1
@@ -282,7 +293,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 if let locate = self.pendingLocate {
                     self.pendingLocate = nil
                     self.pendingFraction = nil
-                    self.webView.evaluateJavaScript(
+                    self.evaluate(
                         """
                         window.lumen.locate(\
                         \(Self.jsStringLiteral(locate.query)), \
@@ -292,7 +303,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 } else {
                     let fraction = self.pendingFraction ?? 0
                     self.pendingFraction = nil
-                    self.webView.evaluateJavaScript(
+                    self.evaluate(
                         "window.lumen.goToFraction(\(fraction), false)"
                     )
                 }
@@ -318,9 +329,24 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 // native scroll view directly (reliable, unlike a JS
                 // scrollTo) so the destination page is actually painted.
                 if let scrollX {
-                    self.webView.scrollView.setContentOffset(
-                        CGPoint(x: scrollX, y: 0), animated: animate
-                    )
+                    let target = CGPoint(x: scrollX, y: 0)
+                    let scroll = self.webView.scrollView
+                    if animate {
+                        // A gentle ease-out glide reads more pleasantly than
+                        // UIKit's default paged snap: the page slides in and
+                        // settles. `.allowUserInteraction` keeps rapid taps
+                        // responsive mid-turn; `setContentOffset(animated:
+                        // false)` inside the block lets the curve below own
+                        // the motion.
+                        UIView.animate(
+                            withDuration: 0.34, delay: 0,
+                            options: [.curveEaseOut, .allowUserInteraction]
+                        ) {
+                            scroll.setContentOffset(target, animated: false)
+                        }
+                    } else {
+                        scroll.setContentOffset(target, animated: false)
+                    }
                 }
             default:
                 break

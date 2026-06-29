@@ -24,12 +24,15 @@ final class LibraryStore {
         } else {
             let documents = FileManager.default
                 .urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let newRoot = documents.appendingPathComponent("Quire")
-            // One-time migration from the pre-rename data directory.
-            let legacyRoot = documents.appendingPathComponent("LumenRead")
-            if FileManager.default.fileExists(atPath: legacyRoot.path),
-               !FileManager.default.fileExists(atPath: newRoot.path) {
-                try? FileManager.default.moveItem(at: legacyRoot, to: newRoot)
+            let newRoot = documents.appendingPathComponent("NativRead")
+            // One-time migration from a pre-rename data directory (the app was
+            // formerly Quire, then Epagora). Move the first one that exists.
+            for legacyName in ["Epagora", "Quire"] {
+                let legacyRoot = documents.appendingPathComponent(legacyName)
+                if FileManager.default.fileExists(atPath: legacyRoot.path),
+                   !FileManager.default.fileExists(atPath: newRoot.path) {
+                    try? FileManager.default.moveItem(at: legacyRoot, to: newRoot)
+                }
             }
             self.root = newRoot
         }

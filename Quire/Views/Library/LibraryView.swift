@@ -75,7 +75,8 @@ struct LibraryView: View {
                 book: book,
                 library: library,
                 settingsStore: settingsStore,
-                statsStore: statsStore
+                statsStore: statsStore,
+                initialSystemDark: colorScheme == .dark
             )
         }
         .sheet(isPresented: $isStatsPresented) {
@@ -184,28 +185,15 @@ struct LibraryView: View {
 
     // MARK: - Now Reading hero
 
-    /// The featured in-progress book: an oversized cover beside its title,
-    /// author, and a russet progress rule. The shelf's editorial anchor.
+    /// The featured in-progress book on a raised surface card: the full cover
+    /// at its true aspect (never cropped), beside the title, author, a russet
+    /// progress rule, and a Continue affordance. The shelf's editorial anchor.
     private func nowReadingHero(_ book: Book) -> some View {
         Button {
             openBook = book
         } label: {
             HStack(alignment: .top, spacing: Spacing.md) {
-                BookCard.cover(
-                    book: book,
-                    coverURL: library.coverURL(for: book)
-                )
-                .frame(width: 104)
-                .aspectRatio(2 / 3, contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Spacing.radiusSmall)
-                        .strokeBorder(palette.hairline)
-                )
-                .shadow(
-                    color: .black.opacity(palette.shadowOpacity),
-                    radius: 12, x: 0, y: 6
-                )
+                heroCover(book)
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("Now Reading")
@@ -215,7 +203,7 @@ struct LibraryView: View {
                         .foregroundStyle(palette.accent)
 
                     Text(book.title)
-                        .font(Typography.display(26))
+                        .font(Typography.display(28))
                         .foregroundStyle(palette.text)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -225,16 +213,81 @@ struct LibraryView: View {
                         .foregroundStyle(palette.secondaryText)
                         .lineLimit(1)
 
-                    Spacer(minLength: Spacing.xs)
+                    Spacer(minLength: Spacing.sm)
 
                     heroProgress(book)
+                    continueAffordance
+                        .padding(.top, Spacing.xxs)
                 }
                 Spacer(minLength: 0)
             }
+            .padding(Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Spacing.radiusCard)
+                    .fill(palette.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Spacing.radiusCard)
+                    .strokeBorder(palette.hairline)
+            )
+            .shadow(
+                color: .black.opacity(palette.shadowOpacity * 0.5),
+                radius: 16, x: 0, y: 8
+            )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("library.nowReading")
         .accessibilityLabel("Now reading \(book.title)")
+    }
+
+    /// The hero cover rendered at its real aspect ratio so nothing is cropped —
+    /// the fix for the "compressed cover" the grid's uniform 2:3 box caused.
+    @ViewBuilder
+    private func heroCover(_ book: Book) -> some View {
+        let width: CGFloat = 128
+        let shape = RoundedRectangle(cornerRadius: Spacing.radiusSmall)
+        Group {
+            if let url = library.coverURL(for: book),
+               let image = UIImage(contentsOfFile: url.path) {
+                // Width-bound only: height follows the cover's true aspect, so
+                // nothing is cropped or squeezed regardless of source ratio.
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: width)
+            } else {
+                GeneratedCover(title: book.title, author: book.author)
+                    .frame(width: width, height: width * 1.5)
+            }
+        }
+        .clipShape(shape)
+        .overlay(shape.strokeBorder(palette.hairline))
+        .shadow(
+            color: .black.opacity(palette.shadowOpacity),
+            radius: 14, x: 0, y: 8
+        )
+    }
+
+    private var continueAffordance: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "book.fill")
+                .font(.system(size: 11, weight: .semibold))
+            Text("Continue")
+                .font(.system(size: 13, weight: .semibold))
+        }
+        .foregroundStyle(palette.background)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(palette.accent))
+    }
+
+    /// "40% read" → "40% elolvasva", localised via the app-language bundle.
+    private func percentReadText(_ fraction: Double) -> String {
+        let percent = Int((fraction * 100).rounded())
+        let format = localizationStore.localizedString(
+            "%@%% read", value: "%@%% read"
+        )
+        return String(format: format, "\(percent)")
     }
 
     private func heroProgress(_ book: Book) -> some View {
@@ -250,8 +303,9 @@ struct LibraryView: View {
             }
             .frame(height: 3)
 
-            Text("\(Int((fraction * 100).rounded()))%")
+            Text(percentReadText(fraction))
                 .font(Typography.meta(11))
+                .monospacedDigit()
                 .foregroundStyle(palette.secondaryText)
         }
     }
@@ -259,17 +313,16 @@ struct LibraryView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Quire")
-                    .font(Typography.display(40))
-                    .foregroundStyle(palette.text)
-                // Count interpolated as a String so the generated key is
-                // "%@ book%@ on the shelf" (matches the catalog); Hungarian
-                // renders the count and ignores the plural suffix.
+                // Brand wordmark lives on the launch screen + app icon; the
+                // library leads with the shelf itself. Count interpolated as
+                // a String so the generated key is "%@ book%@ on the shelf"
+                // (matches the catalog); Hungarian renders the count and
+                // ignores the plural suffix.
                 Text(
                     "\(String(library.books.count)) book\(library.books.count == 1 ? "" : "s") on the shelf"
                 )
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
+                .font(Typography.title(22))
+                .foregroundStyle(palette.text)
             }
             Spacer()
             HStack(spacing: Spacing.sm) {
@@ -347,6 +400,19 @@ struct LibraryView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
+        VStack(spacing: 0) {
+            header
+                .padding(.horizontal, Spacing.lg)
+                .padding(.top, Spacing.md)
+            Spacer(minLength: 0)
+            emptyContent
+            Spacer(minLength: 0)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var emptyContent: some View {
         VStack(spacing: 18) {
             ZStack {
                 Circle()

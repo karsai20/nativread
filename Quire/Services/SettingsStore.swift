@@ -1,15 +1,25 @@
 import Foundation
 import Observation
 
+/// App-wide appearance preference for the library and chrome. `.system`
+/// follows the device's Light/Dark setting; the others force one mode.
+enum AppAppearance: String, CaseIterable, Sendable {
+    case system, light, dark
+}
+
 /// Persists reader typography settings. Mutations always go through
 /// `update(_:)` which writes a fresh value (no in-place mutation leaks).
 @Observable
 final class SettingsStore {
     private(set) var settings: ReaderSettings
 
+    /// Whole-app Light/Dark/System preference (chrome, library, onboarding).
+    private(set) var appAppearance: AppAppearance
+
     private let defaults: UserDefaults
     private static let key = "lumenread.readerSettings.v2"
     private static let onboardingSeenKey = "quire.onboarding.v1.seen"
+    private static let appearanceKey = "nativread.appAppearance.v1"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -21,6 +31,14 @@ final class SettingsStore {
         } else {
             settings = ReaderSettings()
         }
+        appAppearance = defaults.string(forKey: Self.appearanceKey)
+            .flatMap(AppAppearance.init) ?? .system
+    }
+
+    /// Sets and persists the app-wide appearance preference.
+    func setAppearance(_ appearance: AppAppearance) {
+        appAppearance = appearance
+        defaults.set(appearance.rawValue, forKey: Self.appearanceKey)
     }
 
     func update(_ transform: (ReaderSettings) -> ReaderSettings) {
@@ -55,5 +73,6 @@ final class SettingsStore {
     static func resetPersisted(in defaults: UserDefaults = .standard) {
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: onboardingSeenKey)
+        defaults.removeObject(forKey: appearanceKey)
     }
 }

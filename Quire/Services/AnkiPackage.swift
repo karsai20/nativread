@@ -4,7 +4,7 @@ import SQLite3
 import ZIPFoundation
 
 /// Builds a native Anki `.apkg` deck from saved vocabulary, so the reader
-/// can open the file and have a "Quire Vocabulary" deck appear in Anki
+/// can open the file and have a "NativRead Vocabulary" deck appear in Anki
 /// with no import-mapping step. The package is a ZIP containing a
 /// `collection.anki2` SQLite database (Anki's schema v11) plus an empty
 /// `media` manifest.
@@ -28,8 +28,8 @@ enum AnkiPackage {
     /// Fixed deck id, frozen so re-imports merge into the same deck.
     static let deckID: Int64 = 1_718_500_000_002
 
-    static let deckName = "Quire Vocabulary"
-    static let modelName = "Quire Vocabulary"
+    static let deckName = "NativRead Vocabulary"
+    static let modelName = "NativRead Vocabulary"
 
     /// SQLite wants a non-default deck id; deck `1` ("Default") always
     /// exists in the seed `col` row alongside ours.
@@ -311,7 +311,7 @@ extension AnkiPackage {
     }
 
     /// The `decks` map: Anki's mandatory "Default" deck (id 1) plus our
-    /// "Quire Vocabulary" deck.
+    /// "NativRead Vocabulary" deck.
     static func decksJSON(mod: Int64) -> String {
         func deck(id: Int64, name: String) -> [String: Any] {
             [

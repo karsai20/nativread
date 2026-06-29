@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct QuireApp: App {
+struct NativReadApp: App {
     @State private var library: LibraryStore
     @State private var settingsStore: SettingsStore
     @State private var statsStore: StatsStore
@@ -58,6 +58,10 @@ struct QuireApp: App {
                 // Apply the chosen locale to the entire view tree so SwiftUI
                 // Text nodes use the right String Catalog translation.
                 .environment(\.locale, localizationStore.resolvedLocale)
+                // Whole-app Light/Dark/System preference; `.system` → nil so
+                // the device setting wins. The reader sets its own scheme while
+                // open (its theme system), this governs the library + chrome.
+                .preferredColorScheme(settingsStore.appAppearance.colorScheme)
                 .task {
                     // Load dictionaries in the background; the launch splash
                     // (when shown) waits on `isReady`, but this kicks off on
@@ -65,7 +69,7 @@ struct QuireApp: App {
                     await dictionaryProvider.prepare()
                 }
                 .onOpenURL { url in
-                    try? library.importBook(from: url)
+                    _ = try? library.importBook(from: url)
                 }
         }
     }
@@ -92,9 +96,17 @@ struct QuireApp: App {
                 if let url = Bundle.main.url(
                     forResource: name, withExtension: "epub"
                 ) {
-                    try? store.importBook(from: url)
+                    _ = try? store.importBook(from: url)
                 }
             }
+        }
+        // Mark the first book in-progress so the Now Reading hero renders
+        // in screenshots without driving the reader by hand.
+        if arguments.contains("-seedProgress"), let first = store.books.first {
+            store.updateProgress(
+                bookID: first.id, spineIndex: 1, pageFraction: 0.4
+            )
+            store.flushPendingSave()
         }
     }
 

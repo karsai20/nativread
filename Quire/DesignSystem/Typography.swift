@@ -9,11 +9,17 @@ import SwiftUI
 /// body for list content, eyebrow for category labels, meta for timestamps
 /// and captions.
 enum Typography {
-    /// Grand editorial headline — covers, chapter titles, pull-quotes.
-    /// Cormorant Garamond's high contrast makes it feel typeset, not digital.
+    /// Grand editorial headline — wordmark, covers, chapter titles.
+    /// Charter is a built-in iOS book serif that renders reliably at every
+    /// size (no variable-font registration pitfalls), and its warm, sturdy
+    /// letterforms match the reading type the app pairs it with.
     static func display(_ size: CGFloat = 34) -> Font {
-        .custom("Cormorant Garamond", size: size)
+        .custom("Charter", size: size)
     }
+
+    /// Registered family name of the bundled Cormorant Garamond variable font,
+    /// kept for the reader's "Cormorant" font option preview.
+    static let displayFamily = "Cormorant Garamond Light"
 
     /// Section or card title — a readable literary serif that bridges
     /// display and body without dropping to system defaults.
@@ -25,6 +31,14 @@ enum Typography {
     /// reader's default font so the library and reader feel like one app.
     static func body(_ size: CGFloat = 17) -> Font {
         .custom("Crimson Pro", size: size)
+    }
+
+    /// Interactive chrome controls — settings rows, language pickers,
+    /// onboarding options and buttons. The system font keeps utility UI clean,
+    /// modern and consistent, leaving the serif roles for genuine brand and
+    /// reading moments. Weight is passed by the caller for selected emphasis.
+    static func control(_ size: CGFloat = 17, weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight)
     }
 
     /// Uppercase category label — tight tracking signals "label, not prose".

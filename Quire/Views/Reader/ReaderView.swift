@@ -12,7 +12,8 @@ struct ReaderView: View {
         book: Book,
         library: LibraryStore,
         settingsStore: SettingsStore,
-        statsStore: StatsStore
+        statsStore: StatsStore,
+        initialSystemDark: Bool
     ) {
         let bounds = UIScreen.main.bounds
         _viewModel = State(initialValue: ReaderViewModel(
@@ -20,7 +21,8 @@ struct ReaderView: View {
             library: library,
             settingsStore: settingsStore,
             statsStore: statsStore,
-            pageSize: bounds.size
+            pageSize: bounds.size,
+            initialSystemDark: initialSystemDark
         ))
     }
 

@@ -30,7 +30,14 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
+            // Bump identity on language change so every Text in the library and
+            // its sheets re-resolves against the newly-selected .lproj (the
+            // BundleLanguage re-class alone won't refresh already-built views;
+            // `\.locale` only drives number/date formatting). Scoped to the
+            // library — NOT the whole RootView — so an in-app switch refreshes
+            // live without tearing down the onboarding flow.
             LibraryView()
+                .id(localizationStore.appLanguage)
 
             if showLaunch {
                 LaunchView(onFinished: splashDidFinish)
@@ -69,6 +76,11 @@ struct RootView: View {
     /// Called by `LanguageSelectionView` when the user taps Continue.
     private func languageDidConfirm(_ language: AppLanguage) {
         localizationStore.setLanguage(language)
+        // Default the Define (dictionary) language to match the chosen app
+        // language so picking Magyar at onboarding loads the EN→HU dictionary
+        // and shows Magyar selected in Settings. The user can still override
+        // Define independently later.
+        localizationStore.setDefineLanguage(language)
         // Re-prepare the dictionary provider using the effective dictionary
         // language — respects an independent Define language when already set.
         Task { await dictionaryProvider.reprepare(for: localizationStore.dictionaryLanguage) }
