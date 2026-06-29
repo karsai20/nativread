@@ -2,7 +2,7 @@
 
 App Store icon artwork (1024×) for e-reader competitors, pulled via the
 iTunes lookup API for visual comparison against Quire's own icon
-(`../../Quire/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png`).
+(`../../NativRead/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png`).
 
 | File | App | Background | Motif |
 |---|---|---|---|

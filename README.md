@@ -1,6 +1,6 @@
-# Quire
+# NativRead
 
-Quire (formerly LumenRead): a fast, beautiful EPUB reader for
+NativRead (formerly LumenRead): a fast, beautiful EPUB reader for
 iPhone, built to the standard of the best readers on the market
 (Apple Books, Kindle, Readest).
 
@@ -38,7 +38,7 @@ Swift over a message bridge.
 - **Robust EPUB parsing**: container → OPF → manifest/spine/metadata,
   percent-encoded hrefs, fragment hrefs, failed imports roll back
 
-## Quire additions on top of LumenRead 2.0
+## NativRead additions on top of LumenRead 2.0
 
 Feature choices driven by market research (Apple Books / Kindle /
 KyBook / Readest user feedback):
@@ -58,8 +58,8 @@ KyBook / Readest user feedback):
 ## Architecture
 
 ```
-Quire/
-├── QuireApp.swift            — entry, launch-argument test hooks
+NativRead/
+├── NativReadApp.swift            — entry, launch-argument test hooks
 ├── Models/                       — Book, ReadingProgress, Bookmark,
 │                                   ReaderSettings, themes (pure)
 ├── EPUB/                         — EPUBParser + XML delegates (pure)
@@ -79,9 +79,9 @@ Quire/
 
 ```bash
 brew install xcodegen
-cd Quire
+cd NativRead
 xcodegen generate
-open Quire.xcodeproj   # Cmd+R on a simulator or device
+open NativRead.xcodeproj   # Cmd+R on a simulator or device
 ```
 
 Dependency: ZIPFoundation (resolved by SPM on first build).
@@ -89,7 +89,7 @@ Dependency: ZIPFoundation (resolved by SPM on first build).
 ## Testing
 
 ```bash
-xcodebuild -project Quire.xcodeproj -scheme Quire \
+xcodebuild -project NativRead.xcodeproj -scheme NativRead \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
 ```
 
@@ -112,5 +112,5 @@ the app icon by `swift scripts/make_icon.swift <out.png>`.
 
 ## Adding books
 
-- **Files app / Share sheet** — open any `.epub` with Quire
+- **Files app / Share sheet** — open any `.epub` with NativRead
 - **In-app** — the + button on the shelf (multi-select supported)

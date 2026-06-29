@@ -28,7 +28,7 @@ More information: https://wordnet.princeton.edu/
 - **Next step:** Obtain an OFL- or CC-licensed EN→ES StarDict dictionary (e.g.
   from FreeDict <https://freedict.org/> or a Wiktionary extraction comparable
   to the EN→HU pipeline). Place the `enes.ifo`, `enes.idx`, and `enes.dict.dz`
-  under `Quire/Resources/Dictionaries/enes/` and add it to the Xcode target.
+  under `NativRead/Resources/Dictionaries/enes/` and add it to the Xcode target.
 
 ## English–German (gap — not yet bundled)
 

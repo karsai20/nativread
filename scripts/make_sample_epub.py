@@ -8,7 +8,7 @@ import zipfile
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / (
-    "Quire/Resources/Fixtures/sample.epub"
+    "NativRead/Resources/Fixtures/sample.epub"
 )
 
 TITLE = "The Lantern of Aldebaran"

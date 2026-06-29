@@ -262,7 +262,7 @@ struct ThemeTile: View {
 
 /// The three calm sections of the appearance sheet. Tabs keep every control
 /// one tap away — no "More options" disclosure, no long scroll — so each
-/// surface stays uncrowded. This is the custom pattern Quire uses instead of
+/// surface stays uncrowded. This is the custom pattern NativRead uses instead of
 /// Apple Books' single scrolling list.
 enum AppearanceTab: String, CaseIterable, Identifiable {
     case theme, text, layout

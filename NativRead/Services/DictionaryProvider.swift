@@ -28,11 +28,11 @@ struct BundledDictionary: Sendable, Equatable {
             return [.enhu, .wordnet]
         case .es:
             // TODO: Bundle an EN→ES StarDict dictionary (OFL/CC-licensed).
-            // See Quire/Resources/Dictionaries/CREDITS.md for sourcing notes.
+            // See NativRead/Resources/Dictionaries/CREDITS.md for sourcing notes.
             return [.enes, .wordnet]
         case .de:
             // TODO: Bundle an EN→DE StarDict dictionary (OFL/CC-licensed).
-            // See Quire/Resources/Dictionaries/CREDITS.md for sourcing notes.
+            // See NativRead/Resources/Dictionaries/CREDITS.md for sourcing notes.
             return [.ende, .wordnet]
         case .en, .system:
             return [.wordnet]

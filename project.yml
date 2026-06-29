@@ -1,4 +1,4 @@
-name: Quire
+name: NativRead
 options:
   bundleIdPrefix: com.karsai
   deploymentTarget:
@@ -13,7 +13,7 @@ packages:
     from: "0.9.19"
 
 targets:
-  Quire:
+  NativRead:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
@@ -21,24 +21,24 @@ targets:
       Debug: Signing.xcconfig
       Release: Signing.xcconfig
     sources:
-      - Quire
+      - NativRead
     dependencies:
       - package: ZIPFoundation
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.karsai.quire
-        PRODUCT_NAME: Quire
+        PRODUCT_BUNDLE_IDENTIFIER: com.karsai.nativread
+        PRODUCT_NAME: NativRead
         SWIFT_VERSION: "5.9"
         MARKETING_VERSION: "2.1"
         CURRENT_PROJECT_VERSION: "2"
-        INFOPLIST_FILE: Quire/Info.plist
+        INFOPLIST_FILE: NativRead/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
         OTHER_LDFLAGS: "-lz -lsqlite3"
     info:
-      path: Quire/Info.plist
+      path: NativRead/Info.plist
       properties:
-        CFBundleDisplayName: Quire
+        CFBundleDisplayName: NativRead
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleAllowMixedLocalizations: YES
@@ -70,42 +70,42 @@ targets:
               public.mime-type:
                 - application/epub+zip
 
-  QuireTests:
+  NativReadTests:
     type: bundle.unit-test
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - QuireTests
+      - NativReadTests
     dependencies:
-      - target: Quire
+      - target: NativRead
     settings:
       base:
         CODE_SIGNING_ALLOWED: "NO"
 
-  QuireUITests:
+  NativReadUITests:
     type: bundle.ui-testing
     platform: iOS
     deploymentTarget: "17.0"
     sources:
-      - QuireUITests
+      - NativReadUITests
     dependencies:
-      - target: Quire
+      - target: NativRead
     settings:
       base:
         CODE_SIGNING_ALLOWED: "NO"
 
 schemes:
-  Quire:
+  NativRead:
     build:
       targets:
-        Quire: all
-        QuireTests: [test]
-        QuireUITests: [test]
+        NativRead: all
+        NativReadTests: [test]
+        NativReadUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
       gatherCoverageData: true
       targets:
-        - QuireTests
-        - QuireUITests
+        - NativReadTests
+        - NativReadUITests

@@ -10,7 +10,7 @@ import SwiftUI
 /// Subsequent launches (after `hasSeenOnboarding`) skip both overlays and
 /// go straight to the library. The individual steps are controlled via the
 /// `-forceOnboarding` / `-skipOnboarding` launch flags resolved in
-/// `QuireApp.shouldShowLaunch(_:)`.
+/// `NativReadApp.shouldShowLaunch(_:)`.
 struct RootView: View {
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(LocalizationStore.self) private var localizationStore

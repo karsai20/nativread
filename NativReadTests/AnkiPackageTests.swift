@@ -97,7 +97,7 @@ final class AnkiPackageTests: XCTestCase {
         // Our single model id is the key in the models map.
         XCTAssertTrue(models.contains("\(AnkiPackage.modelID)"))
         // The deck name appears in the decks JSON.
-        XCTAssertTrue(decks.contains("Quire Vocabulary"))
+        XCTAssertTrue(decks.contains("NativRead Vocabulary"))
     }
 
     func testNoteAndCardCountsMatchEntries() throws {
@@ -210,7 +210,7 @@ final class AnkiPackageTests: XCTestCase {
         XCTAssertEqual(scalar(db, "SELECT COUNT(*) FROM cards;"), 0)
         // Model and deck still exist so the deck imports cleanly.
         let rows = queryRows(db, "SELECT models, decks FROM col;")
-        XCTAssertTrue((rows.first?[1] ?? "").contains("Quire Vocabulary"))
+        XCTAssertTrue((rows.first?[1] ?? "").contains("NativRead Vocabulary"))
     }
 
     // MARK: - SQLite helpers

@@ -228,7 +228,7 @@ enum AnkiPackage {
     }
 }
 
-// MARK: - JSON blobs (single model + Default/Quire decks)
+// MARK: - JSON blobs (single model + Default/NativRead decks)
 
 extension AnkiPackage {
 

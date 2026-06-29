@@ -5,7 +5,7 @@ typography-first and content-led; Kobo/Readwise clean redesigns; Apple Books as
 the "clean reading UI" benchmark). Quire moves off the dark-academia brand toward
 a warm, editorial identity where **the book is the hero**.
 
-## Design tokens (`Quire/DesignSystem/`)
+## Design tokens (`NativRead/DesignSystem/`)
 
 - **`BrandPalette`** — the app-chrome identity, separate from the per-book
   `ReaderPalette`. Light: paper `#F7F3EC`, ink `#1A1714`, russet accent `#9A3B2E`.

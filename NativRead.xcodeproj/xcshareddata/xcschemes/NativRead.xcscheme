@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+               BlueprintIdentifier = "BC53282B8FD26283E48AA5C3"
                BuildableName = "NativRead.app"
-               BlueprintName = "Quire"
-               ReferencedContainer = "container:Quire.xcodeproj">
+               BlueprintName = "NativRead"
+               ReferencedContainer = "container:NativRead.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C0297A804AAE3EF03899D8D"
-               BuildableName = "QuireTests.xctest"
-               BlueprintName = "QuireTests"
-               ReferencedContainer = "container:Quire.xcodeproj">
+               BlueprintIdentifier = "6C92D9FAD05A61EA008E0446"
+               BuildableName = "NativReadTests.xctest"
+               BlueprintName = "NativReadTests"
+               ReferencedContainer = "container:NativRead.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -43,10 +43,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2DF71322D53F74965BDFD261"
-               BuildableName = "QuireUITests.xctest"
-               BlueprintName = "QuireUITests"
-               ReferencedContainer = "container:Quire.xcodeproj">
+               BlueprintIdentifier = "AE8851C4CA331BECC55F5555"
+               BuildableName = "NativReadUITests.xctest"
+               BlueprintName = "NativReadUITests"
+               ReferencedContainer = "container:NativRead.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -61,10 +61,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+            BlueprintIdentifier = "BC53282B8FD26283E48AA5C3"
             BuildableName = "NativRead.app"
-            BlueprintName = "Quire"
-            ReferencedContainer = "container:Quire.xcodeproj">
+            BlueprintName = "NativRead"
+            ReferencedContainer = "container:NativRead.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -73,10 +73,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0C0297A804AAE3EF03899D8D"
-               BuildableName = "QuireTests.xctest"
-               BlueprintName = "QuireTests"
-               ReferencedContainer = "container:Quire.xcodeproj">
+               BlueprintIdentifier = "6C92D9FAD05A61EA008E0446"
+               BuildableName = "NativReadTests.xctest"
+               BlueprintName = "NativReadTests"
+               ReferencedContainer = "container:NativRead.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -84,10 +84,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2DF71322D53F74965BDFD261"
-               BuildableName = "QuireUITests.xctest"
-               BlueprintName = "QuireUITests"
-               ReferencedContainer = "container:Quire.xcodeproj">
+               BlueprintIdentifier = "AE8851C4CA331BECC55F5555"
+               BuildableName = "NativReadUITests.xctest"
+               BlueprintName = "NativReadUITests"
+               ReferencedContainer = "container:NativRead.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -108,10 +108,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+            BlueprintIdentifier = "BC53282B8FD26283E48AA5C3"
             BuildableName = "NativRead.app"
-            BlueprintName = "Quire"
-            ReferencedContainer = "container:Quire.xcodeproj">
+            BlueprintName = "NativRead"
+            ReferencedContainer = "container:NativRead.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -127,10 +127,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "F7A882D2078409C78ACD2D31"
+            BlueprintIdentifier = "BC53282B8FD26283E48AA5C3"
             BuildableName = "NativRead.app"
-            BlueprintName = "Quire"
-            ReferencedContainer = "container:Quire.xcodeproj">
+            BlueprintName = "NativRead"
+            ReferencedContainer = "container:NativRead.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
