@@ -19,7 +19,7 @@ final class LanguageSelectionUITests: XCTestCase {
     /// After the brand splash auto-dismisses, the language picker must appear.
     func testLanguagePickerAppearsAfterSplash() {
         app.launchArguments = [
-            "-resetSettings", "-resetLanguage",
+            "-resetLibrary", "-resetSettings", "-resetLanguage",
             "-forceOnboarding", "-seedSampleBook"
         ]
         app.launch()
@@ -36,7 +36,7 @@ final class LanguageSelectionUITests: XCTestCase {
 
     func testAllFourLanguageRowsAreVisible() {
         app.launchArguments = [
-            "-resetSettings", "-resetLanguage",
+            "-resetLibrary", "-resetSettings", "-resetLanguage",
             "-forceOnboarding", "-seedSampleBook"
         ]
         app.launch()
@@ -70,7 +70,7 @@ final class LanguageSelectionUITests: XCTestCase {
     /// wordmark must be gone.
     func testSelectMagyarAndContinue() {
         app.launchArguments = [
-            "-resetSettings", "-resetLanguage",
+            "-resetLibrary", "-resetSettings", "-resetLanguage",
             "-forceOnboarding", "-seedSampleBook"
         ]
         app.launch()
@@ -109,7 +109,7 @@ final class LanguageSelectionUITests: XCTestCase {
     func testRelaunchwithoutForceSkipsPicker() {
         // First launch: complete onboarding.
         app.launchArguments = [
-            "-resetSettings", "-resetLanguage",
+            "-resetLibrary", "-resetSettings", "-resetLanguage",
             "-forceOnboarding", "-seedSampleBook"
         ]
         app.launch()
@@ -153,7 +153,7 @@ final class LanguageSelectionUITests: XCTestCase {
     /// by future screenshot-automation runs.
     func testForceLanguageHookDoesNotPersist() {
         app.launchArguments = [
-            "-skipOnboarding", "-resetLanguage",
+            "-resetLibrary", "-skipOnboarding", "-resetLanguage",
             "-forceLanguage", "hu",
             "-seedSampleBook"
         ]

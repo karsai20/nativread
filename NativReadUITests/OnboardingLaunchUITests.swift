@@ -28,7 +28,7 @@ final class OnboardingLaunchUITests: XCTestCase {
     }
 
     func testLaunchSplashSkipped() {
-        app.launchArguments = ["-skipOnboarding", "-seedSampleBook"]
+        app.launchArguments = ["-resetLibrary", "-skipOnboarding", "-seedSampleBook"]
         app.launch()
 
         // The library must be present immediately, with no splash wordmark.

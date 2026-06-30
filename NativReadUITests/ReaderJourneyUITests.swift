@@ -75,10 +75,16 @@ final class ReaderJourneyUITests: XCTestCase {
         openSampleBook()
         app.buttons["reader.typography"].tap()
 
+        // Theme swatches live on the default Theme tab.
         let duskSwatch = app.buttons["theme.dusk"]
         XCTAssertTrue(duskSwatch.waitForExistence(timeout: 6))
         duskSwatch.tap()
-        app.buttons["fontsize.up"].tap()
+
+        // Size lives on the Text tab in the redesigned tabbed panel.
+        app.buttons["appearance.tab.text"].tap()
+        let sizeUp = app.buttons["fontsize.up"]
+        XCTAssertTrue(sizeUp.waitForExistence(timeout: 6))
+        sizeUp.tap()
 
         // Dismiss the sheet, reopen, and confirm the choice stuck.
         app.swipeDown(velocity: .fast)
@@ -191,28 +197,18 @@ final class ReaderJourneyUITests: XCTestCase {
                       "top bar should show the next chapter title")
     }
 
-    /// Expands the typography sheet so below-the-fold controls enter
-    /// the accessibility hierarchy.
-    private func expandTypographyPanel() {
+    /// Opens the appearance sheet and selects the Layout tab, where the
+    /// page-flow and transition controls live in the redesigned tabbed panel.
+    private func openLayoutTab() {
         app.buttons["reader.typography"].tap()
-        // Size control is top-level and always present.
-        XCTAssertTrue(app.buttons["fontsize.up"].waitForExistence(timeout: 6))
-        // Open "More" to surface secondary controls into the a11y tree.
-        let more = app.buttons["panel.more"]
-        XCTAssertTrue(more.waitForExistence(timeout: 6))
-        let auto = app.switches["theme.auto"]
-        // Tapping "More" expands the secondary controls. Retry the tap if
-        // the disclosure has not surfaced the auto-theme switch yet.
-        for _ in 0..<3 where !auto.exists {
-            more.tap()
-            _ = auto.waitForExistence(timeout: 2)
-        }
-        XCTAssertTrue(auto.waitForExistence(timeout: 6))
+        let layout = app.buttons["appearance.tab.layout"]
+        XCTAssertTrue(layout.waitForExistence(timeout: 6))
+        layout.tap()
     }
 
     func testFlowAndTransitionPickersPersist() {
         openSampleBook()
-        expandTypographyPanel()
+        openLayoutTab()
 
         // Transition picker is only visible in paged flow.
         let eink = app.buttons["transition.eink"]
@@ -230,7 +226,7 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(
             app.buttons["reader.typography"].waitForExistence(timeout: 6)
         )
-        expandTypographyPanel()
+        openLayoutTab()
         let paged = app.buttons["flow.paged"]
         XCTAssertTrue(paged.waitForExistence(timeout: 6))
         paged.tap()
