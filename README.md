@@ -9,7 +9,7 @@
 ![Platform](https://img.shields.io/badge/platform-iOS%2017%2B-1d3a2f?style=flat-square)
 ![Swift](https://img.shields.io/badge/Swift-5.9-d6613c?style=flat-square)
 ![UI](https://img.shields.io/badge/SwiftUI-%40Observable-1d3a2f?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-192%20passing-5a7d5a?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-236%20passing-5a7d5a?style=flat-square)
 ![Languages](https://img.shields.io/badge/languages-English%20%C2%B7%20Magyar-5a7d5a?style=flat-square)
 
 </div>
@@ -108,8 +108,8 @@ xcodebuild test -project NativRead.xcodeproj -scheme NativRead \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- **173 unit tests** — EPUB 2/3 parsing, TOC (nav + NCX), cover detection, error paths, progress-math round-trips, settings persistence + migration, CSS generation (paged + scroll), warmth colour math, highlight locators, search, and the full localization layer (language defaults, persistence, locale/bundle resolution, dictionary mapping)
-- **19 UI tests** — language onboarding, splash skip, seeded shelf, page turn + progress restore, theme switching across the tabbed panel, flow/transition pickers, scroll journey, highlight persistence, TOC navigation, whole-book search, bookmarking, vocabulary
+- **214 unit tests** — EPUB 2/3 parsing, TOC (nav + NCX), cover detection, error paths, progress-math round-trips, settings persistence + migration, CSS generation (paged + scroll), warmth colour math, highlight locators, search, the full localization layer (language defaults, persistence, locale/bundle resolution, dictionary mapping), plus PDF/TXT import + the PDF reader (format routing, metadata/cover, text synthesis + HTML escaping, encoding fallback, page-clamp/persistence math, search, bookmarks, night-invert colour math)
+- **22 UI tests** — language onboarding, splash skip, seeded shelf, page turn + progress restore, theme switching across the tabbed panel, flow/transition pickers, scroll journey, highlight persistence, TOC navigation, whole-book search, bookmarking, vocabulary, and the PDF reader journey
 
 **Launch-argument hooks** (UI tests + screenshot automation):
 `-resetLibrary`, `-resetSettings`, `-resetLanguage`, `-seedSampleBook`, `-seedProgress`,
