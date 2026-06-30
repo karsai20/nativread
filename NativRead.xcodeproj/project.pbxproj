@@ -135,7 +135,6 @@
 		33C7CD7546ABA5930344A94E /* ReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderView.swift; sourceTree = "<group>"; };
 		3710A1A340C11A0CF5ECD0D2 /* Cinzel-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Cinzel-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		3DBEF7A2CB9ED382671A7D7C /* DictionaryProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryProvider.swift; sourceTree = "<group>"; };
-		4068EA9437EAAE7A4705FE4C /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		4070FDA74FC7D4E62B74BF47 /* ReaderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewModel.swift; sourceTree = "<group>"; };
 		4162EB7E366B8A9451EB8916 /* LocalizationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationStore.swift; sourceTree = "<group>"; };
 		460053620CC1DE7B473BDD28 /* EPUBXMLDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBXMLDelegates.swift; sourceTree = "<group>"; };
@@ -158,6 +157,7 @@
 		88C982DD6AF5BB044DD035A8 /* ReaderController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderController.swift; sourceTree = "<group>"; };
 		89216DF6012465A3785EC9ED /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
 		8B066BCE0D1945F8781C1174 /* VocabularyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyView.swift; sourceTree = "<group>"; };
+		91EF7163B173DC44C2FCD21A /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		9618E5D60FFF19AD79A907DF /* SettingsStoreOnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreOnboardingTests.swift; sourceTree = "<group>"; };
 		9664F6B66A84BE969D74BB00 /* ContentsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentsSheet.swift; sourceTree = "<group>"; };
 		9B269358AD37298B80E3902B /* wordnet.ifo */ = {isa = PBXFileReference; path = wordnet.ifo; sourceTree = "<group>"; };
@@ -270,15 +270,6 @@
 			path = Onboarding;
 			sourceTree = "<group>";
 		};
-		1A9B08F8AFA5145BC9FCDBDB /* quire */ = {
-			isa = PBXGroup;
-			children = (
-				4068EA9437EAAE7A4705FE4C /* Signing.xcconfig */,
-			);
-			name = quire;
-			path = .;
-			sourceTree = "<group>";
-		};
 		20EAA6E037AFA8E0005A498A /* Services */ = {
 			isa = PBXGroup;
 			children = (
@@ -376,13 +367,22 @@
 			path = Fonts;
 			sourceTree = "<group>";
 		};
+		77AE2507409057E627F73288 /* nativread */ = {
+			isa = PBXGroup;
+			children = (
+				91EF7163B173DC44C2FCD21A /* Signing.xcconfig */,
+			);
+			name = nativread;
+			path = .;
+			sourceTree = "<group>";
+		};
 		9772ED810472B21CB9F879A5 = {
 			isa = PBXGroup;
 			children = (
 				F3CF95DE89DA38AEBD173053 /* NativRead */,
+				77AE2507409057E627F73288 /* nativread */,
 				11AE22266DC8760E2B57FA5E /* NativReadTests */,
 				A3C05BA8CFF3CC7CF1B2B6DF /* NativReadUITests */,
-				1A9B08F8AFA5145BC9FCDBDB /* quire */,
 				121A6303C561FA06C77708D8 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -794,18 +794,18 @@
 		};
 		78D8D17BA06BF9539DF2DACB /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4068EA9437EAAE7A4705FE4C /* Signing.xcconfig */;
+			baseConfigurationReference = 91EF7163B173DC44C2FCD21A /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				INFOPLIST_FILE = NativRead/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 3.0;
 				OTHER_LDFLAGS = "-lz -lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.nativread;
 				PRODUCT_NAME = NativRead;
@@ -817,18 +817,18 @@
 		};
 		930B83E0CB8F20483E2243D5 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4068EA9437EAAE7A4705FE4C /* Signing.xcconfig */;
+			baseConfigurationReference = 91EF7163B173DC44C2FCD21A /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				INFOPLIST_FILE = NativRead/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 3.0;
 				OTHER_LDFLAGS = "-lz -lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.nativread;
 				PRODUCT_NAME = NativRead;
