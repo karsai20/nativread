@@ -3,31 +3,29 @@ import SwiftUI
 /// The four reading atmospheres. Chrome colours follow the page so the
 /// whole screen feels like one sheet of paper, the way Apple Books does it.
 enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
-    case paper, sepia, dusk, ink, academia
+    case paper, sepia, dusk, ink
 
     var id: String { rawValue }
 
+    // Labels mirror the app-level Light/Dark palette: `paper` is the light
+    // page, `ink` the dark one; `sepia`/`dusk` keep their character names.
     var label: String {
         switch self {
-        case .paper:    return Bundle.main.localizedString(forKey: "theme.label.paper", value: "Paper", table: nil)
+        case .paper:    return Bundle.main.localizedString(forKey: "theme.label.paper", value: "Light", table: nil)
         case .sepia:    return Bundle.main.localizedString(forKey: "theme.label.sepia", value: "Sepia", table: nil)
         case .dusk:     return Bundle.main.localizedString(forKey: "theme.label.dusk", value: "Dusk", table: nil)
-        case .ink:      return Bundle.main.localizedString(forKey: "theme.label.ink", value: "Ink", table: nil)
-        case .academia: return Bundle.main.localizedString(forKey: "theme.label.academia", value: "Academia", table: nil)
+        case .ink:      return Bundle.main.localizedString(forKey: "theme.label.ink", value: "Dark", table: nil)
         }
     }
 
     // Eye-friendly, modern set: no pure white or black, warm low-blue-light
     // tones, and a unified calm sage accent that ties to the NativRead brand.
-    // `academia` is the deliberate exception — it keeps a gold accent for its
-    // dark-academia character.
     var backgroundHex: String {
         switch self {
         case .paper: return "#F5F1E8"
         case .sepia: return "#F1E6CF"
         case .dusk: return "#21252B"
         case .ink: return "#181A18"
-        case .academia: return "#18241B"
         }
     }
 
@@ -37,7 +35,6 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#3B3020"
         case .dusk: return "#CBCED4"
         case .ink: return "#E7E3D8"
-        case .academia: return "#E8E0CD"
         }
     }
 
@@ -47,7 +44,6 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#8C7B5C"
         case .dusk: return "#868B93"
         case .ink: return "#9B9A8F"
-        case .academia: return "#A2AE97"
         }
     }
 
@@ -57,7 +53,6 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         case .sepia: return "#6E7A5F"
         case .dusk: return "#A6B49E"
         case .ink: return "#A6B49E"
-        case .academia: return "#C6A24A"
         }
     }
 
@@ -73,21 +68,20 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
     var hairlineHex: String {
         Color.blendHex(backgroundHex, toward: textHex, amount: isDark ? 0.20 : 0.12)
     }
-    /// Shadow strength tuned per theme: pure-black ink needs the strongest.
+    /// Shadow strength tuned per theme: the dark page needs the strongest.
     var shadowOpacity: Double {
         switch self {
         case .paper: return 0.10
         case .sepia: return 0.12
         case .dusk:  return 0.30
         case .ink:   return 0.38
-        case .academia: return 0.40
         }
     }
 
     var isDark: Bool {
         switch self {
         case .paper, .sepia: return false
-        case .dusk, .ink, .academia: return true
+        case .dusk, .ink: return true
         }
     }
 
@@ -329,10 +323,13 @@ extension ReaderSettings {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let defaults = ReaderSettings()
-        theme = try container.decodeIfPresent(
-            ReaderTheme.self, forKey: .theme) ?? defaults.theme
-        darkTheme = try container.decodeIfPresent(
-            ReaderTheme.self, forKey: .darkTheme) ?? defaults.darkTheme
+        // Tolerant: a removed raw value ("academia") may still be persisted
+        // but is no longer decodable, so `try?` falls back to the default
+        // instead of failing the whole settings decode.
+        theme = (try? container.decodeIfPresent(
+            ReaderTheme.self, forKey: .theme)) ?? defaults.theme
+        darkTheme = (try? container.decodeIfPresent(
+            ReaderTheme.self, forKey: .darkTheme)) ?? defaults.darkTheme
         themeMode = try container.decodeIfPresent(
             ThemeMode.self, forKey: .themeMode) ?? defaults.themeMode
         warmth = try container.decodeIfPresent(

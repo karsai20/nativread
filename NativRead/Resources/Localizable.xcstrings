@@ -1273,24 +1273,6 @@
         }
       }
     },
-    "theme.label.academia": {
-      "comment": "Display name for the Academia reading theme.",
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Academia"
-          }
-        },
-        "hu": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Akadémia"
-          }
-        }
-      }
-    },
     "theme.label.dusk": {
       "comment": "Display name for the Dusk reading theme.",
       "extractionState": "stale",
@@ -1310,37 +1292,37 @@
       }
     },
     "theme.label.ink": {
-      "comment": "Display name for the Ink reading theme.",
+      "comment": "Display name for the dark reading theme.",
       "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ink"
+            "value": "Dark"
           }
         },
         "hu": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tinta"
+            "value": "Sötét"
           }
         }
       }
     },
     "theme.label.paper": {
-      "comment": "Display name for the Paper reading theme.",
+      "comment": "Display name for the light reading theme.",
       "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paper"
+            "value": "Light"
           }
         },
         "hu": {
           "stringUnit": {
             "state": "translated",
-            "value": "Papír"
+            "value": "Világos"
           }
         }
       }

@@ -300,24 +300,24 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded.theme, .sepia)
         XCTAssertEqual(decoded.fontSize, 20)
         XCTAssertEqual(decoded.warmth, 0)
-        XCTAssertEqual(decoded.themeMode, .manual)
+        XCTAssertEqual(decoded.themeMode, .system)
         XCTAssertEqual(decoded.darkTheme, .dusk)
         XCTAssertEqual(decoded.pageFlow, .paged)
         XCTAssertEqual(decoded.pageTransition, .slide)
     }
 
-    func testAcademiaThemeDecodesAndExposesDarkBrassAccent() throws {
+    func testRemovedAcademiaThemeFallsBackToDefault() throws {
+        // "academia" was removed as a theme. A user who saved it must not
+        // have their whole settings decode fail; the removed raw value
+        // falls back to the default theme.
         let json = """
         {"theme":"academia","fontSize":18}
         """
         let decoded = try JSONDecoder().decode(
             ReaderSettings.self, from: Data(json.utf8)
         )
-        XCTAssertEqual(decoded.theme, .academia)
-        XCTAssertTrue(decoded.theme.isDark)
-        XCTAssertEqual(decoded.theme.accentHex, "#CFA94E")
-        XCTAssertEqual(decoded.theme.backgroundHex, "#152319")
-        XCTAssertEqual(decoded.theme.label, "Academia")
+        XCTAssertEqual(decoded.theme, ReaderSettings().theme)
+        XCTAssertEqual(decoded.fontSize, 18)
     }
 
     func testSettingsDecodeFromRemovedTransitionFallsBackToDefault() throws {

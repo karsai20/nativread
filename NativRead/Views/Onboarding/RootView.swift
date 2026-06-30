@@ -3,7 +3,7 @@ import SwiftUI
 /// App root: shows the library and overlays onboarding screens on first launch.
 ///
 /// **Flow:**
-/// 1. `LaunchView` — dark-academia brand splash; waits for dictionaries.
+/// 1. `LaunchView` — brand splash; waits for dictionaries.
 /// 2. `LanguageSelectionView` — language picker (first launch only).
 /// 3. `LibraryView` — crossfades in once both onboarding steps are confirmed.
 ///
