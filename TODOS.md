@@ -62,6 +62,22 @@ Source: /plan-eng-review 2026-06-28 (built-code review of the Phase 0 localizati
   `LocalizationStore` `@MainActor`. **Depends on:** nothing now; do it as part
   of (or just before) a Swift-6 migration.
 
+## Deferred from /ship 2026-06-30 (PDF/TXT support)
+
+Source: adversarial/red-team review of the PDF/TXT diff. Both informational — the
+common import paths are covered; these are edge-case robustness for TXT.
+
+- [ ] **TXT line-ending + BOM normalization.** `TextImporter` splits paragraphs on
+  `\n\n`/`\r\n\r\n` and collapses `\n`/`\r\n` to `<br/>`, but a lone `\r`
+  (classic-Mac) is neither, and a leading UTF-8 BOM (U+FEFF) leaks into the title
+  and first paragraph. **Fix:** normalize all newlines to `\n` and strip a leading
+  BOM in `TextImporter.makeBook`/`render` (`TextImporter.swift:19,70`). **Priority:** P3.
+- [ ] **TXT import size guard.** `Data(contentsOf:)` + the escape/split chain make
+  several full-size copies on the main import path, and a file with no blank lines
+  becomes one enormous `<p>` for WKWebView to lay out — a very large `.txt` (tens of
+  MB) can spike memory or hang. **Fix:** cap or chunk imported text above a few MB
+  (`TextImporter.swift:19`). Needs a threshold decision. **Priority:** P2.
+
 ## Known code TODOs (pre-existing)
 
 - [ ] Bundle an EN→ES StarDict dictionary (OFL/CC-licensed) — `DictionaryProvider.swift:28`
