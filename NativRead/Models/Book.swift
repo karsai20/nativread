@@ -68,14 +68,22 @@ struct Highlight: Codable, Equatable, Identifiable {
     }
 }
 
-/// A book in the library. The EPUB itself lives in Documents/Books,
-/// the unpacked content in Library/Extracted/<id>.
+/// The source format of a book. Drives which reader opens it: `.epub`
+/// and `.txt` use the reflowable web engine, `.pdf` the fixed-layout
+/// PDFKit reader.
+enum BookFormat: String, Codable {
+    case epub, pdf, txt
+}
+
+/// A book in the library. The source file lives in Documents/Books,
+/// the unpacked/synthesized content in Library/Extracted/<id>.
 struct Book: Codable, Equatable, Identifiable {
     let id: UUID
     var title: String
     var author: String
     var fileName: String
     var coverFileName: String?
+    var format: BookFormat
     var addedAt: Date
     var lastOpenedAt: Date?
     var progress: ReadingProgress
@@ -90,6 +98,7 @@ struct Book: Codable, Equatable, Identifiable {
         author: String,
         fileName: String,
         coverFileName: String? = nil,
+        format: BookFormat = .epub,
         addedAt: Date = .now,
         lastOpenedAt: Date? = nil,
         progress: ReadingProgress = ReadingProgress(),
@@ -102,6 +111,7 @@ struct Book: Codable, Equatable, Identifiable {
         self.author = author
         self.fileName = fileName
         self.coverFileName = coverFileName
+        self.format = format
         self.addedAt = addedAt
         self.lastOpenedAt = lastOpenedAt
         self.progress = progress
@@ -120,6 +130,10 @@ struct Book: Codable, Equatable, Identifiable {
         fileName = try container.decode(String.self, forKey: .fileName)
         coverFileName = try container.decodeIfPresent(
             String.self, forKey: .coverFileName)
+        // Libraries persisted before multi-format support carry no `format`
+        // key; they were all EPUBs, so default to `.epub`.
+        format = try container.decodeIfPresent(
+            BookFormat.self, forKey: .format) ?? .epub
         addedAt = try container.decode(Date.self, forKey: .addedAt)
         lastOpenedAt = try container.decodeIfPresent(
             Date.self, forKey: .lastOpenedAt)

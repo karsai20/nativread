@@ -29,8 +29,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.karsai.nativread
         PRODUCT_NAME: NativRead
         SWIFT_VERSION: "5.9"
-        MARKETING_VERSION: "3.0"
-        CURRENT_PROJECT_VERSION: "3"
+        MARKETING_VERSION: "3.1"
+        CURRENT_PROJECT_VERSION: "4"
         INFOPLIST_FILE: NativRead/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
@@ -59,6 +59,16 @@ targets:
             LSHandlerRank: Default
             LSItemContentTypes:
               - org.idpf.epub-container
+          - CFBundleTypeName: PDF Document
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.adobe.pdf
+          - CFBundleTypeName: Plain Text Document
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.plain-text
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: org.idpf.epub-container
             UTTypeDescription: EPUB Document

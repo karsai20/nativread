@@ -100,6 +100,19 @@ struct NativReadApp: App {
                 }
             }
         }
+        // PDF / TXT seeds run the real importer over a freshly generated
+        // sample, so the PDF reader and synthesized-TXT path can be driven
+        // and screenshotted by UI tests.
+        if arguments.contains("-seedSamplePDF"),
+           !store.books.contains(where: { $0.format == .pdf }),
+           let url = SampleDocuments.makePDF() {
+            _ = try? store.importBook(from: url)
+        }
+        if arguments.contains("-seedSampleText"),
+           !store.books.contains(where: { $0.format == .txt }),
+           let url = SampleDocuments.makeText() {
+            _ = try? store.importBook(from: url)
+        }
         // Mark the first book in-progress so the Now Reading hero renders
         // in screenshots without driving the reader by hand.
         if arguments.contains("-seedProgress"), let first = store.books.first {
