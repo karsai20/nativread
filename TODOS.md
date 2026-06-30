@@ -20,6 +20,22 @@ Source: /plan-design-review 2026-06-28.
   thorough pass (especially VoiceOver over the WKWebView page) is its own focused
   effort. **Depends on:** Phase 0 a11y floor landing first.
 
+## Deferred from /plan-ceo-review 2026-06-30 (translator)
+
+- [ ] **Multi-target-language translation.** Launch is Hungarian-only (quality
+  validated only for Hungarian). Add each target language once it clears the
+  Hungarian-equivalent literary quality bar (re-run the quality pipeline per
+  language). **Why deferred:** shipping unvalidated quality risks a bad first
+  App Store review that poisons the rating for everyone. **Where to start:** the
+  `Translator` interface already makes target language a config change; gate each
+  on the quality pipeline. **Effort:** M per language. **Priority:** P2.
+- [ ] **Inline-gloss "reading-level" learner mode.** Original text with
+  per-sentence tap-to-reveal translation — a middle mode between all-English and
+  fully-translated, aimed at language learners (a larger market than non-readers).
+  **Why deferred:** a whole second reading surface would bloat a pre-revenue MVP;
+  revisit once the core translate-and-read loop proves it sells. **Effort:** L.
+  **Priority:** P2. (Promoted from honorable-mention below.)
+
 ## Undecided / honorable mentions (pull in when ready)
 
 - [ ] Editable character-name glossary for translation (keep names consistent
