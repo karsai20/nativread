@@ -211,7 +211,25 @@ final class DictionaryService {
 
     /// Looks up `word` in every dictionary, in insertion order. Dictionaries
     /// with no match are skipped.
+    ///
+    /// An exact match always wins. When no dictionary has the exact form, the
+    /// word is reduced to base-form candidates (`moved` → `move`, `wolves` →
+    /// `wolf`) and the first candidate that hits anywhere is returned — the
+    /// indices store lemmas only, so an inflected selection would otherwise
+    /// find nothing.
     func lookup(_ word: String) -> [DictionaryResult] {
+        let exact = results(for: word)
+        if !exact.isEmpty { return exact }
+
+        for candidate in Lemmatizer.candidates(for: word) {
+            let hit = results(for: candidate)
+            if !hit.isEmpty { return hit }
+        }
+        return []
+    }
+
+    /// One pass over every dictionary for an exact (case-insensitive) form.
+    private func results(for word: String) -> [DictionaryResult] {
         dictionaries.compactMap { dictionary in
             let entries = dictionary.lookup(word)
             guard !entries.isEmpty else { return nil }

@@ -236,6 +236,73 @@ final class DictionaryServiceTests: XCTestCase {
         XCTAssertTrue(service.lookup("absent").isEmpty)
     }
 
+    // MARK: - Lemmatized fallback (inflected selections)
+
+    /// A dictionary indexes base forms only, so an inflected selection like
+    /// "moved" must fall back to its lemma "move".
+    private func lemmaService() throws -> DictionaryService {
+        let dict = try makeDictionary(
+            base: "en", bookname: "English",
+            pairs: [
+                Pair(headword: "move", definition: "to change position"),
+                Pair(headword: "book", definition: "a written work"),
+                Pair(headword: "run", definition: "to move fast on foot"),
+                Pair(headword: "carry", definition: "to hold and move")
+            ]
+        )
+        return DictionaryService(dictionaries: [dict])
+    }
+
+    func testPastTenseFallsBackToLemma() throws {
+        let service = try lemmaService()
+        let results = service.lookup("moved")  // -> move
+        XCTAssertEqual(results.first?.entries.first?.definition,
+                       "to change position")
+    }
+
+    func testPluralFallsBackToSingular() throws {
+        let service = try lemmaService()
+        XCTAssertEqual(service.lookup("books").first?.entries.first?.definition,
+                       "a written work")
+    }
+
+    func testGerundWithDoubledConsonantFallsBackToLemma() throws {
+        let service = try lemmaService()
+        XCTAssertEqual(service.lookup("running").first?.entries.first?.definition,
+                       "to move fast on foot")
+    }
+
+    func testIedFormFallsBackToYLemma() throws {
+        let service = try lemmaService()
+        XCTAssertEqual(service.lookup("carried").first?.entries.first?.definition,
+                       "to hold and move")
+    }
+
+    func testTrailingPunctuationIsStrippedForFallback() throws {
+        let service = try lemmaService()
+        XCTAssertEqual(service.lookup("moved,").first?.entries.first?.definition,
+                       "to change position")
+    }
+
+    func testExactMatchWinsOverLemma() throws {
+        let dict = try makeDictionary(
+            base: "en", bookname: "English",
+            pairs: [
+                Pair(headword: "move", definition: "the lemma"),
+                Pair(headword: "moved", definition: "the exact inflected form")
+            ]
+        )
+        let service = DictionaryService(dictionaries: [dict])
+        // Exact "moved" exists, so it must be returned, not the "move" lemma.
+        XCTAssertEqual(service.lookup("moved").first?.entries.first?.definition,
+                       "the exact inflected form")
+    }
+
+    func testUnknownWordStillReturnsEmptyAfterFallback() throws {
+        let service = try lemmaService()
+        XCTAssertTrue(service.lookup("zzzqqq").isEmpty)
+    }
+
     // MARK: - Robustness
 
     func testMalformedIfoMissingMagicThrows() throws {

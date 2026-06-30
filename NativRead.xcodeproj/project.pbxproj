@@ -34,6 +34,7 @@
 		47D8B5611FB9711A08D52DF0 /* CREDITS.md in Resources */ = {isa = PBXBuildFile; fileRef = C2195095484235C4D5E6C17C /* CREDITS.md */; };
 		4E0BF70B936008CF63834457 /* ReadingStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9BAFB06C935F798D2321867 /* ReadingStats.swift */; };
 		4E3E1ECF332B7682B757653B /* DefinitionFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3E9E223D0F023CF4908CCBE /* DefinitionFormatterTests.swift */; };
+		4F0DD6A6D78059366E2FE03C /* Lemmatizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27382C900EF2C29044FD9E36 /* Lemmatizer.swift */; };
 		5223A6A899666D32835A9DD8 /* wordnet.ifo in Resources */ = {isa = PBXBuildFile; fileRef = 9B269358AD37298B80E3902B /* wordnet.ifo */; };
 		5494CF75222226E4DB541911 /* ReadingStatsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FDC40D0551481B84CBF9E0D /* ReadingStatsTests.swift */; };
 		54F5C0DE4BACD61AFCBF439F /* enhu.dict.dz in Resources */ = {isa = PBXBuildFile; fileRef = 143522FBB6EF66F0F3D64C8E /* enhu.dict.dz */; };
@@ -128,6 +129,7 @@
 		1FDC40D0551481B84CBF9E0D /* ReadingStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadingStatsTests.swift; sourceTree = "<group>"; };
 		20CA89A7083CC7170A2D8A7C /* PaletteColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteColors.swift; sourceTree = "<group>"; };
 		272FD4C62C52D84DF5B3A482 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		27382C900EF2C29044FD9E36 /* Lemmatizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Lemmatizer.swift; sourceTree = "<group>"; };
 		291FDA090FAC395048F18931 /* AnkiPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnkiPackage.swift; sourceTree = "<group>"; };
 		2927E44EA07F7D43375AE335 /* enhu.idx */ = {isa = PBXFileReference; path = enhu.idx; sourceTree = "<group>"; };
 		29289F388239F2D54CF63058 /* enhu.ifo */ = {isa = PBXFileReference; path = enhu.ifo; sourceTree = "<group>"; };
@@ -280,6 +282,7 @@
 				5D69523F5D9CF07E236863CF /* Gunzip.swift */,
 				A80A3FEC46EE3C3E5D16A23C /* HighlightExport.swift */,
 				66D69E73702E7A6A47DAC579 /* HighlightingWebView.swift */,
+				27382C900EF2C29044FD9E36 /* Lemmatizer.swift */,
 				B6EB5922A24C5FAA1F2DB3B3 /* LibraryStore.swift */,
 				4162EB7E366B8A9451EB8916 /* LocalizationStore.swift */,
 				88C982DD6AF5BB044DD035A8 /* ReaderController.swift */,
@@ -654,6 +657,7 @@
 				FBE220C4137EBB5686481428 /* HighlightingWebView.swift in Sources */,
 				E652AB57E34670869112FA2E /* LanguageSelectionView.swift in Sources */,
 				2C11EFF41594565FEDD1A6C3 /* LaunchView.swift in Sources */,
+				4F0DD6A6D78059366E2FE03C /* Lemmatizer.swift in Sources */,
 				5BF8A4121A4A12C4E0D17D88 /* LibraryStore.swift in Sources */,
 				0D9248F7C5E6F544CCE64574 /* LibraryView.swift in Sources */,
 				0286697DC612D8D5409AE604 /* LoadingOverlay.swift in Sources */,
