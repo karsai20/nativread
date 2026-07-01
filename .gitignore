@@ -9,9 +9,14 @@ buildServer.json
 Signing.xcconfig
 
 # Claude / AI agent local files
-CLAUDE.md
+# CLAUDE.md is tracked so the team inherits the gstack requirement.
 CLAUDE.local.md
-.claude/
+# Ignore .claude/ contents by default, but track the gstack enforcement files.
+.claude/*
+!.claude/settings.json
+!.claude/hooks
+.claude/hooks/*
+!.claude/hooks/check-gstack.sh
 
 # Secrets & credentials
 *.xcconfig

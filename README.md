@@ -1,116 +1,116 @@
-# Quire
+<div align="center">
 
-Quire (formerly LumenRead): a fast, beautiful EPUB reader for
-iPhone, built to the standard of the best readers on the market
-(Apple Books, Kindle, Readest).
+<img src="NativRead/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png" width="120" alt="NativRead app icon" />
 
-| Library | Paper | Dusk | Typography |
-|---|---|---|---|
-| ![Library](docs/screenshots/library.png) | ![Paper](docs/screenshots/reader-paper.png) | ![Dusk](docs/screenshots/reader-dusk.png) | ![Panel](docs/screenshots/typography-panel.png) |
+# NativRead
 
-## What's new versus v1
+**A calm, editorial EPUB reader for iPhone — built to the standard of Apple Books and Kindle, with real page-level pagination, an in-app language switch, and a typeface you'll actually want to read in.**
 
-The old app paginated **per chapter** (one swipe = one whole chapter).
-The new reading engine paginates **per page** the way real readers do:
-chapters are laid out in viewport-wide CSS columns inside a WKWebView
-and a small JS engine (`window.lumen`) turns pages with
-compositor-friendly `translate3d` animations, reporting state back to
-Swift over a message bridge.
+![Platform](https://img.shields.io/badge/platform-iOS%2017%2B-1d3a2f?style=flat-square)
+![Swift](https://img.shields.io/badge/Swift-5.9-d6613c?style=flat-square)
+![UI](https://img.shields.io/badge/SwiftUI-%40Observable-1d3a2f?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-192%20passing-5a7d5a?style=flat-square)
+![Languages](https://img.shields.io/badge/languages-English%20%C2%B7%20Magyar-5a7d5a?style=flat-square)
 
-- **Page-level pagination** with tap zones (left/right edge), swipe,
-  and an animated page turn; seamless across chapter boundaries
-- **Whole-book progress** weighted by chapter size, with a scrubber to
-  jump anywhere in the book (`Book.bookFraction` / `Book.position`
-  are exact inverses, property-tested)
-- **Four reading themes** — Paper, Sepia, Dusk, Ink (true black) —
-  and the chrome adopts the page colour so the whole screen reads as
-  one sheet
-- **Typography control**: New York / Georgia / Palatino / Charter /
-  San Francisco, font size 13–26, line height, margins, justification
-- **Full-text search** across the whole book with snippets; tapping a
-  result jumps to the page and highlights the match
-- **Bookmarks** with automatic text snippets, listed next to the TOC
-- **TOC** from the EPUB 3 nav document with EPUB 2 NCX fallback and a
-  synthesised fallback for books that ship neither
-- **Library** with real cover extraction (EPUB 3 `cover-image`,
-  EPUB 2 `meta name="cover"`, heuristic fallback) and deterministic
-  generated covers for books without art
-- **Robust EPUB parsing**: container → OPF → manifest/spine/metadata,
-  percent-encoded hrefs, fragment hrefs, failed imports roll back
+</div>
 
-## Quire additions on top of LumenRead 2.0
+<div align="center">
 
-Feature choices driven by market research (Apple Books / Kindle /
-KyBook / Readest user feedback):
+| Library | Reader · Light | Reader · Dark |
+|:---:|:---:|:---:|
+| ![Library](docs/screenshots/library.png) | ![Reader Light](docs/screenshots/reader-light.png) | ![Reader Dark](docs/screenshots/reader-dark.png) |
+| **Appearance panel** | **Language onboarding** | **Localized (Magyar)** |
+| ![Appearance panel](docs/screenshots/appearance-panel.png) | ![Onboarding](docs/screenshots/onboarding-language.png) | ![Hungarian library](docs/screenshots/library-hu.png) |
 
-- **Eye comfort**: warm-light slider (amber shift on any theme, in
-  page and chrome alike), match-system-appearance mode with separate
-  light/dark theme slots, and an in-app brightness slider
-- **Reading flows**: paged (default) or continuous vertical scroll;
-  page-turn animation choice — slide, fade, or instant (e-ink style)
-- **Selection tools**: native text selection with the system edit menu
-  — Copy, Look Up (dictionary), Translate (Apple on-device) — plus a
-  custom **Highlight** action
-- **Persistent highlights** anchored by text + occurrence (survive
-  font, margin and flow changes), listed in the contents sheet next to
-  TOC and bookmarks
+</div>
+
+---
+
+## Highlights
+
+### 🌍 Read in your language
+Full **English** and **Magyar (Hungarian)** interface localization. The language is picked at first launch and applied everywhere — every `Text` follows your choice live, not just number and date formatting. A separate **dictionary (Define) language** lets the EN→HU dictionary back up Hungarian reading while the UI stays in whatever language you prefer.
+
+### 📖 Real page-level reading
+Chapters are laid out in viewport-wide CSS columns inside a `WKWebView`, and a small JS engine turns pages with compositor-friendly `translate3d` animations, reporting state back to Swift over a message bridge. Tap zones, swipe, an animated page turn, and seamless chapter boundaries — the way real readers work, not one-swipe-per-chapter.
+
+- **Whole-book progress** weighted by chapter size, with a scrubber to jump anywhere (`Book.bookFraction` / `Book.position` are exact inverses, property-tested)
+- **Reading flows**: paged (default) or continuous vertical scroll; page-turn animation choice — slide, fade, or instant (e-ink style)
+- **Full-text search** across the whole book with snippets; tap a result to jump and highlight the match
+- **Persistent highlights** anchored by text + occurrence (survive font, margin, and flow changes), plus bookmarks and TOC in one contents sheet
+
+### 🎨 An editorial design system
+- **Tabbed appearance panel** — Theme / Text / Layout, calm and uncrowded
+- **Four reading atmospheres** — Light, Sepia, Dusk, Dark (true black) — and the chrome adopts the page colour so the whole screen reads as one sheet
+- **Charter** serif body type with New York / Georgia / Palatino / San Francisco alternates; size 13–26, line height, margins, justification
+- **App-wide appearance** — Light / Dark / System, with separate light/dark reader theme slots
+- **Eye comfort** — warm-light slider (amber shift on any theme, page and chrome alike) and an in-app brightness slider
+
+### 📚 Robust EPUB handling
+Container → OPF → manifest/spine/metadata parsing with percent-encoded and fragment hrefs; EPUB 3 nav with EPUB 2 NCX fallback and a synthesised TOC for books with neither. Real cover extraction (EPUB 3 `cover-image`, EPUB 2 `meta name="cover"`, heuristic fallback) with deterministic generated covers for books without art. Failed imports roll back.
+
+---
 
 ## Architecture
 
 ```
-Quire/
-├── QuireApp.swift            — entry, launch-argument test hooks
-├── Models/                       — Book, ReadingProgress, Bookmark,
-│                                   ReaderSettings, themes (pure)
-├── EPUB/                         — EPUBParser + XML delegates (pure)
+NativRead/
+├── NativReadApp.swift          — entry point, launch-argument test hooks
+├── DesignSystem/               — BrandPalette, Spacing, Typography tokens (pure)
+├── Models/                     — Book, ReadingProgress, Bookmark,
+│                                 ReaderSettings, themes (pure value types)
+├── EPUB/                       — EPUBParser + XML delegates (pure)
 ├── Services/
-│   ├── LibraryStore.swift        — import/unzip/persist (@Observable)
-│   ├── SettingsStore.swift       — typography persistence
-│   ├── ReaderStyle.swift         — CSS generator (pure, tested)
-│   ├── ReaderScripts.swift       — JS pagination engine
-│   ├── ReaderController.swift    — WKWebView bridge
-│   └── SearchService.swift       — whole-book search (pure, tested)
+│   ├── LibraryStore.swift      — import / unzip / persist (@Observable)
+│   ├── SettingsStore.swift     — appearance & typography persistence
+│   ├── LocalizationStore.swift — app + dictionary language, persisted
+│   ├── BundleLanguage.swift    — main-bundle .lproj routing for live switch
+│   ├── DictionaryProvider.swift— bundled bilingual dictionaries (WordNet, EN→HU)
+│   ├── ReaderStyle.swift       — CSS generator (pure, tested)
+│   ├── ReaderScripts.swift     — JS pagination engine
+│   ├── ReaderController.swift  — WKWebView bridge
+│   └── SearchService.swift     — whole-book search (pure, tested)
 └── Views/
-    ├── Library/                  — shelf, covers, import
-    └── Reader/                   — reader, chrome, panels, sheets
+    ├── Onboarding/             — splash + language selection
+    ├── Library/                — shelf, covers, import
+    ├── Settings/               — appearance, language, dictionary
+    └── Reader/                 — reader, chrome, tabbed appearance panel
 ```
 
-## Setup
+The whole app is value-types-first: models and EPUB parsing are pure and unit-tested; stores are `@Observable`; side effects live behind a thin service layer.
+
+---
+
+## Getting started
 
 ```bash
 brew install xcodegen
-cd Quire
 xcodegen generate
-open Quire.xcodeproj   # Cmd+R on a simulator or device
+open NativRead.xcodeproj      # ⌘R on a simulator or device
 ```
 
-Dependency: ZIPFoundation (resolved by SPM on first build).
+Requires Xcode 16+ and iOS 17. Dependency: ZIPFoundation (resolved by SPM on first build).
 
 ## Testing
 
 ```bash
-xcodebuild -project Quire.xcodeproj -scheme Quire \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+xcodebuild test -project NativRead.xcodeproj -scheme NativRead \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- **46 unit tests**: EPUB 2/3 parsing, TOC (nav + NCX), cover
-  detection, error paths, progress math round-trips, settings
-  persistence and legacy-settings migration, CSS generation (paged +
-  scroll), warmth colour math, highlight locators, search
-- **9 UI tests** (`ReaderJourneyUITests`): seeded shelf, page turn +
-  progress restore, theme switching, flow/transition pickers, scroll
-  journey, selection highlighting + persistence, TOC navigation,
-  whole-book search, bookmarking
+- **173 unit tests** — EPUB 2/3 parsing, TOC (nav + NCX), cover detection, error paths, progress-math round-trips, settings persistence + migration, CSS generation (paged + scroll), warmth colour math, highlight locators, search, and the full localization layer (language defaults, persistence, locale/bundle resolution, dictionary mapping)
+- **19 UI tests** — language onboarding, splash skip, seeded shelf, page turn + progress restore, theme switching across the tabbed panel, flow/transition pickers, scroll journey, highlight persistence, TOC navigation, whole-book search, bookmarking, vocabulary
 
-Test hooks (launch arguments): `-resetLibrary`, `-resetSettings`,
-`-seedSampleBook`, `-autoOpenFirstBook`,
-`-forceTheme <paper|sepia|dusk|ink>`, `-forceFlow <paged|scroll>`,
-`-forceTransition <slide|fade|instant>`, `-showTypographyPanel`.
+**Launch-argument hooks** (UI tests + screenshot automation):
+`-resetLibrary`, `-resetSettings`, `-resetLanguage`, `-seedSampleBook`, `-seedProgress`,
+`-seedSampleVocabulary`, `-skipOnboarding`, `-forceOnboarding`, `-onboardingHold`,
+`-autoOpenFirstBook`, `-forceTheme <paper|sepia|dusk|ink>`, `-forceFlow <paged|scroll>`,
+`-forceTransition <slide|fade|instant>`, `-forceLanguage <en|hu>`,
+`-showTypographyPanel`, `-appearanceTab <theme|text|layout>`.
 
-The sample books are generated by `scripts/make_sample_epub.py`;
-the app icon by `swift scripts/make_icon.swift <out.png>`.
+Sample books are generated by `scripts/make_sample_epub.py`.
 
 ## Adding books
 
-- **Files app / Share sheet** — open any `.epub` with Quire
-- **In-app** — the + button on the shelf (multi-select supported)
+- **Files app / Share sheet** — open any `.epub` with NativRead
+- **In-app** — the **+** button on the shelf (multi-select supported)
