@@ -3,6 +3,17 @@
 All notable changes to NativRead are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.1] - 2026-06-30
+
+### Added
+- Open PDFs: import any PDF from Files and read it in a fixed-layout reader with tap-zone paging, a page scrubber, bookmarks, contents (PDF outline), full-document search, and Define on selected text.
+- Open plain-text files: import a `.txt` and read it in the same reflowable reader as EPUBs, with all themes, fonts, search, and Define.
+- Dark themes invert PDF pages while preserving image hues, so night reading stays comfortable without negative-looking photos.
+
+### Fixed
+- PDF reading position now saves when you turn pages by tapping, the scrubber, search, or the contents list — previously only manual swipes were remembered.
+- Password-protected or unreadable PDFs are now rejected on import with a clear error instead of being added as a blank, unopenable book.
+
 ## [3.0] - 2026-06-30
 
 ### Added

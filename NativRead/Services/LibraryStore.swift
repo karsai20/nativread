@@ -46,9 +46,77 @@ final class LibraryStore {
 
     // MARK: - Import
 
-    /// Copies the EPUB in, unpacks it, reads metadata and cover.
+    /// Imports any supported file, routing by extension: EPUB unpacks and
+    /// parses, PDF reads metadata + cover, TXT synthesizes a chapter.
     @discardableResult
     func importBook(from sourceURL: URL) throws -> Book {
+        switch sourceURL.pathExtension.lowercased() {
+        case "pdf": return try importPDF(from: sourceURL)
+        case "txt": return try importText(from: sourceURL)
+        default: return try importEPUB(from: sourceURL)
+        }
+    }
+
+    /// Copies the source file in (materializing iCloud placeholders) under
+    /// `<id>.<ext>` and returns the stored URL. Holds the security scope
+    /// only for the read; the reader works off our local copy afterward.
+    private func copyIn(from sourceURL: URL, id: UUID, ext: String) throws -> URL {
+        let needsScope = sourceURL.startAccessingSecurityScopedResource()
+        defer { if needsScope { sourceURL.stopAccessingSecurityScopedResource() } }
+        let storedURL = booksDirectory
+            .appendingPathComponent("\(id.uuidString).\(ext)")
+        try materializedCopy(from: sourceURL, to: storedURL)
+        return storedURL
+    }
+
+    /// Imports a PDF: copy in, read metadata + render a cover.
+    private func importPDF(from sourceURL: URL) throws -> Book {
+        let id = UUID()
+        let storedURL = try copyIn(from: sourceURL, id: id, ext: "pdf")
+        do {
+            let book = try PDFImporter.makeBook(
+                id: id,
+                storedURL: storedURL,
+                originalName: sourceURL.deletingPathExtension()
+                    .lastPathComponent,
+                coversDirectory: coversDirectory
+            )
+            books.insert(book, at: 0)
+            save()
+            return book
+        } catch {
+            try? fileManager.removeItem(at: storedURL)
+            throw error
+        }
+    }
+
+    /// Imports a plain-text file: copy in, synthesize a reflowable chapter.
+    private func importText(from sourceURL: URL) throws -> Book {
+        let id = UUID()
+        let storedURL = try copyIn(from: sourceURL, id: id, ext: "txt")
+        do {
+            let book = try TextImporter.makeBook(
+                id: id,
+                storedURL: storedURL,
+                extractedRoot: extractedDirectory
+                    .appendingPathComponent(id.uuidString),
+                originalName: sourceURL.deletingPathExtension()
+                    .lastPathComponent
+            )
+            books.insert(book, at: 0)
+            save()
+            return book
+        } catch {
+            try? fileManager.removeItem(at: storedURL)
+            try? fileManager.removeItem(
+                at: extractedDirectory.appendingPathComponent(id.uuidString)
+            )
+            throw error
+        }
+    }
+
+    /// Copies the EPUB in, unpacks it, reads metadata and cover.
+    private func importEPUB(from sourceURL: URL) throws -> Book {
         let id = UUID()
         let needsScope = sourceURL.startAccessingSecurityScopedResource()
         defer { if needsScope { sourceURL.stopAccessingSecurityScopedResource() } }
@@ -262,7 +330,12 @@ final class LibraryStore {
     }
 
     func parsedEPUB(for book: Book) throws -> ParsedEPUB {
-        try EPUBParser.parse(extractedRoot: extractedRoot(for: book))
+        if book.format == .txt {
+            return TextImporter.parsed(
+                extractedRoot: extractedRoot(for: book), title: book.title
+            )
+        }
+        return try EPUBParser.parse(extractedRoot: extractedRoot(for: book))
     }
 
     // MARK: - Persistence

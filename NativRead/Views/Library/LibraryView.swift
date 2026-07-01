@@ -64,20 +64,34 @@ struct LibraryView: View {
         .fileImporter(
             isPresented: $isImporterPresented,
             allowedContentTypes: [
-                UTType(filenameExtension: "epub") ?? .data
+                UTType(filenameExtension: "epub") ?? .data,
+                .pdf,
+                .plainText
             ],
             allowsMultipleSelection: true
         ) { result in
             handleImport(result)
         }
         .fullScreenCover(item: $openBook) { book in
-            ReaderView(
-                book: book,
-                library: library,
-                settingsStore: settingsStore,
-                statsStore: statsStore,
-                initialSystemDark: colorScheme == .dark
-            )
+            // PDF is fixed-layout and needs the PDFKit reader; EPUB and the
+            // synthesized-XHTML TXT share the reflowable web reader.
+            if book.format == .pdf {
+                PDFReaderView(
+                    book: book,
+                    library: library,
+                    settingsStore: settingsStore,
+                    statsStore: statsStore,
+                    initialSystemDark: colorScheme == .dark
+                )
+            } else {
+                ReaderView(
+                    book: book,
+                    library: library,
+                    settingsStore: settingsStore,
+                    statsStore: statsStore,
+                    initialSystemDark: colorScheme == .dark
+                )
+            }
         }
         .sheet(isPresented: $isStatsPresented) {
             StatsView()
@@ -426,7 +440,7 @@ struct LibraryView: View {
                 Text("Your shelf is empty")
                     .font(Typography.display(28))
                     .foregroundStyle(palette.text)
-                Text("Add an EPUB from Files and start reading.")
+                Text("Add an EPUB, PDF, or text file and start reading.")
                     .font(Typography.meta(14))
                     .foregroundStyle(palette.secondaryText)
             }
