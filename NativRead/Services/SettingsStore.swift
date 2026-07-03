@@ -16,12 +16,14 @@ final class SettingsStore {
     /// Whole-app Light/Dark/System preference (chrome, library, onboarding).
     private(set) var appAppearance: AppAppearance
     private(set) var translationBackendURLString: String
+    private(set) var translationUserID: String
 
     private let defaults: UserDefaults
     private static let key = "lumenread.readerSettings.v2"
     private static let onboardingSeenKey = "quire.onboarding.v1.seen"
     private static let appearanceKey = "nativread.appAppearance.v1"
     private static let translationBackendURLKey = "nativread.translationBackendURL.v1"
+    private static let translationUserIDKey = "nativread.translationUserID.v1"
     private static let defaultTranslationBackendURLKey = "NativReadDefaultTranslationBackendURL"
     private static var bundledTranslationBackendURLString: String {
         let value = Bundle.main.object(
@@ -52,6 +54,15 @@ final class SettingsStore {
         translationBackendURLString = defaults.string(
             forKey: Self.translationBackendURLKey
         ) ?? bundledBackendURL
+        if let existingUserID = defaults.string(
+            forKey: Self.translationUserIDKey
+        ), !existingUserID.isEmpty {
+            translationUserID = existingUserID
+        } else {
+            let newUserID = UUID().uuidString
+            translationUserID = newUserID
+            defaults.set(newUserID, forKey: Self.translationUserIDKey)
+        }
     }
 
     /// Sets and persists the app-wide appearance preference.
@@ -109,5 +120,6 @@ final class SettingsStore {
         defaults.removeObject(forKey: onboardingSeenKey)
         defaults.removeObject(forKey: appearanceKey)
         defaults.removeObject(forKey: translationBackendURLKey)
+        defaults.removeObject(forKey: translationUserIDKey)
     }
 }

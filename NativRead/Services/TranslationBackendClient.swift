@@ -53,11 +53,12 @@ struct TranslationBackendClient: Sendable {
     }
 
     var baseURL: URL
+    var userID: String? = nil
     var session: URLSession = .shared
 
     func upload(epubURL: URL) async throws -> UploadResponse {
         let boundary = "nativread-\(UUID().uuidString)"
-        var request = URLRequest(url: endpoint("api/upload"))
+        var request = makeRequest(path: "api/upload")
         request.httpMethod = "POST"
         request.setValue(
             "multipart/form-data; boundary=\(boundary)",
@@ -77,7 +78,7 @@ struct TranslationBackendClient: Sendable {
     }
 
     func start(jobID: String, sample: Bool) async throws {
-        var request = URLRequest(url: endpoint("api/translate"))
+        var request = makeRequest(path: "api/translate")
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(
@@ -95,7 +96,9 @@ struct TranslationBackendClient: Sendable {
         guard let url = components?.url else {
             throw ClientError.invalidBackendURL
         }
-        let (data, response) = try await session.data(from: url)
+        let (data, response) = try await session.data(
+            for: makeRequest(url: url)
+        )
         return try decode(StatusResponse.self, from: data, response: response)
     }
 
@@ -134,7 +137,9 @@ struct TranslationBackendClient: Sendable {
         guard let url = components?.url else {
             throw ClientError.invalidBackendURL
         }
-        let (data, response) = try await session.data(from: url)
+        let (data, response) = try await session.data(
+            for: makeRequest(url: url)
+        )
         try validate(response: response, data: data)
         return data
     }
@@ -143,6 +148,18 @@ struct TranslationBackendClient: Sendable {
         path.split(separator: "/").reduce(baseURL) { partialURL, component in
             partialURL.appendingPathComponent(String(component))
         }
+    }
+
+    private func makeRequest(path: String) -> URLRequest {
+        makeRequest(url: endpoint(path))
+    }
+
+    private func makeRequest(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        if let userID, !userID.isEmpty {
+            request.setValue(userID, forHTTPHeaderField: "x-nativread-user-id")
+        }
+        return request
     }
 
     private func decode<T: Decodable>(

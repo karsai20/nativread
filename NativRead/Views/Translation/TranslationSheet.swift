@@ -297,7 +297,10 @@ struct TranslationSheet: View {
 
         isRequestingTranslation = true
         let sourceURL = library.storedFileURL(for: book)
-        let client = TranslationBackendClient(baseURL: backendURL)
+        let client = TranslationBackendClient(
+            baseURL: backendURL,
+            userID: settings.translationUserID
+        )
         translations.markBackendUploadStarted(for: book, kind: kind)
 
         Task {

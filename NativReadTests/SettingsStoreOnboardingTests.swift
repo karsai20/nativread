@@ -100,4 +100,23 @@ final class SettingsStoreOnboardingTests: XCTestCase {
             "http://127.0.0.1:48218"
         )
     }
+
+    func testTranslationUserIDPersistsAcrossInstances() {
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertFalse(store.translationUserID.isEmpty)
+
+        let reloaded = SettingsStore(defaults: defaults)
+        XCTAssertEqual(reloaded.translationUserID, store.translationUserID)
+    }
+
+    func testResetPersistedClearsTranslationUserID() {
+        let store = SettingsStore(defaults: defaults)
+        let originalUserID = store.translationUserID
+
+        SettingsStore.resetPersisted(in: defaults)
+
+        let reloaded = SettingsStore(defaults: defaults)
+        XCTAssertFalse(reloaded.translationUserID.isEmpty)
+        XCTAssertNotEqual(reloaded.translationUserID, originalUserID)
+    }
 }
