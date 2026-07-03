@@ -198,6 +198,14 @@ struct LibraryView: View {
                             "library.book.\(book.title)"
                         )
                         .contextMenu {
+                            if book.canExportTranslatedEPUB {
+                                ShareLink(item: library.storedFileURL(for: book)) {
+                                    Label(
+                                        "Export translated EPUB",
+                                        systemImage: "square.and.arrow.up"
+                                    )
+                                }
+                            }
                             if book.isTranslatableSource {
                                 Button {
                                     translationBook = book

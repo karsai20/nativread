@@ -168,6 +168,10 @@ sync to USER's cloud (iCloud/CloudKit)
    "translate the rest — $X" with tier + price before buying. No credit balance.
 6. **User-cloud sync.** Apple: **iCloud via CloudKit private DB** (durable copy in
    the user's own cloud) — Phase 1b. Google Drive (`drive.file`) — Phase 2.
+   Kindle is export-only: expose the translated EPUB through the iOS share sheet
+   so users can send it to Files, Mail, or Send to Kindle. Do **not** promise
+   Kindle reading-position/highlight sync; there is no reliable public Kindle API
+   for third-party Whispersync-style writes.
 7. **Account deletion + data export UI (legal #5)** + a **lost-entitlement
    recovery/support path** (outside-voice #11).
 8. **AI-provider disclosure (legal #4)** pre-first-translation (names the chosen

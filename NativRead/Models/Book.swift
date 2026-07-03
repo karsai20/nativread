@@ -187,6 +187,11 @@ struct Book: Codable, Equatable, Identifiable {
     }
 
     var isTranslationPreview: Bool { variant == .translationPreview }
+    var isTranslatedCopy: Bool { variant != .original }
+    var canExportTranslatedEPUB: Bool {
+        format == .epub && isTranslatedCopy
+    }
+
     var isTranslatableSource: Bool {
         format == .epub && variant == .original
     }
