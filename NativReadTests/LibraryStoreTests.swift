@@ -71,6 +71,24 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(persisted?.translatedFraction, 0.01)
     }
 
+    func testImportFullTranslationMarksSeparateVariant() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+
+        let translated = try store.importFullTranslation(
+            from: epubURL,
+            originalBook: original
+        )
+
+        XCTAssertEqual(store.books.count, 2)
+        XCTAssertEqual(translated.title, "Imported Title (Hungarian)")
+        XCTAssertEqual(translated.variant, .fullTranslation)
+        XCTAssertEqual(translated.sourceBookID, original.id)
+        XCTAssertEqual(translated.translatedFraction, 1)
+        XCTAssertFalse(translated.isTranslatableSource)
+        XCTAssertEqual(translated.variant.badgeText, "HU")
+    }
+
     func testLibraryPersistsAcrossInstances() throws {
         let book = try makeStore().importBook(from: epubURL)
 

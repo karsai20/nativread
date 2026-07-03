@@ -72,6 +72,20 @@ final class LibraryStore {
         )
     }
 
+    @discardableResult
+    func importFullTranslation(
+        from sourceURL: URL,
+        originalBook: Book
+    ) throws -> Book {
+        try importEPUB(
+            from: sourceURL,
+            titleOverride: "\(originalBook.title) (Hungarian)",
+            variant: .fullTranslation,
+            sourceBookID: originalBook.id,
+            translatedFraction: 1
+        )
+    }
+
     /// Copies the source file in (materializing iCloud placeholders) under
     /// `<id>.<ext>` and returns the stored URL. Holds the security scope
     /// only for the read; the reader works off our local copy afterward.

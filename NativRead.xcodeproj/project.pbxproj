@@ -17,6 +17,7 @@
 		0B25C9AB15F0438BBF084D11 /* TranslationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B25C9AF15F0438BBF084D11 /* TranslationStore.swift */; };
 		0B25C9AC15F0438BBF084D11 /* TranslationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B25C9B015F0438BBF084D11 /* TranslationSheet.swift */; };
 		0B25C9AD15F0438BBF084D11 /* TranslationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B25C9B115F0438BBF084D11 /* TranslationStoreTests.swift */; };
+		0B25C9B515F0438BBF084D11 /* TranslationBookPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B25C9B415F0438BBF084D11 /* TranslationBookPickerSheet.swift */; };
 		0B26A00115F0438BBF084D11 /* TranslationBackendClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B25C9B315F0438BBF084D11 /* TranslationBackendClient.swift */; };
 		0D9248F7C5E6F544CCE64574 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7605BEA0A25C671DB4F3A74E /* LibraryView.swift */; };
 		11074FA01D08AF5038A3E921 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E14E413519C6AB9EC89C454 /* Typography.swift */; };
@@ -144,6 +145,7 @@
 		0B25C9B015F0438BBF084D11 /* TranslationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationSheet.swift; sourceTree = "<group>"; };
 		0B25C9B115F0438BBF084D11 /* TranslationStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationStoreTests.swift; sourceTree = "<group>"; };
 		0B25C9B315F0438BBF084D11 /* TranslationBackendClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationBackendClient.swift; sourceTree = "<group>"; };
+		0B25C9B415F0438BBF084D11 /* TranslationBookPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationBookPickerSheet.swift; sourceTree = "<group>"; };
 		143522FBB6EF66F0F3D64C8E /* enhu.dict.dz */ = {isa = PBXFileReference; lastKnownFileType = file; path = enhu.dict.dz; sourceTree = "<group>"; };
 		15EB5EB5513AC70D6D089C64 /* wordnet.dict.dz */ = {isa = PBXFileReference; lastKnownFileType = file; path = wordnet.dict.dz; sourceTree = "<group>"; };
 		16E4806127686D7C601EA8ED /* DictionaryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryService.swift; sourceTree = "<group>"; };
@@ -358,6 +360,7 @@
 		0B25C9B215F0438BBF084D11 /* Translation */ = {
 			isa = PBXGroup;
 			children = (
+				0B25C9B415F0438BBF084D11 /* TranslationBookPickerSheet.swift */,
 				0B25C9B015F0438BBF084D11 /* TranslationSheet.swift */,
 			);
 			path = Translation;
@@ -758,6 +761,7 @@
 				1D07247999889A8B98D99B27 /* StatsView.swift in Sources */,
 				2AEF6D1E8108356C5477D4CE /* TextImporter.swift in Sources */,
 				0B26A00115F0438BBF084D11 /* TranslationBackendClient.swift in Sources */,
+				0B25C9B515F0438BBF084D11 /* TranslationBookPickerSheet.swift in Sources */,
 				0B25C9AA15F0438BBF084D11 /* TranslationJob.swift in Sources */,
 				0B25C9AC15F0438BBF084D11 /* TranslationSheet.swift in Sources */,
 				0B25C9AB15F0438BBF084D11 /* TranslationStore.swift in Sources */,

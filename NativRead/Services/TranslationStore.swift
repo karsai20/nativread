@@ -63,23 +63,32 @@ final class TranslationStore {
         }
     }
 
-    func markBackendUploadStarted(for book: Book) {
+    func markBackendUploadStarted(
+        for book: Book,
+        kind: TranslationRequestKind = .preview
+    ) {
         var job = self.job(for: book)
         if job.attestedAt == nil {
             job.attestedAt = .now
         }
         job.bookTitle = book.title
         job.phase = .uploading
+        job.activeRequestKind = kind
         job.errorMessage = nil
         job.updatedAt = .now
         upsert(job)
     }
 
-    func markBackendTranslationStarted(for book: Book, backendJobID: String) {
+    func markBackendTranslationStarted(
+        for book: Book,
+        backendJobID: String,
+        kind: TranslationRequestKind = .preview
+    ) {
         var job = self.job(for: book)
         job.bookTitle = book.title
         job.phase = .translating
         job.backendJobID = backendJobID
+        job.activeRequestKind = kind
         job.translatedChunks = nil
         job.totalChunks = nil
         job.errorMessage = nil
@@ -101,19 +110,36 @@ final class TranslationStore {
         upsert(job)
     }
 
-    func markBackendImportStarted(for book: Book) {
+    func markBackendImportStarted(
+        for book: Book,
+        kind: TranslationRequestKind? = nil
+    ) {
         var job = self.job(for: book)
         job.bookTitle = book.title
         job.phase = .importingResult
+        if let kind {
+            job.activeRequestKind = kind
+        }
         job.errorMessage = nil
         job.updatedAt = .now
         upsert(job)
     }
 
-    func markBackendFinished(for book: Book) {
+    func markBackendFinished(
+        for book: Book,
+        kind: TranslationRequestKind? = nil
+    ) {
         var job = self.job(for: book)
+        let completedKind = kind ?? job.activeRequestKind ?? .preview
         job.bookTitle = book.title
         job.phase = .finished
+        switch completedKind {
+        case .preview:
+            job.previewCompletedAt = .now
+        case .full:
+            job.fullCompletedAt = .now
+        }
+        job.activeRequestKind = nil
         job.translatedChunks = nil
         job.totalChunks = nil
         job.errorMessage = nil
@@ -126,6 +152,7 @@ final class TranslationStore {
         job.bookTitle = book.title
         job.phase = .failed
         job.errorMessage = message
+        job.activeRequestKind = nil
         job.translatedChunks = nil
         job.totalChunks = nil
         job.updatedAt = .now
@@ -165,7 +192,15 @@ final class TranslationStore {
                   [TranslationJob].self, from: data
               )
         else { return }
-        jobs = decoded
+        jobs = decoded.map { job in
+            guard job.phase == .finished,
+                  job.previewCompletedAt == nil,
+                  job.fullCompletedAt == nil
+            else { return job }
+            var migrated = job
+            migrated.previewCompletedAt = job.updatedAt
+            return migrated
+        }
     }
 
     private func save() {

@@ -67,12 +67,14 @@ final class TranslationStoreTests: XCTestCase {
         store.markBackendUploadStarted(for: book)
         store.markBackendTranslationStarted(
             for: book,
-            backendJobID: "job-123"
+            backendJobID: "job-123",
+            kind: .full
         )
 
         var reloaded = TranslationStore(rootDirectory: root).job(for: book)
         XCTAssertEqual(reloaded.phase, .translating)
         XCTAssertEqual(reloaded.backendJobID, "job-123")
+        XCTAssertEqual(reloaded.activeRequestKind, .full)
         XCTAssertNil(reloaded.errorMessage)
 
         store.markBackendFailed(for: book, message: "Backend failed.")
@@ -109,7 +111,30 @@ final class TranslationStoreTests: XCTestCase {
 
         store.markBackendFinished(for: book)
         reloaded = TranslationStore(rootDirectory: root).job(for: book)
+        XCTAssertNotNil(reloaded.previewCompletedAt)
         XCTAssertNil(reloaded.translatedChunks)
         XCTAssertNil(reloaded.totalChunks)
+    }
+
+    func testFullCompletionPersistsSeparatelyFromPreview() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let book = Book(
+            title: "Book",
+            author: "A",
+            fileName: "book.epub",
+            spineWeights: [1_800]
+        )
+
+        let store = TranslationStore(rootDirectory: root)
+        store.markBackendUploadStarted(for: book, kind: .full)
+        store.markBackendFinished(for: book, kind: .full)
+
+        let reloaded = TranslationStore(rootDirectory: root).job(for: book)
+        XCTAssertNil(reloaded.previewCompletedAt)
+        XCTAssertNotNil(reloaded.fullCompletedAt)
+        XCTAssertNil(reloaded.activeRequestKind)
     }
 }

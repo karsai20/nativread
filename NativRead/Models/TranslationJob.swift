@@ -22,6 +22,11 @@ enum TranslationJobPhase: String, Codable, Equatable {
     case waitingForBackend
 }
 
+enum TranslationRequestKind: String, Codable, Equatable {
+    case preview
+    case full
+}
+
 enum TranslationPriceTier: String, Codable, CaseIterable, Equatable {
     case under100
     case pages100To199
@@ -75,6 +80,9 @@ struct TranslationJob: Codable, Equatable, Identifiable {
     var estimatedPages: Int
     var priceTier: TranslationPriceTier
     var backendJobID: String?
+    var activeRequestKind: TranslationRequestKind?
+    var previewCompletedAt: Date?
+    var fullCompletedAt: Date?
     var translatedChunks: Int?
     var totalChunks: Int?
     var errorMessage: String?
@@ -89,6 +97,9 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         estimatedPages: Int,
         priceTier: TranslationPriceTier,
         backendJobID: String? = nil,
+        activeRequestKind: TranslationRequestKind? = nil,
+        previewCompletedAt: Date? = nil,
+        fullCompletedAt: Date? = nil,
         translatedChunks: Int? = nil,
         totalChunks: Int? = nil,
         errorMessage: String? = nil,
@@ -102,6 +113,9 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         self.estimatedPages = estimatedPages
         self.priceTier = priceTier
         self.backendJobID = backendJobID
+        self.activeRequestKind = activeRequestKind
+        self.previewCompletedAt = previewCompletedAt
+        self.fullCompletedAt = fullCompletedAt
         self.translatedChunks = translatedChunks
         self.totalChunks = totalChunks
         self.errorMessage = errorMessage

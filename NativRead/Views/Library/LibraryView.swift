@@ -18,6 +18,8 @@ struct LibraryView: View {
     @State private var isVocabularyPresented = false
     @State private var isSettingsPresented = false
     @State private var isImporting = false
+    @State private var isTranslationPickerPresented = false
+    @State private var pendingTranslationBook: Book?
     @State private var translationBook: Book?
 
     /// The shelf now carries its own editorial identity rather than morphing
@@ -115,6 +117,24 @@ struct LibraryView: View {
         .sheet(item: $translationBook) { book in
             TranslationSheet(book: book)
                 .environment(translationStore)
+        }
+        .sheet(
+            isPresented: $isTranslationPickerPresented,
+            onDismiss: {
+                if let book = pendingTranslationBook {
+                    pendingTranslationBook = nil
+                    translationBook = book
+                }
+            }
+        ) {
+            TranslationBookPickerSheet(
+                books: sortedBooks.filter(\.isTranslatableSource),
+                coverURL: { library.coverURL(for: $0) },
+                onSelect: { book in
+                    pendingTranslationBook = book
+                    isTranslationPickerPresented = false
+                }
+            )
         }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsView()
@@ -409,7 +429,7 @@ struct LibraryView: View {
                 systemImage: "sparkles",
                 accessibilityIdentifier: "library.translate"
             ) {
-                translationBook = translationCandidate
+                isTranslationPickerPresented = true
             }
             .disabled(translationCandidate == nil)
 

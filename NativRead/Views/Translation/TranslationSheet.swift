@@ -1,9 +1,9 @@
 import SwiftUI
 
+private let freePreviewFraction = 0.01
+
 struct TranslationSheet: View {
     let book: Book
-
-    private static let freePreviewFraction = 0.01
 
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settings
@@ -12,7 +12,7 @@ struct TranslationSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var ownsBook = false
-    @State private var isRequestingPreview = false
+    @State private var isRequestingTranslation = false
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -124,7 +124,7 @@ struct TranslationSheet: View {
             phaseMessage
 
             Button {
-                requestFreeChapter()
+                requestTranslation(kind: .preview)
             } label: {
                 Label(freePreviewButtonTitle, systemImage: "sparkles")
                     .font(.system(size: 15, weight: .semibold))
@@ -134,7 +134,7 @@ struct TranslationSheet: View {
             .tint(palette.accent)
             .disabled(
                 !ownsBook
-                    || isRequestingPreview
+                    || isRequestingTranslation
                     || job.isBackendActive
                     || job.hasFreePreview
                     || !book.isTranslatableSource
@@ -178,15 +178,21 @@ struct TranslationSheet: View {
         case .translating:
             progressMessage(
                 job.progressText.map {
-                    "Translating preview on the backend... \($0)"
-                } ?? "Translating preview on the backend..."
+                    "\(job.activeProgressMessage)... \($0)"
+                } ?? "\(job.activeProgressMessage)..."
             )
         case .importingResult:
-            progressMessage("Importing translated EPUB...")
+            progressMessage("Importing \(job.activeResultName)...")
         case .finished:
-            Label("Hungarian preview was added as a separate library book.", systemImage: "checkmark.circle")
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
+            if job.hasFullTranslation {
+                Label("Full Hungarian translation was added as a separate library book.", systemImage: "checkmark.circle")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+            } else {
+                Label("Hungarian preview was added as a separate library book.", systemImage: "checkmark.circle")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+            }
         case .failed:
             Label(job.errorMessage ?? "Translation failed.", systemImage: "exclamationmark.triangle")
                 .font(Typography.meta())
@@ -223,11 +229,33 @@ struct TranslationSheet: View {
                     .foregroundStyle(palette.accent)
             }
 
-            Text("StoreKit purchase and server-side entitlement verification are intentionally not stubbed in this build.")
+            Button {
+                requestTranslation(kind: .full)
+            } label: {
+                Label(fullBookButtonTitle, systemImage: "book.closed")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(palette.accent)
+            .disabled(
+                !ownsBook
+                    || isRequestingTranslation
+                    || job.isBackendActive
+                    || job.hasFullTranslation
+                    || !book.isTranslatableSource
+            )
+            .accessibilityIdentifier("translation.fullBook")
+
+            Text("Payment and entitlement checks are still planned; this MVP runs the full-book backend path directly.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
                 .padding(.top, Spacing.xs)
         }
+    }
+
+    private var fullBookButtonTitle: String {
+        job.hasFullTranslation ? "Full translation already added" : "Translate whole book"
     }
 
     private func sectionLabel(_ text: String) -> some View {
@@ -243,8 +271,9 @@ struct TranslationSheet: View {
         }
     }
 
-    private func requestFreeChapter() {
-        guard !job.hasFreePreview else { return }
+    private func requestTranslation(kind: TranslationRequestKind) {
+        guard kind == .full || !job.hasFreePreview else { return }
+        guard kind == .preview || !job.hasFullTranslation else { return }
         if !ownsBook {
             ownsBook = true
             translations.recordAttestation(for: book)
@@ -266,20 +295,26 @@ struct TranslationSheet: View {
             return
         }
 
-        isRequestingPreview = true
+        isRequestingTranslation = true
         let sourceURL = library.storedFileURL(for: book)
         let client = TranslationBackendClient(baseURL: backendURL)
-        translations.markBackendUploadStarted(for: book)
+        translations.markBackendUploadStarted(for: book, kind: kind)
 
         Task {
             do {
                 let upload = try await client.upload(epubURL: sourceURL)
-                if upload.alreadyTranslated != true {
+                let shouldStartTranslation =
+                    kind == .full || upload.alreadyTranslated != true
+                if shouldStartTranslation {
                     translations.markBackendTranslationStarted(
                         for: book,
-                        backendJobID: upload.id
+                        backendJobID: upload.id,
+                        kind: kind
                     )
-                    try await client.start(jobID: upload.id, sample: true)
+                    try await client.start(
+                        jobID: upload.id,
+                        sample: kind == .preview
+                    )
                     _ = try await client.waitUntilDone(jobID: upload.id) {
                         status in
                         await MainActor.run {
@@ -291,7 +326,7 @@ struct TranslationSheet: View {
                         }
                     }
                 }
-                translations.markBackendImportStarted(for: book)
+                translations.markBackendImportStarted(for: book, kind: kind)
                 let output = try await client.downloadResult(jobID: upload.id)
                 let importedURL = try writeTemporaryTranslatedEPUB(
                     output,
@@ -299,20 +334,28 @@ struct TranslationSheet: View {
                 )
                 let library = library
                 _ = try await Task.detached(priority: .userInitiated) {
-                    try library.importTranslationPreview(
-                        from: importedURL,
-                        originalBook: book,
-                        translatedFraction: Self.freePreviewFraction
-                    )
+                    switch kind {
+                    case .preview:
+                        try library.importTranslationPreview(
+                            from: importedURL,
+                            originalBook: book,
+                            translatedFraction: freePreviewFraction
+                        )
+                    case .full:
+                        try library.importFullTranslation(
+                            from: importedURL,
+                            originalBook: book
+                        )
+                    }
                 }.value
-                translations.markBackendFinished(for: book)
+                translations.markBackendFinished(for: book, kind: kind)
             } catch {
                 translations.markBackendFailed(
                     for: book,
                     message: error.localizedDescription
                 )
             }
-            isRequestingPreview = false
+            isRequestingTranslation = false
         }
     }
 
@@ -332,7 +375,29 @@ struct TranslationSheet: View {
 
 private extension TranslationJob {
     var hasFreePreview: Bool {
-        phase == .finished
+        previewCompletedAt != nil
+    }
+
+    var hasFullTranslation: Bool {
+        fullCompletedAt != nil
+    }
+
+    var activeProgressMessage: String {
+        switch activeRequestKind {
+        case .full:
+            return "Translating whole book on the backend"
+        case .preview, nil:
+            return "Translating preview on the backend"
+        }
+    }
+
+    var activeResultName: String {
+        switch activeRequestKind {
+        case .full:
+            return "full translation"
+        case .preview, nil:
+            return "preview"
+        }
     }
 
     var isBackendActive: Bool {
