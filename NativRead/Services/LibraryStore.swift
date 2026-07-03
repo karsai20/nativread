@@ -57,6 +57,21 @@ final class LibraryStore {
         }
     }
 
+    @discardableResult
+    func importTranslationPreview(
+        from sourceURL: URL,
+        originalBook: Book,
+        translatedFraction: Double
+    ) throws -> Book {
+        try importEPUB(
+            from: sourceURL,
+            titleOverride: "\(originalBook.title) (Hungarian preview)",
+            variant: .translationPreview,
+            sourceBookID: originalBook.id,
+            translatedFraction: translatedFraction
+        )
+    }
+
     /// Copies the source file in (materializing iCloud placeholders) under
     /// `<id>.<ext>` and returns the stored URL. Holds the security scope
     /// only for the read; the reader works off our local copy afterward.
@@ -116,7 +131,13 @@ final class LibraryStore {
     }
 
     /// Copies the EPUB in, unpacks it, reads metadata and cover.
-    private func importEPUB(from sourceURL: URL) throws -> Book {
+    private func importEPUB(
+        from sourceURL: URL,
+        titleOverride: String? = nil,
+        variant: BookVariant = .original,
+        sourceBookID: UUID? = nil,
+        translatedFraction: Double? = nil
+    ) throws -> Book {
         let id = UUID()
         let needsScope = sourceURL.startAccessingSecurityScopedResource()
         defer { if needsScope { sourceURL.stopAccessingSecurityScopedResource() } }
@@ -154,11 +175,14 @@ final class LibraryStore {
 
             let book = Book(
                 id: id,
-                title: parsed.title,
+                title: titleOverride ?? parsed.title,
                 author: parsed.author,
                 fileName: storedURL.lastPathComponent,
                 coverFileName: coverFileName,
-                spineWeights: parsed.spineWeights
+                spineWeights: parsed.spineWeights,
+                variant: variant,
+                sourceBookID: sourceBookID,
+                translatedFraction: translatedFraction
             )
             books.insert(book, at: 0)
             save()

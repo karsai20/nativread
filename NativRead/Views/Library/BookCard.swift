@@ -25,6 +25,7 @@ struct BookCard: View {
                     color: .black.opacity(0.18), radius: 10, x: 0, y: 6
                 )
                 .overlay(alignment: .bottom) { progressBar }
+                .overlay(alignment: .topLeading) { variantBadge }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(book.title)
@@ -89,6 +90,19 @@ struct BookCard: View {
             .background(Capsule().fill(.black.opacity(0.55)))
             .padding(6)
             .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+    }
+
+    @ViewBuilder
+    private var variantBadge: some View {
+        if let badge = book.variant.badgeText {
+            Text(badge)
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(.black.opacity(0.68)))
+                .padding(6)
         }
     }
 }

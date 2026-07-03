@@ -3,6 +3,8 @@ import SwiftUI
 struct TranslationSheet: View {
     let book: Book
 
+    private static let freePreviewFraction = 0.01
+
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settings
     @Environment(TranslationStore.self) private var translations
@@ -117,33 +119,43 @@ struct TranslationSheet: View {
 
     private var freeChapterSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("First Chapter")
+            sectionLabel("Free Preview")
 
             phaseMessage
 
             Button {
                 requestFreeChapter()
             } label: {
-                Label("Translate first chapter", systemImage: "sparkles")
+                Label(freePreviewButtonTitle, systemImage: "sparkles")
                     .font(.system(size: 15, weight: .semibold))
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(palette.accent)
-            .disabled(!ownsBook || isRequestingPreview || job.isBackendActive)
+            .disabled(
+                !ownsBook
+                    || isRequestingPreview
+                    || job.isBackendActive
+                    || job.hasFreePreview
+                    || !book.isTranslatableSource
+            )
             .accessibilityIdentifier("translation.freeChapter")
         }
+    }
+
+    private var freePreviewButtonTitle: String {
+        job.hasFreePreview ? "Preview already added" : "Translate free preview"
     }
 
     @ViewBuilder
     private var phaseMessage: some View {
         switch job.phase {
         case .draft:
-            Text("Confirm ownership to unlock the free first-chapter request.")
+            Text("Confirm ownership to unlock a one-time free preview. It translates only the opening, up to about 1% of the book, and imports a separate preview copy.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
         case .attested:
-            Text("Ready to request the free first chapter.")
+            Text("Ready to request a one-time preview. The rest of the EPUB stays in the original language.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
         case .previewQueued:
@@ -172,7 +184,7 @@ struct TranslationSheet: View {
         case .importingResult:
             progressMessage("Importing translated EPUB...")
         case .finished:
-            Label("Translated preview was added to your library.", systemImage: "checkmark.circle")
+            Label("Hungarian preview was added as a separate library book.", systemImage: "checkmark.circle")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
         case .failed:
@@ -232,6 +244,7 @@ struct TranslationSheet: View {
     }
 
     private func requestFreeChapter() {
+        guard !job.hasFreePreview else { return }
         if !ownsBook {
             ownsBook = true
             translations.recordAttestation(for: book)
@@ -286,7 +299,11 @@ struct TranslationSheet: View {
                 )
                 let library = library
                 _ = try await Task.detached(priority: .userInitiated) {
-                    try library.importBook(from: importedURL)
+                    try library.importTranslationPreview(
+                        from: importedURL,
+                        originalBook: book,
+                        translatedFraction: Self.freePreviewFraction
+                    )
                 }.value
                 translations.markBackendFinished(for: book)
             } catch {
@@ -314,6 +331,10 @@ struct TranslationSheet: View {
 }
 
 private extension TranslationJob {
+    var hasFreePreview: Bool {
+        phase == .finished
+    }
+
     var isBackendActive: Bool {
         switch phase {
         case .uploading, .translating, .importingResult, .previewQueued:

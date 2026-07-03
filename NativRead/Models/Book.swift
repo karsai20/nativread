@@ -75,6 +75,23 @@ enum BookFormat: String, Codable {
     case epub, pdf, txt
 }
 
+enum BookVariant: String, Codable, Equatable {
+    case original
+    case translationPreview
+    case fullTranslation
+
+    var badgeText: String? {
+        switch self {
+        case .original:
+            return nil
+        case .translationPreview:
+            return "HU PREVIEW"
+        case .fullTranslation:
+            return "HU"
+        }
+    }
+}
+
 /// A book in the library. The source file lives in Documents/Books,
 /// the unpacked/synthesized content in Library/Extracted/<id>.
 struct Book: Codable, Equatable, Identifiable {
@@ -91,6 +108,11 @@ struct Book: Codable, Equatable, Identifiable {
     var highlights: [Highlight]
     /// Relative byte weight of every spine item, used for whole-book percentage.
     var spineWeights: [Double]
+    /// Non-original imports, such as a partial translated preview, must be visibly
+    /// separate from the user's source book.
+    var variant: BookVariant
+    var sourceBookID: UUID?
+    var translatedFraction: Double?
 
     init(
         id: UUID = UUID(),
@@ -104,7 +126,10 @@ struct Book: Codable, Equatable, Identifiable {
         progress: ReadingProgress = ReadingProgress(),
         bookmarks: [Bookmark] = [],
         highlights: [Highlight] = [],
-        spineWeights: [Double] = []
+        spineWeights: [Double] = [],
+        variant: BookVariant = .original,
+        sourceBookID: UUID? = nil,
+        translatedFraction: Double? = nil
     ) {
         self.id = id
         self.title = title
@@ -118,6 +143,9 @@ struct Book: Codable, Equatable, Identifiable {
         self.bookmarks = bookmarks
         self.highlights = highlights
         self.spineWeights = spineWeights
+        self.variant = variant
+        self.sourceBookID = sourceBookID
+        self.translatedFraction = translatedFraction
     }
 
     /// Tolerant decoding: libraries persisted before highlights existed
@@ -145,6 +173,12 @@ struct Book: Codable, Equatable, Identifiable {
             [Highlight].self, forKey: .highlights) ?? []
         spineWeights = try container.decodeIfPresent(
             [Double].self, forKey: .spineWeights) ?? []
+        variant = try container.decodeIfPresent(
+            BookVariant.self, forKey: .variant) ?? .original
+        sourceBookID = try container.decodeIfPresent(
+            UUID.self, forKey: .sourceBookID)
+        translatedFraction = try container.decodeIfPresent(
+            Double.self, forKey: .translatedFraction)
     }
 
     var percentText: String {
@@ -152,6 +186,10 @@ struct Book: Codable, Equatable, Identifiable {
         return "\(percent)%"
     }
 
+    var isTranslationPreview: Bool { variant == .translationPreview }
+    var isTranslatableSource: Bool {
+        format == .epub && variant == .original
+    }
     var isFinished: Bool { progress.bookFraction >= 0.995 }
     var isStarted: Bool { progress.bookFraction > 0.001 }
 

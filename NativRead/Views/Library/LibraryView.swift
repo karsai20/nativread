@@ -39,6 +39,10 @@ struct LibraryView: View {
         sortedBooks.first { $0.isStarted && !$0.isFinished }
     }
 
+    private var translationCandidate: Book? {
+        sortedBooks.first { $0.isTranslatableSource }
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             palette.background.ignoresSafeArea()
@@ -174,13 +178,15 @@ struct LibraryView: View {
                             "library.book.\(book.title)"
                         )
                         .contextMenu {
-                            Button {
-                                translationBook = book
-                            } label: {
-                                Label(
-                                    "Translate book",
-                                    systemImage: "sparkles"
-                                )
+                            if book.isTranslatableSource {
+                                Button {
+                                    translationBook = book
+                                } label: {
+                                    Label(
+                                        "Translate book",
+                                        systemImage: "sparkles"
+                                    )
+                                }
                             }
                             Button(role: .destructive) {
                                 library.delete(book)
@@ -403,9 +409,9 @@ struct LibraryView: View {
                 systemImage: "sparkles",
                 accessibilityIdentifier: "library.translate"
             ) {
-                translationBook = sortedBooks.first
+                translationBook = translationCandidate
             }
-            .disabled(sortedBooks.isEmpty)
+            .disabled(translationCandidate == nil)
 
             bottomAction(
                 title: "Vocabulary",
