@@ -102,15 +102,18 @@ enum ReaderStyle {
                 background: \(theme.isDark ? "#000000" : theme.textHex);
                 opacity: 0;
                 pointer-events: none;
-                /* Clearing the fill: a quick, crisp wipe back to the page. */
-                transition: opacity 70ms linear;
+                /* Clear it with a near-instant snap, NOT a dissolve: a 70ms
+                   fade makes the new page wash up out of black and reads as a
+                   crossfade. A ~26ms snap reveals the already-painted page
+                   crisply, the way a real e-ink refresh blanks then returns. */
+                transition: opacity 26ms steps(2, end);
                 z-index: 99;
             }
             #lumen-eink.lumen-eink-on {
-                /* Full, opaque ink. Snap it on almost instantly so the
-                   blink reads as a deliberate refresh, not a fade-in. */
+                /* Full, opaque ink. Snap it on instantly so the blink reads as
+                   a deliberate refresh, not a fade-in. */
                 opacity: 1;
-                transition: opacity 16ms linear;
+                transition: opacity 12ms linear;
             }
             """
         case .scroll:

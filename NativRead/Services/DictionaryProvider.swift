@@ -38,6 +38,36 @@ struct BundledDictionary: Sendable, Equatable {
             return [.wordnet]
         }
     }
+
+    /// The single dictionary that backs one Define language, or nil when the
+    /// language has no dictionary of its own. English maps to WordNet (the
+    /// monolingual fallback); the others to their bilingual set.
+    static func dictionary(for language: AppLanguage) -> BundledDictionary? {
+        switch language {
+        case .hu:     return .enhu
+        case .es:     return .enes
+        case .de:     return .ende
+        case .en:     return .wordnet
+        case .system: return nil
+        }
+    }
+
+    /// The dictionaries to load for a set of enabled Define languages, ordered
+    /// bilingual-first (Magyar/Español/Deutsch) then English (WordNet), so a
+    /// lookup surfaces translations before the English monolingual gloss.
+    /// WordNet is always retained as the safety-net fallback while language
+    /// packs are still bundled locally; a later pack manifest can decide which
+    /// non-English dictionaries are installed or removable.
+    static func bundled(for languages: Set<AppLanguage>) -> [BundledDictionary] {
+        let order: [AppLanguage] = [.hu, .es, .de, .en]
+        var dicts = order
+            .filter { languages.contains($0) }
+            .compactMap { dictionary(for: $0) }
+        if !dicts.contains(.wordnet) {
+            dicts.append(.wordnet)
+        }
+        return dicts
+    }
 }
 
 /// Errors raised while preparing bundled dictionaries.
@@ -124,11 +154,11 @@ final class DictionaryProvider {
         await rebuild(dictionaries: dictionaries)
     }
 
-    /// Switches to the dictionary set for `language` and rebuilds the service.
-    /// Used after the onboarding language picker so the session immediately
-    /// uses the right bilingual dictionary without requiring a relaunch.
-    func reprepare(for language: AppLanguage) async {
-        let next = BundledDictionary.bundled(for: language)
+    /// Switches to the dictionary set for the enabled Define `languages` and
+    /// rebuilds the service, so toggling a language in Settings (or confirming
+    /// onboarding) takes effect without a relaunch.
+    func reprepare(for languages: Set<AppLanguage>) async {
+        let next = BundledDictionary.bundled(for: languages)
         guard next != dictionaries else { return }
         dictionaries = next
         await rebuild(dictionaries: next)

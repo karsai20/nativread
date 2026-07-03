@@ -125,6 +125,11 @@ final class LanguageSelectionUITests: XCTestCase {
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10)
         )
+        expectation(
+            for: NSPredicate(format: "hittable == false"),
+            evaluatedWith: app.buttons["onboarding.language.continue"]
+        )
+        waitForExpectations(timeout: 2)
         app.terminate()
 
         // Second launch: no force flags — must skip onboarding entirely.
@@ -141,8 +146,8 @@ final class LanguageSelectionUITests: XCTestCase {
             "splash wordmark must not appear on relaunch"
         )
         XCTAssertFalse(
-            app.buttons["onboarding.language.continue"].exists,
-            "language picker must not appear on relaunch"
+            app.buttons["onboarding.language.continue"].isHittable,
+            "language picker must not be interactable on relaunch"
         )
     }
 

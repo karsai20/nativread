@@ -46,4 +46,58 @@ final class SettingsStoreOnboardingTests: XCTestCase {
         let reloaded = SettingsStore(defaults: defaults)
         XCTAssertFalse(reloaded.hasSeenOnboarding)
     }
+
+    func testTranslationBackendURLPersistsAndTrimsWhitespace() {
+        let store = SettingsStore(
+            defaults: defaults,
+            defaultTranslationBackendURLString: ""
+        )
+        store.setTranslationBackendURL("  http://127.0.0.1:48218  ")
+
+        let reloaded = SettingsStore(
+            defaults: defaults,
+            defaultTranslationBackendURLString: ""
+        )
+        XCTAssertEqual(
+            reloaded.translationBackendURLString,
+            "http://127.0.0.1:48218"
+        )
+        XCTAssertEqual(
+            reloaded.translationBackendURL?.absoluteString,
+            "http://127.0.0.1:48218"
+        )
+    }
+
+    func testResetPersistedClearsTranslationBackendURL() {
+        let store = SettingsStore(
+            defaults: defaults,
+            defaultTranslationBackendURLString: ""
+        )
+        store.setTranslationBackendURL("http://127.0.0.1:48218")
+
+        SettingsStore.resetPersisted(in: defaults)
+
+        let reloaded = SettingsStore(
+            defaults: defaults,
+            defaultTranslationBackendURLString: ""
+        )
+        XCTAssertEqual(reloaded.translationBackendURLString, "")
+        XCTAssertNil(reloaded.translationBackendURL)
+    }
+
+    func testTranslationBackendURLUsesConfiguredDefault() {
+        let store = SettingsStore(
+            defaults: defaults,
+            defaultTranslationBackendURLString: "  http://127.0.0.1:48218  "
+        )
+
+        XCTAssertEqual(
+            store.translationBackendURLString,
+            "http://127.0.0.1:48218"
+        )
+        XCTAssertEqual(
+            store.translationBackendURL?.absoluteString,
+            "http://127.0.0.1:48218"
+        )
+    }
 }

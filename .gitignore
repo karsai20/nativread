@@ -33,3 +33,4 @@ secrets*
 *.keystore
 *.jks
 GoogleService-Info.plist
+.gstack/

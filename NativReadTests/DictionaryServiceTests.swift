@@ -303,6 +303,40 @@ final class DictionaryServiceTests: XCTestCase {
         XCTAssertTrue(service.lookup("zzzqqq").isEmpty)
     }
 
+    func testBritishSpellingFallsBackToAmericanHeadword() throws {
+        // The bundled dictionaries index American spellings, so a British
+        // selection must resolve to them rather than miss into English-only.
+        let dict = try makeDictionary(
+            base: "en", bookname: "English",
+            pairs: [
+                Pair(headword: "harbor", definition: "a sheltered port"),
+                Pair(headword: "color", definition: "a hue"),
+                Pair(headword: "realize", definition: "to become aware"),
+                Pair(headword: "center", definition: "the middle")
+            ]
+        )
+        let service = DictionaryService(dictionaries: [dict])
+        XCTAssertEqual(service.lookup("harbour").first?.entries.first?.definition,
+                       "a sheltered port")
+        XCTAssertEqual(service.lookup("colour").first?.entries.first?.definition,
+                       "a hue")
+        XCTAssertEqual(service.lookup("realise").first?.entries.first?.definition,
+                       "to become aware")
+        XCTAssertEqual(service.lookup("centre").first?.entries.first?.definition,
+                       "the middle")
+    }
+
+    func testAmericanizeLeavesShortAndNonBritishWordsUntouched() {
+        XCTAssertEqual(Lemmatizer.americanize("harbour"), "harbor")
+        XCTAssertEqual(Lemmatizer.americanize("organise"), "organize")
+        XCTAssertEqual(Lemmatizer.americanize("catalogue"), "catalog")
+        // Whole-word / too-short forms must not be rewritten.
+        XCTAssertNil(Lemmatizer.americanize("hour"))
+        XCTAssertNil(Lemmatizer.americanize("four"))
+        XCTAssertNil(Lemmatizer.americanize("rise"))
+        XCTAssertNil(Lemmatizer.americanize("book"))
+    }
+
     // MARK: - Robustness
 
     func testMalformedIfoMissingMagicThrows() throws {

@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// App-wide settings sheet: app language and Define (dictionary) language.
-/// Styled in the same editorial idiom as StatsView and VocabularyView —
-/// BrandPalette, eyebrow section labels with hairline rules, Cormorant display
-/// typography. Launched from the library header gear button.
+/// App-wide settings sheet: appearance and app language. Styled in the same
+/// editorial idiom as StatsView and VocabularyView — BrandPalette, eyebrow
+/// section labels with hairline rules, Cormorant display typography. Launched
+/// from the library header gear button.
 struct SettingsView: View {
     @Environment(LocalizationStore.self) private var localizationStore
-    @Environment(DictionaryProvider.self) private var dictionaryProvider
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
@@ -19,13 +18,10 @@ struct SettingsView: View {
     // only stages locally (checkmark moves, app does not switch); the change is
     // committed on Done so the UI never re-localises out from under the user.
     @State private var pendingAppLanguage: AppLanguage?
-    @State private var pendingDefineLanguage: AppLanguage?
+    @State private var backendURL: String = ""
 
     private var selectedAppLanguage: AppLanguage {
         pendingAppLanguage ?? localizationStore.appLanguage
-    }
-    private var selectedDefineLanguage: AppLanguage {
-        pendingDefineLanguage ?? localizationStore.defineLanguage
     }
 
     var body: some View {
@@ -33,8 +29,8 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     appearanceSection
+                    translationBackendSection
                     appLanguageSection
-                    defineLanguageSection
                 }
                 .padding(Spacing.lg)
             }
@@ -58,24 +54,11 @@ struct SettingsView: View {
     /// stages; nothing re-localises until Done so the screen never flips
     /// language mid-edit.
     private func applyAndDismiss() {
-        var changed = false
         if let pendingAppLanguage,
            pendingAppLanguage != localizationStore.appLanguage {
             localizationStore.setLanguage(pendingAppLanguage)
-            changed = true
         }
-        if let pendingDefineLanguage,
-           pendingDefineLanguage != localizationStore.defineLanguage {
-            localizationStore.setDefineLanguage(pendingDefineLanguage)
-            changed = true
-        }
-        if changed {
-            Task {
-                await dictionaryProvider.reprepare(
-                    for: localizationStore.dictionaryLanguage
-                )
-            }
-        }
+        settingsStore.setTranslationBackendURL(backendURL)
         dismiss()
     }
 
@@ -122,6 +105,49 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Translation Backend
+
+    private var translationBackendSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            sectionLabel("Translation Backend")
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                TextField("http://192.168.1.205:48218", text: $backendURL)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                    .font(Typography.control(16))
+                    .foregroundStyle(palette.text)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.md)
+                    .background {
+                        RoundedRectangle(
+                            cornerRadius: Spacing.radiusSmall,
+                            style: .continuous
+                        )
+                        .fill(palette.surface)
+                        .overlay {
+                            RoundedRectangle(
+                                cornerRadius: Spacing.radiusSmall,
+                                style: .continuous
+                            )
+                            .strokeBorder(palette.hairline, lineWidth: 0.8)
+                        }
+                    }
+                    .accessibilityIdentifier("settings.translationBackendURL")
+
+                Text("Defaults to the dedicated NativRead translator backend on your Proxmox LAN.")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+            }
+        }
+        .onAppear {
+            if backendURL.isEmpty {
+                backendURL = settingsStore.translationBackendURLString
+            }
+        }
+    }
+
     // MARK: - App Language
 
     private var appLanguageSection: some View {
@@ -146,39 +172,6 @@ struct SettingsView: View {
                     )
                 }
             }
-        }
-    }
-
-    // MARK: - Define Language
-
-    private var defineLanguageSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("Define Language")
-
-            VStack(spacing: Spacing.xs) {
-                ForEach(AppLanguage.definePickable, id: \.rawValue) { language in
-                    SettingsChoiceRow(
-                        title: language.endonym,
-                        isSelected: selectedDefineLanguage == language,
-                        palette: palette
-                    )
-                    .onTapGesture { pendingDefineLanguage = language }
-                    .accessibilityIdentifier(
-                        "settings.definelang.\(language.rawValue)"
-                    )
-                    .accessibilityLabel(language.endonym)
-                    .accessibilityAddTraits(
-                        selectedDefineLanguage == language
-                            ? [.isSelected] : []
-                    )
-                }
-            }
-
-            // Caption explaining what each option provides.
-            Text("English uses the WordNet dictionary. Magyar adds an English → Hungarian bilingual dictionary.")
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
-                .padding(.top, Spacing.xxs)
         }
     }
 

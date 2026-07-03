@@ -184,4 +184,98 @@ final class LocalizationStoreTests: XCTestCase {
         let dicts = BundledDictionary.bundled(for: .system)
         XCTAssertTrue(dicts.contains(.wordnet))
     }
+
+    // MARK: - Multi-language Define set
+
+    func testHungarianOnlySetKeepsWordNetFallback() {
+        // WordNet stays in every build path as a safety net; selecting Magyar
+        // adds the bilingual dictionary before it.
+        XCTAssertEqual(BundledDictionary.bundled(for: [.hu]), [.enhu, .wordnet])
+    }
+
+    func testHungarianPlusEnglishLoadsBothBilingualFirst() {
+        XCTAssertEqual(
+            BundledDictionary.bundled(for: [.hu, .en]), [.enhu, .wordnet]
+        )
+    }
+
+    func testEmptyDefineSetFallsBackToWordNet() {
+        XCTAssertEqual(BundledDictionary.bundled(for: []), [.wordnet])
+    }
+
+    func testDefaultDefineLanguagesIsJustTheAppLanguage() {
+        XCTAssertEqual(LocalizationStore.defaultDefineLanguages(for: .hu), [.hu])
+        XCTAssertEqual(LocalizationStore.defaultDefineLanguages(for: .en), [.en])
+    }
+
+    func testDefineLanguagesPersistAcrossInstances() {
+        let store = LocalizationStore(defaults: defaults)
+        store.setDefineLanguages([.hu, .en])
+        let reloaded = LocalizationStore(defaults: defaults)
+        XCTAssertEqual(reloaded.defineLanguages, [.hu, .en])
+    }
+
+    func testEmptyDefineLanguagesPersistAcrossInstances() {
+        let store = LocalizationStore(defaults: defaults)
+        store.setDefineLanguages([])
+        let reloaded = LocalizationStore(defaults: defaults)
+        XCTAssertEqual(reloaded.defineLanguages, [])
+    }
+
+    func testLegacySingleDefineKeyMigratesToSet() {
+        // A build before multi-language stored one value under the old key.
+        defaults.set("hu", forKey: "quire.defineLanguage.v1")
+        let store = LocalizationStore(defaults: defaults)
+        XCTAssertEqual(store.defineLanguages, [.hu])
+    }
+
+    func testToggleDefineLanguageAddsAndRemoves() {
+        let store = LocalizationStore(defaults: defaults)
+        store.setDefineLanguages([.hu])
+        store.toggleDefineLanguage(.en)
+        XCTAssertEqual(store.defineLanguages, [.hu, .en])
+        store.toggleDefineLanguage(.hu)
+        XCTAssertEqual(store.defineLanguages, [.en])
+    }
+
+    func testForceLanguageCanSyncDefineLanguagesWithoutPersisting() {
+        let store = LocalizationStore(defaults: defaults)
+        store.setDefineLanguages([.en])
+        store.overrideDefineLanguagesForAppLanguageWithoutPersisting(.hu)
+        XCTAssertEqual(store.defineLanguages, [.hu])
+
+        let reloaded = LocalizationStore(defaults: defaults)
+        XCTAssertEqual(reloaded.defineLanguages, [.en])
+    }
+
+    func testDefaultDefineLanguagesFollowAppLanguageChange() {
+        let next = LocalizationStore.defineLanguagesAfterAppLanguageChange(
+            currentDefineLanguages: [.en],
+            oldAppLanguage: .en,
+            newAppLanguage: .hu,
+            explicitDefineLanguages: nil
+        )
+        XCTAssertEqual(next, [.hu])
+    }
+
+    func testExplicitDefineLanguagesSurviveAppLanguageChange() {
+        let explicit: Set<AppLanguage> = [.hu, .en]
+        let next = LocalizationStore.defineLanguagesAfterAppLanguageChange(
+            currentDefineLanguages: [.en],
+            oldAppLanguage: .en,
+            newAppLanguage: .hu,
+            explicitDefineLanguages: explicit
+        )
+        XCTAssertEqual(next, explicit)
+    }
+
+    func testCustomDefineLanguagesDoNotFollowAppLanguageChange() {
+        let next = LocalizationStore.defineLanguagesAfterAppLanguageChange(
+            currentDefineLanguages: [.hu, .en],
+            oldAppLanguage: .en,
+            newAppLanguage: .hu,
+            explicitDefineLanguages: nil
+        )
+        XCTAssertEqual(next, [.hu, .en])
+    }
 }

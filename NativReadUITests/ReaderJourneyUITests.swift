@@ -330,6 +330,48 @@ final class ReaderJourneyUITests: XCTestCase {
         add(shot)
     }
 
+    func testVocabularyKeepsSavedWordWithoutBundledDictionaryGloss() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-resetLanguage",
+            "-seedSampleBook", "-resetVocabulary", "-seedSampleVocabulary",
+            "-forceLanguage", "hu",
+            "-skipOnboarding"
+        ]
+        app.launch()
+
+        let button = app.buttons["library.vocabulary"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
+
+        XCTAssertTrue(
+            app.staticTexts["lantern"].waitForExistence(timeout: 6),
+            "seeded vocabulary word should be listed"
+        )
+        XCTAssertTrue(
+            app.staticTexts["Apple Dictionary"].waitForExistence(timeout: 6),
+            "saved vocabulary should record the native dictionary source"
+        )
+    }
+
+    func testTranslateSheetRequiresOwnershipBeforeFreeChapter() {
+        let button = app.buttons["library.translate"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
+
+        XCTAssertTrue(
+            app.otherElements["translation.sheet"].waitForExistence(timeout: 6)
+        )
+        let freeChapter = app.buttons["translation.freeChapter"]
+        XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
+        XCTAssertFalse(freeChapter.isEnabled)
+
+        let attestation = app.buttons["translation.attestation"]
+        XCTAssertTrue(attestation.waitForExistence(timeout: 6))
+        attestation.tap()
+        XCTAssertTrue(freeChapter.isEnabled)
+    }
+
     func testBookmarkToggle() {
         openSampleBook()
         app.buttons["reader.bookmark"].tap()

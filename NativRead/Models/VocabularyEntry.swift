@@ -1,20 +1,23 @@
 import Foundation
 
 /// A word the reader saved from the in-reader Define popup, kept in a
-/// global list that spans every book. Carries the dictionary definition
-/// and — when the reader could capture it — the sentence the word was
-/// read in, the basis for context-rich flashcards and Anki export.
+/// global list that spans every book. Carries optional definition text
+/// for older saved entries and, when the reader could capture it, the
+/// sentence the word was read in: the basis for context-rich flashcards
+/// and Anki export.
 struct VocabularyEntry: Codable, Equatable, Identifiable {
     let id: UUID
     /// The saved word or short phrase, as selected.
     let word: String
-    /// A plain-text definition (HTML stripped) chosen at save time.
+    /// A plain-text definition chosen at save time. Empty when the word
+    /// was saved from Apple's system Dictionary, which does not expose
+    /// definition text through a public API.
     let definition: String
     /// The enclosing sentence the word was read in, or nil when the
     /// reader could not capture surrounding text. Optional by design so
     /// a missed capture degrades gracefully rather than blocking a save.
     let contextSentence: String?
-    /// The dictionary the definition came from (`DictionaryResult.bookname`).
+    /// The dictionary surface the word was saved from.
     let dictionarySource: String
     let createdAt: Date
     /// The reader's own annotation on this word. Optional so entries
@@ -71,5 +74,17 @@ struct VocabularyEntry: Codable, Equatable, Identifiable {
     /// book it came from, so re-saving it from anywhere is a no-op.
     var dedupKey: String {
         word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// A copy showing a freshly-resolved `definition`, keeping identity,
+    /// context, note and provenance. Kept for legacy tests and imports that
+    /// still exercise the bundled dictionary formatter.
+    func showing(definition: String, source: String) -> VocabularyEntry {
+        VocabularyEntry(
+            id: id, word: word, definition: definition,
+            contextSentence: contextSentence, dictionarySource: source,
+            createdAt: createdAt, note: note, bookID: bookID,
+            chapterTitle: chapterTitle
+        )
     }
 }

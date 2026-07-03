@@ -3,7 +3,7 @@ import SwiftUI
 /// App root: shows the library and overlays onboarding screens on first launch.
 ///
 /// **Flow:**
-/// 1. `LaunchView` — brand splash; waits for dictionaries.
+/// 1. `LaunchView` — brand splash.
 /// 2. `LanguageSelectionView` — language picker (first launch only).
 /// 3. `LibraryView` — crossfades in once both onboarding steps are confirmed.
 ///
@@ -14,13 +14,16 @@ import SwiftUI
 struct RootView: View {
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(LocalizationStore.self) private var localizationStore
-    @Environment(DictionaryProvider.self) private var dictionaryProvider
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// True while the brand splash is visible.
     @State private var showLaunch: Bool
     /// True while the language picker is visible (shown after the splash).
     @State private var showLanguagePicker = false
+    /// False while the picker is covered by the launch screen or being removed,
+    /// so stale controls do not remain tappable or visible to UI tests /
+    /// VoiceOver outside the actual picker step.
+    @State private var languagePickerInteractive = false
 
     /// `initialShowLaunch` is resolved at launch from the onboarding flag and
     /// the `-forceOnboarding` / `-skipOnboarding` test arguments.
@@ -39,14 +42,16 @@ struct RootView: View {
             LibraryView()
                 .id(localizationStore.appLanguage)
 
-            if showLaunch {
-                LaunchView(onFinished: splashDidFinish)
+            if showLanguagePicker {
+                LanguageSelectionView(onConfirmed: languageDidConfirm)
                     .transition(.opacity)
+                    .allowsHitTesting(languagePickerInteractive)
+                    .accessibilityHidden(!languagePickerInteractive)
                     .zIndex(1)
             }
 
-            if showLanguagePicker {
-                LanguageSelectionView(onConfirmed: languageDidConfirm)
+            if showLaunch {
+                LaunchView(onFinished: splashDidFinish)
                     .transition(.opacity)
                     .zIndex(2)
             }
@@ -55,20 +60,23 @@ struct RootView: View {
 
     // MARK: - Step transitions
 
-    /// Called by `LaunchView` once the splash's minimum display time and
-    /// dictionary readiness conditions are both satisfied.
+    /// Called by `LaunchView` once the splash's minimum display time elapsed.
     private func splashDidFinish() {
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.4)) {
+        // Mount the language picker *underneath* the splash first (no
+        // animation — it's fully covered), then fade the splash out so it
+        // reveals the picker directly. The library must never peek through
+        // the gap, which read as a home-screen flash before onboarding.
+        languagePickerInteractive = false
+        showLanguagePicker = true
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.45)) {
             showLaunch = false
         }
-        // Brief pause so the crossfade from splash → library completes before
-        // the language picker appears on top.
-        Task {
+        Task { @MainActor in
             if !reduceMotion {
-                try? await Task.sleep(for: .milliseconds(350))
+                try? await Task.sleep(for: .milliseconds(460))
             }
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.45)) {
-                showLanguagePicker = true
+            if showLanguagePicker {
+                languagePickerInteractive = true
             }
         }
     }
@@ -76,17 +84,8 @@ struct RootView: View {
     /// Called by `LanguageSelectionView` when the user taps Continue.
     private func languageDidConfirm(_ language: AppLanguage) {
         localizationStore.setLanguage(language)
-        // Default the Define (dictionary) language to match the chosen app
-        // language so picking Magyar at onboarding loads the EN→HU dictionary
-        // and shows Magyar selected in Settings. The user can still override
-        // Define independently later.
-        localizationStore.setDefineLanguage(language)
-        // Re-prepare the dictionary provider using the effective dictionary
-        // language — respects an independent Define language when already set.
-        Task { await dictionaryProvider.reprepare(for: localizationStore.dictionaryLanguage) }
         settingsStore.markOnboardingSeen()
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.5)) {
-            showLanguagePicker = false
-        }
+        languagePickerInteractive = false
+        showLanguagePicker = false
     }
 }

@@ -68,6 +68,27 @@ final class DefinitionFormatterTests: XCTestCase {
         XCTAssertEqual(stripped, "n. a word")
     }
 
+    func testPlainTextStripsHungarianPartOfSpeechPrefix() {
+        let plain = DefinitionFormatter.plainText(
+            entry("<i>fn</i> lámpás")
+        )
+        XCTAssertEqual(plain, "lámpás")
+    }
+
+    func testRenderStripsHungarianPartOfSpeechPrefix() {
+        let rendered = DefinitionFormatter.render(
+            entry("<i>fn</i> lámpás")
+        )
+        XCTAssertEqual(String(rendered.characters), "lámpás")
+    }
+
+    func testPlainTextKeepsWordNetPartOfSpeechPrefix() {
+        let plain = DefinitionFormatter.plainText(
+            entry("<i>n.</i> light in a transparent case")
+        )
+        XCTAssertEqual(plain, "n. light in a transparent case")
+    }
+
     func testRenderHTMLNeverEmptyForRealContent() {
         let result = DefinitionFormatter.renderHTML("<i>adj.</i> bright")
         XCTAssertFalse(result.characters.isEmpty)

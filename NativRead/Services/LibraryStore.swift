@@ -329,6 +329,10 @@ final class LibraryStore {
         return fileManager.fileExists(atPath: url.path) ? url : nil
     }
 
+    func storedFileURL(for book: Book) -> URL {
+        booksDirectory.appendingPathComponent(book.fileName)
+    }
+
     func parsedEPUB(for book: Book) throws -> ParsedEPUB {
         if book.format == .txt {
             return TextImporter.parsed(

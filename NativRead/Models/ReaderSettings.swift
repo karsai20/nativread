@@ -3,7 +3,7 @@ import SwiftUI
 /// The four reading atmospheres. Chrome colours follow the page so the
 /// whole screen feels like one sheet of paper, the way Apple Books does it.
 enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
-    case paper, sepia, dusk, ink
+    case paper, sepia, ink, dusk
 
     var id: String { rawValue }
 
@@ -235,8 +235,8 @@ struct ReaderPalette: Equatable {
 struct ReaderSettings: Codable, Equatable {
     var theme: ReaderTheme = .paper
     /// Theme used in system mode when the device is in dark appearance.
-    var darkTheme: ReaderTheme = .dusk
-    // Follow the device/app appearance by default: light → Paper, dark → Dusk.
+    var darkTheme: ReaderTheme = .ink
+    // Follow the device/app appearance by default: light → Light, dark → Dark.
     // Keeps the reader consistent with the library (no bright/dark flip when a
     // book opens). Users can still pin a specific theme in the typography panel.
     var themeMode: ThemeMode = .system

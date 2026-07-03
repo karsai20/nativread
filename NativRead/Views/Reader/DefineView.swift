@@ -1,36 +1,35 @@
 import SwiftUI
+import UIKit
 
-/// Dictionary lookup sheet for a selected word or short phrase. Renders the
-/// bundled WordNet (HTML) definitions as themed `AttributedString`s, with
-/// loading and empty states. Presented from the reader's selection menu.
+/// Dictionary lookup sheet for a selected word or short phrase. Uses Apple's
+/// built-in Dictionary UI so readers get the same installed dictionaries and
+/// Manage Dictionaries path available system-wide. iOS does not expose system
+/// dictionary definition text to apps, so saving keeps the word and context.
 struct DefineView: View {
     let word: String
     let palette: ReaderPalette
     /// The sentence the word was read in, for saving as context; nil when
     /// the reader could not capture it.
     var context: String? = nil
-    /// Invoked with the chosen plain-text definition and its dictionary
-    /// when the reader taps Save; nil disables saving (e.g. previews).
+    /// Invoked when the reader taps Save; nil disables saving (e.g. previews).
+    /// The definition is empty because Apple's Dictionary text is display-only.
     var onSave: ((_ definition: String, _ source: String) -> Void)? = nil
     /// Whether this word is already in the saved vocabulary, reflected on
     /// open so the action reads "Saved" rather than offering a duplicate.
     var isAlreadySaved: Bool = false
 
-    @Environment(DictionaryProvider.self) private var provider
     @Environment(\.dismiss) private var dismiss
-
-    /// nil while the lookup is in flight, then the (possibly empty) results.
-    @State private var results: [DictionaryResult]?
 
     /// Flips to true once the reader taps Save in this session.
     @State private var didSave = false
+    @State private var showDictionaryManager = false
 
     var body: some View {
         NavigationStack {
-            content
+            SystemDictionaryController(term: word)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(palette.background.ignoresSafeArea())
-                .navigationTitle("Define")
+                .navigationTitle(word)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     if onSave != nil {
@@ -42,89 +41,41 @@ struct DefineView: View {
                         Button("Done") { dismiss() }
                             .tint(palette.accent)
                     }
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            showDictionaryManager = true
+                        } label: {
+                            Label(
+                                "Dictionaries",
+                                systemImage: "character.book.closed"
+                            )
+                        }
+                        .tint(palette.accent)
+                    }
                 }
         }
         .presentationDetents([.medium, .large])
         .accessibilityIdentifier("define.sheet")
-        .task(id: word) { await runLookup() }
-    }
-
-    // MARK: - States
-
-    @ViewBuilder
-    private var content: some View {
-        if !provider.isReady {
-            preparingState
-        } else if let results, results.isEmpty {
-            emptyState
-        } else if let results {
-            resultsScroll(results)
-        } else {
-            // Dictionary is ready but the lookup hasn't returned yet.
-            preparingState
-        }
-    }
-
-    private var preparingState: some View {
-        VStack(spacing: Spacing.md) {
-            ProgressView()
-                .progressViewStyle(.circular)
-                .tint(palette.accent)
-            Text("Preparing dictionary…")
-                .font(Typography.body(14))
-                .foregroundStyle(palette.secondaryText)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Preparing dictionary")
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: Spacing.xs) {
-            Image(systemName: "character.book.closed")
-                .font(.system(size: 30))
-                .foregroundStyle(palette.secondaryText)
-            wordTitle
-            Text("No definition found")
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(Spacing.xl)
-        .accessibilityIdentifier("define.empty")
-    }
-
-    private func resultsScroll(_ results: [DictionaryResult]) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.lg) {
-                wordTitle
-                    .padding(.bottom, Spacing.xxs)
-
-                ForEach(Array(results.enumerated()), id: \.offset) { _, result in
-                    resultBlock(result)
-                }
+        .sheet(isPresented: $showDictionaryManager) {
+            NavigationStack {
+                SystemDictionaryController(term: Self.dictionaryManagementTerm)
+                    .navigationTitle("Dictionaries")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showDictionaryManager = false }
+                                .tint(palette.accent)
+                        }
+                    }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, Spacing.lg)
-            .padding(.vertical, Spacing.md + 2)
         }
-        .accessibilityIdentifier("define.result")
-    }
-
-    private var wordTitle: some View {
-        // Display role: Cormorant Garamond at 28pt anchors the definition sheet
-        // with the same grand editorial presence used on covers and pull-quotes.
-        Text(word)
-            .font(Typography.display(28))
-            .foregroundStyle(palette.text)
-            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: - Save
 
-    /// "Save" → "Saved": disabled once saved (this session or already in
-    /// the list) or while there's nothing to save. Reduced-motion friendly
-    /// — only the label and tint change, no implicit movement.
+    /// "Save" -> "Saved": disabled once saved (this session or already in
+    /// the list). Reduced-motion friendly - only the label and tint change,
+    /// no implicit movement.
     private var saveButton: some View {
         let saved = didSave || isAlreadySaved
         return Button {
@@ -135,64 +86,39 @@ struct DefineView: View {
                 .font(Typography.body(15))
         }
         .tint(palette.accent)
-        .disabled(saved || saveDefinition == nil)
+        .disabled(saved)
         .accessibilityIdentifier("define.save")
     }
 
     private func performSave() {
-        guard let onSave, let definition = saveDefinition,
-              !didSave, !isAlreadySaved else { return }
-        onSave(definition, saveSource ?? "")
+        guard let onSave, !didSave, !isAlreadySaved else { return }
+        onSave("", "Apple Dictionary")
         didSave = true
     }
 
-    /// The shortest plain-text definition across all results — the most
-    /// flashcard-friendly gloss. HTML entries are stripped to plain text.
-    private var saveDefinition: String? {
-        guard let results else { return nil }
-        let plains = results
-            .flatMap(\.entries)
-            .map { DefinitionFormatter.plainText($0) }
-            .filter { !$0.isEmpty }
-        return plains.min(by: { $0.count < $1.count })
+    /// No public iOS API opens Settings > General > Dictionary directly. A
+    /// guaranteed-missing lookup surfaces Apple's own Manage Dictionaries path
+    /// inside the reference-library controller without using private URLs.
+    private static let dictionaryManagementTerm =
+        "nativread_dictionary_settings_probe"
+}
+
+/// Thin SwiftUI bridge for `UIReferenceLibraryViewController`, the same system
+/// dictionary surface that exposes the installed Apple dictionaries and its
+/// Manage Dictionaries entry.
+private struct SystemDictionaryController: UIViewControllerRepresentable {
+    let term: String
+
+    func makeUIViewController(
+        context: Context
+    ) -> UIReferenceLibraryViewController {
+        UIReferenceLibraryViewController(term: term)
     }
 
-    /// The dictionary name of the first result, used as the saved source.
-    private var saveSource: String? {
-        results?.first?.bookname
-    }
-
-    private func resultBlock(_ result: DictionaryResult) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            // Dictionary source name as an eyebrow — tracked uppercase,
-            // consistent with how chapter labels appear in search results.
-            Text(result.bookname)
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.accent)
-
-            ForEach(Array(result.entries.enumerated()), id: \.offset) { _, entry in
-                Text(DefinitionFormatter.attributed(entry, palette: palette))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Lookup
-
-    private func runLookup() async {
-        guard provider.isReady else {
-            results = nil
-            return
-        }
-        // The lookup itself is fast (in-memory index) but kept off the
-        // initial layout pass so the sheet animates in cleanly.
-        let found = provider.lookup(word)
-        results = found
-    }
+    func updateUIViewController(
+        _ uiViewController: UIReferenceLibraryViewController,
+        context: Context
+    ) {}
 }
 
 /// Converts a `DictionaryEntry` into a palette-themed `AttributedString`.
@@ -214,6 +140,26 @@ enum DefinitionFormatter {
         return result
     }
 
+    /// The gloss to surface for a set of lookup results, with its dictionary.
+    /// Results are bilingual-first, so the *first* dictionary with a usable
+    /// plain-text entry wins — keeping the chosen language over a shorter
+    /// English WordNet fallback. Within that dictionary the shortest entry is
+    /// kept (flashcard-friendly). Shared by the Define save path and the
+    /// live-resolved vocabulary list.
+    static func preferredGloss(
+        _ results: [DictionaryResult]
+    ) -> (definition: String, source: String)? {
+        for result in results {
+            let plains = result.entries
+                .map { plainText($0) }
+                .filter { !$0.isEmpty }
+            if let best = plains.min(by: { $0.count < $1.count }) {
+                return (best, result.bookname)
+            }
+        }
+        return nil
+    }
+
     /// The entry's definition as collapsed plain text — HTML stripped for
     /// `type == "h"` entries, otherwise the raw text trimmed. The basis
     /// for a saved vocabulary gloss. Pure and `Sendable`-friendly.
@@ -221,10 +167,11 @@ enum DefinitionFormatter {
         let raw = entry.type == "h"
             ? stripTags(entry.definition)
             : entry.definition
-        return raw
+        let collapsed = raw
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+        return stripLeadingPartOfSpeech(from: collapsed)
     }
 
     /// Renders the entry's definition to an `AttributedString`, parsing
@@ -253,7 +200,11 @@ enum DefinitionFormatter {
         for token in tokens {
             switch token {
             case .text(let raw):
-                let text = decodeEntities(raw)
+                var text = decodeEntities(raw)
+                if italic && isDictionaryPartOfSpeechLabel(text) { continue }
+                if output.characters.isEmpty {
+                    text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
                 guard !text.isEmpty else { continue }
                 var run = AttributedString(text)
                 if italic { run.inlinePresentationIntent = .emphasized }
@@ -342,6 +293,29 @@ enum DefinitionFormatter {
         }
         return decodeEntities(output)
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func stripLeadingPartOfSpeech(from text: String) -> String {
+        let parts = text.split(separator: " ")
+        guard let first = parts.first,
+              isDictionaryPartOfSpeechLabel(String(first)) else {
+            return text
+        }
+        return parts.dropFirst().joined(separator: " ")
+    }
+
+    /// The EN→HU dictionary stores Hungarian part-of-speech labels as italic
+    /// body text (`<i>fn</i> lámpás`). They are useful source metadata but read
+    /// like broken words in the Define UI and saved vocabulary list.
+    private static func isDictionaryPartOfSpeechLabel(_ text: String) -> Bool {
+        let normalized = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: ":;,"))
+            .lowercased()
+        return [
+            "fn", "ige", "mn", "hsz", "proper_noun", "phrase",
+            "preposition", "prepositional_phrase", "prefix", "interjection"
+        ].contains(normalized)
     }
 
     /// Decodes the handful of named/numeric entities WordNet uses.

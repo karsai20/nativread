@@ -7,8 +7,8 @@ struct LibraryView: View {
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(StatsStore.self) private var statsStore
     @Environment(VocabularyStore.self) private var vocabularyStore
+    @Environment(TranslationStore.self) private var translationStore
     @Environment(LocalizationStore.self) private var localizationStore
-    @Environment(DictionaryProvider.self) private var dictionaryProvider
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var isImporterPresented = false
@@ -18,6 +18,7 @@ struct LibraryView: View {
     @State private var isVocabularyPresented = false
     @State private var isSettingsPresented = false
     @State private var isImporting = false
+    @State private var translationBook: Book?
 
     /// The shelf now carries its own editorial identity rather than morphing
     /// with the reading theme — the library is a place, the reader is the book.
@@ -39,7 +40,7 @@ struct LibraryView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             palette.background.ignoresSafeArea()
 
             if library.books.isEmpty {
@@ -47,6 +48,10 @@ struct LibraryView: View {
             } else {
                 shelf
             }
+
+            bottomActionBar
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.md)
 
             if isImporting {
                 LoadingOverlay(palette: palette, message: "Importing…")
@@ -103,10 +108,13 @@ struct LibraryView: View {
                 .environment(vocabularyStore)
                 .environment(settingsStore)
         }
+        .sheet(item: $translationBook) { book in
+            TranslationSheet(book: book)
+                .environment(translationStore)
+        }
         .sheet(isPresented: $isSettingsPresented) {
             SettingsView()
                 .environment(localizationStore)
-                .environment(dictionaryProvider)
         }
         .alert(
             "Import failed",
@@ -166,6 +174,14 @@ struct LibraryView: View {
                             "library.book.\(book.title)"
                         )
                         .contextMenu {
+                            Button {
+                                translationBook = book
+                            } label: {
+                                Label(
+                                    "Translate book",
+                                    systemImage: "sparkles"
+                                )
+                            }
                             Button(role: .destructive) {
                                 library.delete(book)
                             } label: {
@@ -175,7 +191,7 @@ struct LibraryView: View {
                     }
                 }
                 .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, 40)
+                .padding(.bottom, 116)
             }
         }
     }
@@ -340,28 +356,10 @@ struct LibraryView: View {
             }
             Spacer()
             HStack(spacing: Spacing.sm) {
-                vocabularyButton
                 statsButton
                 settingsButton
-                importButton
             }
         }
-    }
-
-    private var vocabularyButton: some View {
-        Button {
-            isVocabularyPresented = true
-        } label: {
-            Image(systemName: "character.book.closed")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(palette.accent)
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle().fill(palette.surface)
-                )
-        }
-        .accessibilityIdentifier("library.vocabulary")
-        .accessibilityLabel("My vocabulary")
     }
 
     private var statsButton: some View {
@@ -396,19 +394,68 @@ struct LibraryView: View {
         .accessibilityLabel("Settings")
     }
 
-    private var importButton: some View {
-        Button {
-            isImporterPresented = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(palette.background)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(palette.accent))
+    // MARK: - Bottom actions
+
+    private var bottomActionBar: some View {
+        HStack(spacing: Spacing.sm) {
+            bottomAction(
+                title: "Translate",
+                systemImage: "sparkles",
+                accessibilityIdentifier: "library.translate"
+            ) {
+                translationBook = sortedBooks.first
+            }
+            .disabled(sortedBooks.isEmpty)
+
+            bottomAction(
+                title: "Vocabulary",
+                systemImage: "character.book.closed",
+                accessibilityIdentifier: "library.vocabulary"
+            ) {
+                isVocabularyPresented = true
+            }
+
+            bottomAction(
+                title: "Import",
+                systemImage: "plus",
+                accessibilityIdentifier: "library.import"
+            ) {
+                isImporterPresented = true
+            }
+            .disabled(isImporting)
         }
-        .disabled(isImporting)
-        .accessibilityIdentifier("library.import")
-        .accessibilityLabel("Import book")
+        .padding(Spacing.xs)
+        .background {
+            Capsule()
+                .fill(palette.surface.opacity(colorScheme == .dark ? 0.94 : 0.97))
+                .shadow(
+                    color: .black.opacity(palette.shadowOpacity),
+                    radius: 18, x: 0, y: 8
+                )
+        }
+        .overlay {
+            Capsule()
+                .strokeBorder(palette.hairline, lineWidth: 0.8)
+        }
+    }
+
+    private func bottomAction(
+        title: LocalizedStringKey,
+        systemImage: String,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+                .foregroundStyle(palette.text)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 
     // MARK: - Empty state
@@ -420,7 +467,7 @@ struct LibraryView: View {
                 .padding(.top, Spacing.md)
             Spacer(minLength: 0)
             emptyContent
-            Spacer(minLength: 0)
+            Spacer(minLength: 88)
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

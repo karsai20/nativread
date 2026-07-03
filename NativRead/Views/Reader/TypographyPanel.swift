@@ -44,7 +44,10 @@ struct TypographyPanel: View {
         .foregroundStyle(palette.text)
         .background(palette.background.ignoresSafeArea())
         .presentationDetents([.height(450), .large])
-        .presentationBackgroundInteraction(.enabled(upThrough: .height(450)))
+        // ponytail: no presentationBackgroundInteraction — enabling it up
+        // through the small detent makes iOS treat the sheet as a non-modal
+        // accessory and kills swipe/flick-to-dismiss. Plain modal sheet =
+        // standard flick-down dismissal.
         .presentationContentInteraction(.scrolls)
         .presentationDragIndicator(.hidden)
     }

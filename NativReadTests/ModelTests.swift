@@ -301,7 +301,7 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded.fontSize, 20)
         XCTAssertEqual(decoded.warmth, 0)
         XCTAssertEqual(decoded.themeMode, .system)
-        XCTAssertEqual(decoded.darkTheme, .dusk)
+        XCTAssertEqual(decoded.darkTheme, .ink)
         XCTAssertEqual(decoded.pageFlow, .paged)
         XCTAssertEqual(decoded.pageTransition, .slide)
     }

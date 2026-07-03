@@ -1,14 +1,13 @@
 import SwiftUI
 
-/// First-launch editorial brand splash. Covers the one-time dictionary
-/// unpacking work and gives a "flawless first-use" feel, then crossfades into
-/// the library. Uses the editorial `BrandPalette` so the splash, the language
-/// picker, and the library all read as one warm paper surface.
+/// First-launch editorial brand splash. Gives a calm first-use feel, then
+/// crossfades into the language picker. Uses the editorial `BrandPalette` so
+/// the splash, the language picker, and the library all read as one warm paper
+/// surface.
 struct LaunchView: View {
     /// Called once readiness and the minimum display time are both satisfied.
     var onFinished: () -> Void
 
-    @Environment(DictionaryProvider.self) private var dictionaryProvider
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
@@ -25,10 +24,6 @@ struct LaunchView: View {
     /// dictionaries are already prepared. Long enough for the wordmark and
     /// tagline reveal (~1.05s) to fully settle and breathe before crossfade.
     private let minimumDisplay: Duration = .milliseconds(1_900)
-    /// Hard ceiling so a dictionary failure can never trap the user here.
-    private let maximumDisplay: Duration = .seconds(8)
-    private let pollInterval: Duration = .milliseconds(100)
-
     @State private var wordmarkShown = false
     @State private var taglineShown = false
 
@@ -104,26 +99,14 @@ struct LaunchView: View {
 
     // MARK: - Dismissal
 
-    /// Finishes when the dictionaries are ready AND the minimum display time
-    /// has elapsed, with a hard timeout so failures can't strand the user.
+    /// Finishes when the minimum display time has elapsed.
     private func driveDismissal() async {
         // UI-test hook: hold the splash on screen (never auto-dismiss) so a
         // test can deterministically assert it appeared, without racing the
-        // crossfade. The splash otherwise vanishes once dictionaries are ready.
+        // crossfade.
         if ProcessInfo.processInfo.arguments.contains("-onboardingHold") { return }
 
-        let start = ContinuousClock.now
-
-        while !dictionaryProvider.isReady {
-            if ContinuousClock.now - start >= maximumDisplay { break }
-            try? await Task.sleep(for: pollInterval)
-            if Task.isCancelled { return }
-        }
-
-        let elapsed = ContinuousClock.now - start
-        if elapsed < minimumDisplay {
-            try? await Task.sleep(for: minimumDisplay - elapsed)
-        }
+        try? await Task.sleep(for: minimumDisplay)
         if Task.isCancelled { return }
         onFinished()
     }

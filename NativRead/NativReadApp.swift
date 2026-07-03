@@ -6,8 +6,8 @@ struct NativReadApp: App {
     @State private var settingsStore: SettingsStore
     @State private var statsStore: StatsStore
     @State private var vocabularyStore: VocabularyStore
+    @State private var translationStore: TranslationStore
     @State private var localizationStore: LocalizationStore
-    @State private var dictionaryProvider: DictionaryProvider
 
     init() {
         let store = LibraryStore()
@@ -31,19 +31,13 @@ struct NativReadApp: App {
         Self.applyVocabularyArguments(to: vocabulary)
         _vocabularyStore = State(initialValue: vocabulary)
 
-        // Build LocalizationStore first so the initial dictionary set can be
-        // derived from the already-persisted language choice (or from the
-        // `-forceLanguage` hook).
+        _translationStore = State(initialValue: TranslationStore())
+
+        // Build LocalizationStore after the reset hook so the persisted app
+        // language can be overridden for tests without touching user defaults.
         let locStore = LocalizationStore()
         Self.applyLanguageArgument(to: locStore)
         _localizationStore = State(initialValue: locStore)
-
-        // Derive the initial dictionary list from the effective dictionary
-        // language — honouring an independent Define language choice when set.
-        let dictionaries = BundledDictionary.bundled(for: locStore.dictionaryLanguage)
-        _dictionaryProvider = State(
-            initialValue: DictionaryProvider(dictionaries: dictionaries)
-        )
     }
 
     var body: some Scene {
@@ -53,8 +47,8 @@ struct NativReadApp: App {
                 .environment(settingsStore)
                 .environment(statsStore)
                 .environment(vocabularyStore)
+                .environment(translationStore)
                 .environment(localizationStore)
-                .environment(dictionaryProvider)
                 // Apply the chosen locale to the entire view tree so SwiftUI
                 // Text nodes use the right String Catalog translation.
                 .environment(\.locale, localizationStore.resolvedLocale)
@@ -62,12 +56,6 @@ struct NativReadApp: App {
                 // the device setting wins. The reader sets its own scheme while
                 // open (its theme system), this governs the library + chrome.
                 .preferredColorScheme(settingsStore.appAppearance.colorScheme)
-                .task {
-                    // Load dictionaries in the background; the launch splash
-                    // (when shown) waits on `isReady`, but this kicks off on
-                    // every launch regardless of the splash.
-                    await dictionaryProvider.prepare()
-                }
                 .onOpenURL { url in
                     _ = try? library.importBook(from: url)
                 }
@@ -136,11 +124,10 @@ struct NativReadApp: App {
         if arguments.contains("-seedSampleVocabulary") {
             store.addEntry(VocabularyEntry(
                 word: "lantern",
-                definition: "a portable case with transparent sides for "
-                    + "holding a light",
+                definition: "",
                 contextSentence: "She raised the lantern to the dark "
                     + "doorway.",
-                dictionarySource: "WordNet"
+                dictionarySource: "Apple Dictionary"
             ))
         }
     }
@@ -177,17 +164,16 @@ struct NativReadApp: App {
     }
 
     /// `-forceLanguage <code>` (en/es/de/hu) pins the app language for UI
-    /// tests without persisting it; subsequent launches revert to the stored
-    /// value. `-resetLanguage` is handled in `init()` via `resetPersisted()`.
+    /// tests without persisting it; subsequent launches revert to stored values.
+    /// `-resetLanguage` is handled in `init()` via `resetPersisted()`.
     private static func applyLanguageArgument(to store: LocalizationStore) {
         let arguments = ProcessInfo.processInfo.arguments
-        guard let flagIndex = arguments.firstIndex(of: "-forceLanguage"),
-              arguments.indices.contains(flagIndex + 1) else {
-            return
-        }
-        let code = arguments[flagIndex + 1]
-        if let language = AppLanguage(rawValue: code) {
-            store.overrideWithoutPersisting(language)
+        if let flagIndex = arguments.firstIndex(of: "-forceLanguage"),
+           arguments.indices.contains(flagIndex + 1) {
+            let code = arguments[flagIndex + 1]
+            if let language = AppLanguage(rawValue: code) {
+                store.overrideWithoutPersisting(language)
+            }
         }
     }
 }

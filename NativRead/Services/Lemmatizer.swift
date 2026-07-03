@@ -33,7 +33,39 @@ enum Lemmatizer {
 
         if let lemma = nlLemma(base) { add(lemma) }
         for candidate in suffixCandidates(base) { add(candidate) }
+        // British → American spelling. The bundled dictionaries index the
+        // American forms ("harbor", "color", "realize"), so a British-spelled
+        // selection ("harbour", "colour", "realise") otherwise misses and
+        // falls back to an English-only WordNet gloss. Americanize the base
+        // and every candidate found so far, so "harbours" → "harbor" too.
+        for form in [base] + out {
+            if let americanized = americanize(form) { add(americanized) }
+        }
         return out
+    }
+
+    /// Rewrites a British spelling to its American form, or nil when no rule
+    /// applies. Conservative: the length guard keeps short words ("hour",
+    /// "four", "rise") untouched, and these candidates are only tried after
+    /// the exact form misses, so a stray rewrite can't shadow a real word.
+    static func americanize(_ word: String) -> String? {
+        // Longest suffixes first so "-isation" wins over "-ise".
+        let rules: [(British: String, American: String)] = [
+            ("isations", "izations"), ("isation", "ization"),
+            ("ising", "izing"), ("ised", "ized"), ("ises", "izes"),
+            ("ysing", "yzing"), ("ysed", "yzed"), ("yse", "yze"),
+            ("ise", "ize"),
+            ("ogues", "ogs"), ("ogue", "og"),
+            ("ours", "ors"), ("our", "or"),
+            ("res", "ers"), ("re", "er"),
+        ]
+        for rule in rules where word.hasSuffix(rule.British) {
+            // Keep at least two leading letters so "re"/"ise"/"our" as whole
+            // words (or tiny ones like "ogre") are never rewritten.
+            guard word.count > rule.British.count + 1 else { continue }
+            return String(word.dropLast(rule.British.count)) + rule.American
+        }
+        return nil
     }
 
     /// Apple's on-device lemma for a single word, or nil when it adds nothing.

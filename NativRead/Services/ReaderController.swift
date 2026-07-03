@@ -281,6 +281,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         let zone = body["zone"] as? String
         let direction = body["direction"] as? String
         let scrollX = body["x"] as? Double
+        let scrollY = body["y"] as? Double
         let animate = body["animate"] as? Bool ?? false
 
         Task { @MainActor in
@@ -345,6 +346,20 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                             scroll.setContentOffset(target, animated: false)
                         }
                     } else {
+                        scroll.setContentOffset(target, animated: false)
+                    }
+                }
+            case "scrollV":
+                // Scroll-flow tap advance: glide the native scroll view
+                // vertically. Same ease-out curve as the paged turn so a
+                // tap-to-advance feels smooth, not the steppy JS smooth-scroll.
+                if let scrollY {
+                    let scroll = self.webView.scrollView
+                    let target = CGPoint(x: 0, y: scrollY)
+                    UIView.animate(
+                        withDuration: 0.34, delay: 0,
+                        options: [.curveEaseOut, .allowUserInteraction]
+                    ) {
                         scroll.setContentOffset(target, animated: false)
                     }
                 }
