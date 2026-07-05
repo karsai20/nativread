@@ -1,42 +1,35 @@
-## gstack (REQUIRED — global install)
+# NativRead (product: Quire)
 
-**Before doing ANY work, verify gstack is installed:**
+Calm, editorial EPUB (+PDF/TXT) reader for iOS 17+. SwiftUI + `@Observable`, Swift 5.9, only external package: ZIPFoundation. Flagship bets: free AI translation for non-English readers (backend: `../quire-translator`) and reading tools for the 50+ Hungarian persona.
+
+## Commands
 
 ```bash
-test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
+xcodegen generate   # after adding/removing files or editing project.yml
+xcodebuild test -project NativRead.xcodeproj -scheme NativRead \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
+`project.yml` is the source of truth — never hand-edit the `.xcodeproj`.
 
-> gstack is required for all AI-assisted work in this repo.
-> Install it:
-> ```bash
-> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-> cd ~/.claude/skills/gstack && ./setup --team
-> ```
-> Then restart your AI coding tool.
+## Architecture
 
-Do not skip skills, ignore gstack errors, or work around missing gstack.
+- `NativRead/{Models, Views, Services, EPUB, DesignSystem, Resources}` — organized by layer.
+- `DesignSystem/` (`BrandPalette`, `PaletteColors`, `Typography`, `Spacing`) — all colors/fonts/spacing come from these tokens; never hardcode in views.
+- Reader = per-book scoped WKWebView; EPUB HTML is sanitized (script strip + JS escaping) before injection. Keep that path intact for any new content injection.
 
-Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
-and /browse are available. Use /browse for all web browsing.
-Use ~/.claude/skills/gstack/... for gstack file paths (the global path).
+## Gotchas
 
-## Skill routing
+- **In-app language switch:** SwiftUI `\.locale` does NOT localize `Text`/`String(localized:)`. It works via the `Bundle.main` swizzle in `Services/BundleLanguage.swift` — route any new localization through it.
+- App is fully offline **except** the translator; translator requests are scoped by install id.
+- Define/dictionary has a separate target-language setting from the UI language.
 
-When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+## Design direction
 
-Key routing rules:
-- Product ideas/brainstorming → invoke /office-hours
-- Strategy/scope → invoke /plan-ceo-review
-- Architecture → invoke /plan-eng-review
-- Design system/plan review → invoke /design-consultation or /plan-design-review
-- Full review pipeline → invoke /autoplan
-- Bugs/errors → invoke /investigate
-- QA/testing site behavior → invoke /qa or /qa-only
-- Code review/diff check → invoke /review
-- Visual polish → invoke /design-review
-- Ship/deploy/PR → invoke /ship or /land-and-deploy
-- Save progress → invoke /context-save
-- Resume context → invoke /context-restore
-- Author a backlog-ready spec/issue → invoke /spec
+Editorial / literary-modern: warm paper + russet accents. The earlier dark-academia direction is retired — don't reintroduce it. Design docs and competitor research: `docs/`. Deferred work: `TODOS.md`.
+
+## gstack (REQUIRED — team enforcement)
+
+Verify before any work: `test -d ~/.claude/skills/gstack/bin && echo GSTACK_OK || echo GSTACK_MISSING`.
+If missing, STOP and tell the user to install:
+`git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack && cd ~/.claude/skills/gstack && ./setup --team`, then restart the tool. Do not skip skills or work around missing gstack. Skill routing lives in `~/.claude/CLAUDE.md`.
