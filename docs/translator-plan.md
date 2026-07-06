@@ -331,7 +331,7 @@ Synthesized from this review's findings. P1 blocks ship; P2 same branch; P3 foll
   - Surfaced by: Design P1 — 5.2 survival artifact
 - [ ] **T24 (P1, ~1d / ~2h)** — ios — Translator screens on BrandPalette/Typography/Spacing + interaction state table (all states user-visible, paid-but-undelivered non-silent) + 50+ a11y floor (Dynamic Type, 44pt, VoiceOver, contrast)
   - Surfaced by: Design P2/P4/P5/P6 — editorial fit, full state coverage, accessibility
-- [ ] **T25 (P1, ~0.5d / ~1h)** — ios+backend — EU AI Act Art 50 transparency (applies 2026-08-02): machine-readable "AI-generated (machine translation)" marker in the delivered translated EPUB's OPF metadata, preserved on re-export; explicit "AI-translated" label replacing the bare "(Hungarian preview)" wording
+- [~] **T25 (P1, ~0.5d / ~1h)** — ios+backend — EU AI Act Art 50 transparency (applies 2026-08-02). **iOS visible label: DONE** 2026-07-06 — imported translations read "(AI Hungarian preview/translation)" + "AI · HU" library badge. **Remaining (backend):** machine-readable "AI-generated (machine translation)" marker in the delivered translated EPUB's OPF metadata, preserved on re-export.
   - Surfaced by: legal-posture.md §EU AI Act (2026-07-06 compliance pass); pairs with T16's disclosure copy
 
 ## Worktree parallelization

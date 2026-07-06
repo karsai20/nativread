@@ -66,7 +66,7 @@ final class LibraryStore {
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (Hungarian preview)",
+            titleOverride: "\(originalBook.title) (AI Hungarian preview)",
             variant: .translationPreview,
             sourceBookID: originalBook.id,
             translatedFraction: translatedFraction
@@ -80,7 +80,7 @@ final class LibraryStore {
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (Hungarian)",
+            titleOverride: "\(originalBook.title) (AI Hungarian translation)",
             variant: .fullTranslation,
             sourceBookID: originalBook.id,
             translatedFraction: 1

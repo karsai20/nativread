@@ -80,14 +80,16 @@ enum BookVariant: String, Codable, Equatable {
     case translationPreview
     case fullTranslation
 
+    /// The "AI" prefix is a required transparency marker (EU AI Act Art 50):
+    /// translated output must be visibly identifiable as AI-generated.
     var badgeText: String? {
         switch self {
         case .original:
             return nil
         case .translationPreview:
-            return "HU PREVIEW"
+            return "AI · HU PREVIEW"
         case .fullTranslation:
-            return "HU"
+            return "AI · HU"
         }
     }
 }

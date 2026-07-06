@@ -57,7 +57,7 @@ final class LibraryStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(store.books.count, 2)
-        XCTAssertEqual(preview.title, "Imported Title (Hungarian preview)")
+        XCTAssertEqual(preview.title, "Imported Title (AI Hungarian preview)")
         XCTAssertEqual(preview.variant, .translationPreview)
         XCTAssertEqual(preview.sourceBookID, original.id)
         XCTAssertEqual(preview.translatedFraction, 0.01)
@@ -81,12 +81,12 @@ final class LibraryStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(store.books.count, 2)
-        XCTAssertEqual(translated.title, "Imported Title (Hungarian)")
+        XCTAssertEqual(translated.title, "Imported Title (AI Hungarian translation)")
         XCTAssertEqual(translated.variant, .fullTranslation)
         XCTAssertEqual(translated.sourceBookID, original.id)
         XCTAssertEqual(translated.translatedFraction, 1)
         XCTAssertFalse(translated.isTranslatableSource)
-        XCTAssertEqual(translated.variant.badgeText, "HU")
+        XCTAssertEqual(translated.variant.badgeText, "AI · HU")
     }
 
     func testLibraryPersistsAcrossInstances() throws {
