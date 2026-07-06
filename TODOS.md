@@ -3,6 +3,24 @@
 Deferred work, captured so vague intentions don't get lost.
 Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/projects/karsai20-quire/).
 
+## Format support — MOBI/AZW3 (decided 2026-07-06, next build)
+
+- [ ] **Pure-Swift AZW3 (KF8) → EPUB import.** Decision: build a native KF8
+  extractor (no C dependency; keeps the "only ZIPFoundation" rule and avoids
+  libmobi's LGPL-3.0, which is a licensing risk for a paid App Store app).
+  AZW3/KF8 is essentially EPUB3 content in a PalmDB container: parse PalmDB
+  records → MOBI/EXTH header → PalmDoc-decompress the text → reassemble via the
+  FDST + skeleton/fragment tables into XHTML → extract image resources → write
+  an EPUB, then hand it to the existing `importEPUB` (reuses sanitizer/spine/
+  cover). Wire `mobi`/`azw3` into `LibraryStore.importBook`'s extension switch
+  and `BookFormat`. Legacy pre-2011 `.mobi` (PalmDoc/HUFF) is out of first
+  scope — modern Kindle/romance files are AZW3. **Priority:** P1 (feeds the
+  translation funnel: Kindle-owned romance books become importable).
+  **BLOCKER:** needs a real DRM-free `.azw3` fixture to build and verify
+  against (no local converter/kindlegen/Calibre, and Standard Ebooks' direct
+  download URL is gated). Drop a free DRM-free `.azw3` into
+  `NativRead/Resources/Fixtures/` (or fetch one via `/browse`) before the build.
+
 ## Translator MVP — deferred from /review 2026-07-05
 
 - [ ] **Streamed upload/download for large EPUBs.** `TranslationBackendClient`
