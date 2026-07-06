@@ -22,7 +22,6 @@ struct DefineView: View {
 
     /// Flips to true once the reader taps Save in this session.
     @State private var didSave = false
-    @State private var showDictionaryManager = false
 
     var body: some View {
         NavigationStack {
@@ -41,34 +40,10 @@ struct DefineView: View {
                         Button("Done") { dismiss() }
                             .tint(palette.accent)
                     }
-                    ToolbarItem(placement: .bottomBar) {
-                        Button {
-                            showDictionaryManager = true
-                        } label: {
-                            Label(
-                                "Dictionaries",
-                                systemImage: "character.book.closed"
-                            )
-                        }
-                        .tint(palette.accent)
-                    }
                 }
         }
         .presentationDetents([.medium, .large])
         .accessibilityIdentifier("define.sheet")
-        .sheet(isPresented: $showDictionaryManager) {
-            NavigationStack {
-                SystemDictionaryController(term: Self.dictionaryManagementTerm)
-                    .navigationTitle("Dictionaries")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showDictionaryManager = false }
-                                .tint(palette.accent)
-                        }
-                    }
-            }
-        }
     }
 
     // MARK: - Save
@@ -95,17 +70,13 @@ struct DefineView: View {
         onSave("", VocabularyEntry.appleDictionarySource)
         didSave = true
     }
-
-    /// No public iOS API opens Settings > General > Dictionary directly. A
-    /// guaranteed-missing lookup surfaces Apple's own Manage Dictionaries path
-    /// inside the reference-library controller without using private URLs.
-    private static let dictionaryManagementTerm =
-        "nativread_dictionary_settings_probe"
 }
 
 /// Thin SwiftUI bridge for `UIReferenceLibraryViewController`, the same system
-/// dictionary surface that exposes the installed Apple dictionaries and its
-/// Manage Dictionaries entry.
+/// dictionary surface that exposes the installed Apple dictionaries. When the
+/// term has no installed dictionary match, the controller shows its own "No
+/// definition found" screen with the built-in **Manage** button, so no custom
+/// dictionary-management path is needed.
 private struct SystemDictionaryController: UIViewControllerRepresentable {
     let term: String
 

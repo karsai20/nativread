@@ -34,11 +34,17 @@ Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/proj
   `<UUID>.epub` is ever sent) but escape/hardcode it before any caller passes a
   user-named file. **P3.**
 
-## Deferred features
+## Post-release roadmap
 
-- [ ] **Target-language read-aloud (TTS).** On-device Hungarian voice
-  (`AVSpeechSynthesizer`) reads the translated book aloud. Strong delight for the
-  50+ persona who may prefer listening. Deferred from the CEO review (not first round).
+- [ ] **Target-language read-aloud (TTS) — the "audiobook" play.** On-device
+  Hungarian voice (`AVSpeechSynthesizer`) reads the *translated* book aloud.
+  This is the strategically right audio direction (not a generic MP3/m4b
+  player, which is a different product with no translation synergy): the chain
+  English text → Hungarian translation → Hungarian audio runs on Quire's own
+  translation engine, so it delivers a Hungarian audio version of an
+  untranslated English book that no competitor can. Strong delight for the 50+
+  persona who prefers listening. **Sequencing:** post-launch, once the core
+  translate-and-read loop is proven. Deferred from CEO review (not first round).
 
 ## Deferred design debt
 
