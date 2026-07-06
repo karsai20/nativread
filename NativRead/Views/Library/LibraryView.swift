@@ -76,6 +76,8 @@ struct LibraryView: View {
             isPresented: $isImporterPresented,
             allowedContentTypes: [
                 UTType(filenameExtension: "epub") ?? .data,
+                UTType(filenameExtension: "azw3") ?? .data,
+                UTType(filenameExtension: "mobi") ?? .data,
                 .pdf,
                 .plainText
             ],

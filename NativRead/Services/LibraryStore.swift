@@ -53,6 +53,7 @@ final class LibraryStore {
         switch sourceURL.pathExtension.lowercased() {
         case "pdf": return try importPDF(from: sourceURL)
         case "txt": return try importText(from: sourceURL)
+        case "mobi", "azw", "azw3", "prc": return try importMOBI(from: sourceURL)
         default: return try importEPUB(from: sourceURL)
         }
     }
@@ -142,6 +143,19 @@ final class LibraryStore {
             )
             throw error
         }
+    }
+
+    /// Converts a MOBI/AZW3 (KF8) book to an EPUB in a temp file, then hands
+    /// it to the existing EPUB pipeline. The stored book is a real EPUB, so
+    /// `format` stays `.epub` and the reflowable reader opens it directly.
+    private func importMOBI(from sourceURL: URL) throws -> Book {
+        let needsScope = sourceURL.startAccessingSecurityScopedResource()
+        defer { if needsScope { sourceURL.stopAccessingSecurityScopedResource() } }
+        let tempEPUB = fileManager.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).epub")
+        defer { try? fileManager.removeItem(at: tempEPUB) }
+        try KF8Converter.convertToEPUB(source: sourceURL, destination: tempEPUB)
+        return try importEPUB(from: tempEPUB)
     }
 
     /// Copies the EPUB in, unpacks it, reads metadata and cover.
