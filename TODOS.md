@@ -3,23 +3,18 @@
 Deferred work, captured so vague intentions don't get lost.
 Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/projects/karsai20-quire/).
 
-## Format support — MOBI/AZW3 (decided 2026-07-06, next build)
+## Format support — MOBI/AZW3
 
-- [ ] **Pure-Swift AZW3 (KF8) → EPUB import.** Decision: build a native KF8
-  extractor (no C dependency; keeps the "only ZIPFoundation" rule and avoids
-  libmobi's LGPL-3.0, which is a licensing risk for a paid App Store app).
-  AZW3/KF8 is essentially EPUB3 content in a PalmDB container: parse PalmDB
-  records → MOBI/EXTH header → PalmDoc-decompress the text → reassemble via the
-  FDST + skeleton/fragment tables into XHTML → extract image resources → write
-  an EPUB, then hand it to the existing `importEPUB` (reuses sanitizer/spine/
-  cover). Wire `mobi`/`azw3` into `LibraryStore.importBook`'s extension switch
-  and `BookFormat`. Legacy pre-2011 `.mobi` (PalmDoc/HUFF) is out of first
-  scope — modern Kindle/romance files are AZW3. **Priority:** P1 (feeds the
-  translation funnel: Kindle-owned romance books become importable).
-  **BLOCKER:** needs a real DRM-free `.azw3` fixture to build and verify
-  against (no local converter/kindlegen/Calibre, and Standard Ebooks' direct
-  download URL is gated). Drop a free DRM-free `.azw3` into
-  `NativRead/Resources/Fixtures/` (or fetch one via `/browse`) before the build.
+- [x] **Pure-Swift AZW3 (KF8) → EPUB import.** DONE 2026-07-06 (commit adds
+  `NativRead/EPUB/{PalmDatabase,MOBIHeader,PalmDocDecompressor,MOBIIndex,
+  KF8Converter,KF8EPUBWriter}.swift`; `mobi/azw/azw3/prc` routed through
+  `LibraryStore.importMOBI` → `importEPUB`). Verified end-to-end against a real
+  DRM-free fixture (Alice/Tenniel). Native converter, no C dep, no LGPL.
+- [ ] **Legacy `.mobi` (HUFF/CDIC) decompression.** The current converter
+  handles KF8/PalmDOC (all modern AZW3 + most .mobi). Pre-2011 HUFF/CDIC-
+  compressed .mobi files are not yet supported (the PalmDoc path only handles
+  compression types 1/2, not 17480). Add a HUFF/CDIC decoder if such files show
+  up in practice. **Priority:** P3 (rare for the target audience).
 
 ## Translator MVP — deferred from /review 2026-07-05
 
