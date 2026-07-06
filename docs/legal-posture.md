@@ -1,6 +1,7 @@
 # Legal & data posture — NativRead translator
 
 Status: REVIEWED 2026-06-29 — **PASS WITH CONDITIONS** (legal-reviewer agent).
+EU AI Act section added 2026-07-06 (/ship compliance pass).
 **Not formal legal advice — get a qualified attorney's sign-off before
 commercial launch.**
 
@@ -123,6 +124,50 @@ cross-provider linking unreliable).
 - No DeepSeek direct API (China storage + default training); Western
   training-excluded provider instead.
 
+## EU AI Act (Regulation (EU) 2024/1689) — added 2026-07-06
+
+**Classification.** The translator is an AI system the operator places on the EU
+market (provider role). The underlying LLM is a third-party GPAI model used via
+API without fine-tuning → the GPAI-model obligations (Chapter V) sit with the
+model provider (Google/OpenAI/Anthropic), not with us. Literary machine
+translation is not a prohibited practice (Art 5) and is not Annex III high-risk
+→ **limited-risk system: only the Art 50 transparency obligations apply.**
+They apply from **2 August 2026** — before our commercial launch window, so
+treat them as launch gates alongside the MUST-FIX list.
+
+**Obligations → concrete actions:**
+
+1. **Art 50(2) — machine-readable marking of AI-generated text.** Translated
+   output must be detectable as artificially generated in a machine-readable
+   format. Action: embed an "AI-generated (machine translation)" marker in the
+   translated EPUB's OPF metadata at delivery, and preserve it on re-export
+   from the app (share sheet / Send to Kindle). A translation of a user's own
+   text arguably falls near the Art 50(2) assistive-edit carve-out, but the
+   marker costs one `<meta>` element — take the conservative path.
+2. **Art 50(1)-adjacent visible disclosure.** The pre-translation "translated
+   with AI" notice (MUST-FIX #4) plus a persistent, explicit **"AI-translated"**
+   label on translated books. The current title suffix ("Hungarian preview")
+   marks *translated*, not *AI* — one copy pass fixes it. Same wording ships in
+   the reader surface and the book detail.
+3. **Art 4 — AI literacy.** Solo operator; noted, nothing to build.
+4. **Users have no deployer duties** for private reading (no Art 50(4)
+   "inform the public" scenario). Nothing to surface to them beyond #2.
+
+**Penalty context:** transparency breaches carry fines up to €15M / 3% of
+turnover — disproportionate exposure for a two-line metadata fix. Comply even
+in the local-backend MVP so the public launch inherits it.
+
+## Open-source & content licensing — added 2026-07-06
+
+- **Bundled GPL dictionaries: RESOLVED by removal** (2026-07-06 branch). The
+  FreeDict/StarDict bundles are gone; Define uses Apple's built-in
+  `UIReferenceLibraryViewController`. No GPL code or data ships in the binary.
+- **ZIPFoundation (MIT)** — the only external package. MIT requires the license
+  text to accompany the distribution: add an in-app acknowledgements/licenses
+  entry (Settings → About). Cheap, standard, do before App Store submission.
+- **Test fixtures** (Standard Ebooks Alice/Tenniel AZW3) are public-domain and
+  test-target-only; they do not ship to users. No action.
+
 ## MUST-FIX before launch (hard gates — from legal review)
 
 These are launch blockers. The starred ones (★) are what App reviewers actually
@@ -161,6 +206,10 @@ see and are the make-or-break for getting on the store.
 8. **Server-side StoreKit 2 transaction verification before granting the
    entitlement** (never client-trusted); dedupe on transaction id; show the
    length tier + price + exactly what is translated before purchase.
+9. **EU AI Act Art 50 transparency (applies 2026-08-02):** machine-readable
+   AI-generated marker in every delivered/exported translated EPUB + explicit
+   "AI-translated" user-facing label. See the EU AI Act section above; tracked
+   as plan task T25 and in `TODOS.md` → Legal & compliance.
 
 ## SHOULD-FIX
 

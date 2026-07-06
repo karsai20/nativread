@@ -3,13 +3,29 @@
 Deferred work, captured so vague intentions don't get lost.
 Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/projects/karsai20-quire/).
 
+## Legal & compliance (EU AI Act + licensing)
+
+Source: /ship 2026-07-06 compliance pass. GDPR, copyright, and App Store
+posture live in `docs/legal-posture.md`; these are the buildable gaps.
+
+- [ ] **EU AI Act Art 50(2) — machine-readable AI marking.** Embed an
+  "AI-generated (machine translation)" marker in the translated EPUB's OPF
+  metadata at delivery, preserved on re-export (share sheet / Send to Kindle).
+  The transparency chapter applies from **2026-08-02**. Plan task T25.
+  **Priority:** P1 (before public launch / 2026-08-02).
+- [ ] **Explicit "AI-translated" user-facing label.** The current
+  "(Hungarian preview)" title suffix marks *translated*, not *AI*. One copy
+  pass across reader surface + book detail; pairs with the pre-translation
+  disclosure (legal MUST-FIX #4 / plan T16). **Priority:** P1 (with T16/T25).
+- [ ] **OSS acknowledgements screen.** ZIPFoundation is MIT — the license text
+  must accompany the distribution. Add Settings → About → Licenses entry.
+  **Priority:** P2 (before App Store submission).
+- [ ] **Counsel sign-off before commercial launch.** legal-posture.md is agent
+  review, not legal advice; pressure-test the personal-use-derivative position
+  (operator-stores-the-copy fact pattern). **Priority:** P1 (external gate).
+
 ## Format support — MOBI/AZW3
 
-- [x] **Pure-Swift AZW3 (KF8) → EPUB import.** DONE 2026-07-06 (commit adds
-  `NativRead/EPUB/{PalmDatabase,MOBIHeader,PalmDocDecompressor,MOBIIndex,
-  KF8Converter,KF8EPUBWriter}.swift`; `mobi/azw/azw3/prc` routed through
-  `LibraryStore.importMOBI` → `importEPUB`). Verified end-to-end against a real
-  DRM-free fixture (Alice/Tenniel). Native converter, no C dep, no LGPL.
 - [ ] **Legacy `.mobi` (HUFF/CDIC) decompression.** The current converter
   handles KF8/PalmDOC (all modern AZW3 + most .mobi). Pre-2011 HUFF/CDIC-
   compressed .mobi files are not yet supported (the PalmDoc path only handles
@@ -143,3 +159,16 @@ common import paths are covered; these are edge-case robustness for TXT.
   EN→ES / EN→DE dictionaries (the two TODOs above), (3) add `.es, .de` back to
   `pickable` and update `LocalizationStoreTests.testPickableIsFullyTranslatedLanguagesOnly`
   + `LanguageSelectionUITests`.
+
+## Completed
+
+- [x] **Pure-Swift AZW3 (KF8) → EPUB import.** `NativRead/EPUB/{PalmDatabase,
+  MOBIHeader,PalmDocDecompressor,MOBIIndex,KF8Converter,KF8EPUBWriter}.swift`;
+  `mobi/azw/azw3/prc` routed through `LibraryStore.importMOBI` → `importEPUB`.
+  Verified end-to-end against a real DRM-free fixture (Alice/Tenniel). Native
+  converter, no C dep, no LGPL. **Completed:** translator-mvp branch (2026-07-06).
+- [x] **GPL dictionary blocker resolved by removal.** Bundled FreeDict/StarDict
+  data deleted; Define uses Apple's built-in `UIReferenceLibraryViewController`.
+  No GPL code or data ships in the binary. (Supersedes the licensing risk flagged
+  2026-06-29; the EN→ES/EN→DE bundling TODOs above remain for the picker work.)
+  **Completed:** translator-mvp branch (2026-07-06).
