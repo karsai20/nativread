@@ -2,8 +2,15 @@ import Foundation
 
 /// Big-endian integer reads at an absolute offset from a Data's own
 /// `startIndex`, so they work on both a whole file and a sliced record.
+/// Out-of-range reads return 0 (and `magic` returns "") instead of trapping:
+/// every offset here ultimately comes from an untrusted file, and a short
+/// record must degrade to an import failure downstream, never a crash —
+/// the same posture as `PalmDatabase.record(_:)`.
 extension Data {
-    func be8(_ offset: Int) -> Int { Int(self[startIndex + offset]) }
+    func be8(_ offset: Int) -> Int {
+        guard offset >= 0, offset < count else { return 0 }
+        return Int(self[startIndex + offset])
+    }
     func be16(_ offset: Int) -> Int { be8(offset) << 8 | be8(offset + 1) }
     func be32(_ offset: Int) -> Int {
         be8(offset) << 24 | be8(offset + 1) << 16
@@ -11,7 +18,8 @@ extension Data {
     }
     /// ASCII magic string of `length` bytes at `offset`.
     func magic(_ offset: Int, _ length: Int = 4) -> String {
-        String(
+        guard offset >= 0, length >= 0, offset + length <= count else { return "" }
+        return String(
             decoding: subdata(in: startIndex + offset ..< startIndex + offset + length),
             as: UTF8.self
         )
@@ -43,8 +51,13 @@ struct PalmDatabase {
 
     var recordCount: Int { offsets.count - 1 }
 
+    /// Slices record `index`, or returns empty `Data` when the index is out of
+    /// range. Header-supplied record numbers (FDST/skeleton/fragment) come from
+    /// untrusted files; an out-of-range subscript would trap, so callers get an
+    /// empty record instead and degrade to an import failure downstream.
     func record(_ index: Int) -> Data {
-        data.subdata(in: offsets[index] ..< offsets[index + 1])
+        guard index >= 0, index < recordCount else { return Data() }
+        return data.subdata(in: offsets[index] ..< offsets[index + 1])
     }
 
     init(data: Data) throws {

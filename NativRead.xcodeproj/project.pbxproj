@@ -34,6 +34,7 @@
 		2AEF6D1E8108356C5477D4CE /* TextImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F337CA2782389E1AE635DB1D /* TextImporter.swift */; };
 		2C11EFF41594565FEDD1A6C3 /* LaunchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4379E8B8D131CE1A4389CCF /* LaunchView.swift */; };
 		2DBC689041A61B1BA642D2DE /* VocabularyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA766A6D57F15B8AECF64628 /* VocabularyStore.swift */; };
+		2E0B1C35D357EE6D005AD36F /* KF8RejectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEEF15C907BAC70AC799C954 /* KF8RejectionTests.swift */; };
 		2FCC253188B79CF962509D48 /* Book.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6BBC89BA3ADC361093487B /* Book.swift */; };
 		31CEA54782423515F6B0D39B /* KF8Converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63A0A8D0BE67EF9C664F309 /* KF8Converter.swift */; };
 		3695F41543F83549ECF3DA10 /* alice.azw3 in Resources */ = {isa = PBXBuildFile; fileRef = 44E05F3B910691CBE0A38D01 /* alice.azw3 */; };
@@ -227,6 +228,7 @@
 		D923E918FA4372E29AEFB313 /* Spacing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spacing.swift; sourceTree = "<group>"; };
 		DAD403EF27E26A069ABEC893 /* VocabularyExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyExportTests.swift; sourceTree = "<group>"; };
 		DE0943165D5C8E74AC6952F7 /* PDFKitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFKitView.swift; sourceTree = "<group>"; };
+		DEEF15C907BAC70AC799C954 /* KF8RejectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KF8RejectionTests.swift; sourceTree = "<group>"; };
 		E123D7ED2F5FB1DBB2C92A78 /* CrimsonPro-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CrimsonPro-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		E3A1D6B115206633B1644A47 /* NativReadApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativReadApp.swift; sourceTree = "<group>"; };
 		E540AC33E0FFF34697C3C408 /* ReaderSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderSettings.swift; sourceTree = "<group>"; };
@@ -274,6 +276,7 @@
 				49D3220F69D9F23369A91546 /* HighlightExportTests.swift */,
 				1931BDF5DB21F97682DA0864 /* KF8ComponentTests.swift */,
 				6864F0AF543B427F26EFE3BC /* KF8ConverterTests.swift */,
+				DEEF15C907BAC70AC799C954 /* KF8RejectionTests.swift */,
 				C5CB2E6F4600FB25D00FBCF1 /* LibraryStoreTests.swift */,
 				C0B9CA7318D0116BA297D2DC /* LocalizationStoreTests.swift */,
 				FFA9C96ACF60C48577463123 /* ModelTests.swift */,
@@ -776,6 +779,7 @@
 				B1B6259AB0BD667224F926F3 /* HighlightExportTests.swift in Sources */,
 				D793B2940ECFC0B59BC26492 /* KF8ComponentTests.swift in Sources */,
 				4C65D3C1288338074B8C4DBB /* KF8ConverterTests.swift in Sources */,
+				2E0B1C35D357EE6D005AD36F /* KF8RejectionTests.swift in Sources */,
 				5E82A67F9F5095E254320F72 /* LibraryStoreTests.swift in Sources */,
 				1C6AC88471BAC1C100D146AE /* LocalizationStoreTests.swift in Sources */,
 				DA3F1CFBC40AD63F710CBE08 /* ModelTests.swift in Sources */,
@@ -870,14 +874,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				INFOPLIST_FILE = NativRead/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.1;
+				MARKETING_VERSION = 3.2;
 				OTHER_LDFLAGS = "-lz -lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.nativread;
 				PRODUCT_NAME = NativRead;
@@ -893,14 +897,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				INFOPLIST_FILE = NativRead/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.1;
+				MARKETING_VERSION = 3.2;
 				OTHER_LDFLAGS = "-lz -lsqlite3";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karsai.nativread;
 				PRODUCT_NAME = NativRead;

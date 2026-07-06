@@ -23,6 +23,10 @@ enum MOBIIndex {
         var entries: [MOBIIndexEntry] = []
         for r in 0 ..< dataRecordCount {
             let data = record(headerIndex + 1 + r)
+            // dataRecordCount is untrusted; past the last real record the
+            // supplier returns empty Data forever, so stop instead of looping
+            // over a header that claims billions of records.
+            guard !data.isEmpty else { break }
             guard data.count >= 0x1C, data.magic(0) == "INDX" else { continue }
             let idxtPos = data.be32(0x14)
             let entryCount = data.be32(0x18)
@@ -133,6 +137,9 @@ enum MOBIIndex {
                 var consumedTotal = 0
                 while consumedTotal < byteBudget {
                     let (consumed, v) = variableWidthValue(data, dataStart, end)
+                    // A malformed budget that outruns the payload yields
+                    // consumed == 0 forever; bail instead of spinning.
+                    guard consumed > 0 else { break }
                     dataStart += consumed
                     consumedTotal += consumed
                     values.append(v)

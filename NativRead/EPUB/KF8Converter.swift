@@ -41,8 +41,11 @@ enum KF8Converter {
         }
 
         // 1. Decompress + concatenate the text records into the raw markup blob.
+        // textRecordCount is untrusted; clamp to the records that exist and
+        // tolerate 0 (an empty blob falls through to the no-readable-text throw).
         var raw = Data()
-        for i in 1 ... mobi.textRecordCount where i < db.recordCount {
+        let lastTextRecord = min(mobi.textRecordCount, db.recordCount - 1)
+        for i in stride(from: 1, through: lastTextRecord, by: 1) {
             let trimmed = mobi.trimTrailingData(db.record(i))
             raw.append(PalmDocDecompressor.decompress(trimmed))
         }
@@ -55,6 +58,11 @@ enum KF8Converter {
         let fragments = MOBIIndex.parse(headerIndex: mobi.fragmentIndex) { db.record($0) }
         let flow0 = flows.first ?? Data()
         let rawParts = reassemble(flow0: flow0, skeleton: skeleton, fragments: fragments)
+        // Bogus header record indices yield empty skeleton/fragment tables and
+        // no parts; surface an import failure instead of a blank, unopenable book.
+        guard !rawParts.isEmpty else {
+            throw MOBIError.unsupported("the book has no readable text")
+        }
 
         // 4. Collect image resources and non-text flows (CSS/SVG).
         let images = collectImages(db: db, firstImageIndex: mobi.firstImageIndex)
@@ -233,10 +241,16 @@ enum KF8Converter {
     private static let base32Alphabet = Array("0123456789ABCDEFGHIJKLMNOPQRSTUV")
 
     private static func base32(_ string: String) -> Int {
+        // The digit string comes from untrusted book markup; a long fake FID
+        // must degrade to 0 (an unresolvable reference), never overflow-trap.
         var value = 0
         for character in string.uppercased() {
             guard let digit = base32Alphabet.firstIndex(of: character) else { continue }
-            value = value * 32 + digit
+            let (shifted, overflow1) = value.multipliedReportingOverflow(by: 32)
+            guard !overflow1 else { return 0 }
+            let (sum, overflow2) = shifted.addingReportingOverflow(digit)
+            guard !overflow2 else { return 0 }
+            value = sum
         }
         return value
     }
