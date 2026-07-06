@@ -77,6 +77,26 @@ final class TranslationBackendClientTests: XCTestCase {
 
     // MARK: - waitUntilDone polling
 
+    func testStartThrowsWhenBackendReturnsNotOK() async {
+        // HTTP 200 but {"ok":false} must fail fast, not silently proceed to poll.
+        StubURLProtocol.enqueue(200, #"{"ok":false}"#)
+        do {
+            try await makeClient().start(jobID: "j", sample: false)
+            XCTFail("expected .server rejection")
+        } catch let error as TranslationBackendClient.ClientError {
+            guard case .server = error else {
+                return XCTFail("unexpected ClientError: \(error)")
+            }
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
+    func testStartSucceedsWhenBackendReturnsOK() async throws {
+        StubURLProtocol.enqueue(200, #"{"ok":true}"#)
+        try await makeClient().start(jobID: "j", sample: false)
+    }
+
     func testWaitUntilDoneReturnsOnDone() async throws {
         StubURLProtocol.enqueue(200, #"{"id":"j","status":"translating"}"#)
         StubURLProtocol.enqueue(200, #"{"id":"j","status":"done"}"#)

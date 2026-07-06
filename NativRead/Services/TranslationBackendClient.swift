@@ -85,7 +85,10 @@ struct TranslationBackendClient: Sendable {
             withJSONObject: ["id": jobID, "sample": sample]
         )
         let (data, response) = try await session.data(for: request)
-        _ = try decode(StartResponse.self, from: data, response: response)
+        let start = try decode(StartResponse.self, from: data, response: response)
+        guard start.ok else {
+            throw ClientError.server("The translator backend rejected the job.")
+        }
     }
 
     func status(jobID: String) async throws -> StatusResponse {
