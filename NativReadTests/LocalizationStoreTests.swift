@@ -2,7 +2,7 @@ import XCTest
 @testable import NativRead
 
 /// Covers `LocalizationStore` persistence, locale derivation, and the
-/// language → `BundledDictionary` mapping used by `DictionaryProvider`.
+/// picker's supported-language set.
 final class LocalizationStoreTests: XCTestCase {
 
     private var suiteName: String!
@@ -151,37 +151,5 @@ final class LocalizationStoreTests: XCTestCase {
         // es/de remain valid, persistable enum cases even though unlisted.
         XCTAssertNotNil(AppLanguage(rawValue: "es"))
         XCTAssertNotNil(AppLanguage(rawValue: "de"))
-    }
-
-    // MARK: - Language → BundledDictionary mapping
-
-    func testEnglishMapsToWordNetOnly() {
-        let dicts = BundledDictionary.bundled(for: .en)
-        XCTAssertEqual(dicts, [.wordnet])
-    }
-
-    func testHungarianMapsToEnhuFirst() {
-        let dicts = BundledDictionary.bundled(for: .hu)
-        XCTAssertEqual(dicts.first, .enhu)
-        XCTAssertTrue(dicts.contains(.wordnet))
-    }
-
-    func testSpanishMapsToEnesFirst() {
-        let dicts = BundledDictionary.bundled(for: .es)
-        XCTAssertEqual(dicts.first, .enes)
-        XCTAssertTrue(dicts.contains(.wordnet))
-    }
-
-    func testGermanMapsToEndeFirst() {
-        let dicts = BundledDictionary.bundled(for: .de)
-        XCTAssertEqual(dicts.first, .ende)
-        XCTAssertTrue(dicts.contains(.wordnet))
-    }
-
-    func testSystemMapsToWordNetOnly() {
-        // .system without a device language override defaults to English.
-        // We can only test the general structure — device locale is unknown.
-        let dicts = BundledDictionary.bundled(for: .system)
-        XCTAssertTrue(dicts.contains(.wordnet))
     }
 }

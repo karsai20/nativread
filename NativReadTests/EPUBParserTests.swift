@@ -166,4 +166,107 @@ final class EPUBParserTests: XCTestCase {
         // Must not throw or crash on unreadable input.
         EPUBParser.sanitizeScripts(in: [missing])
     }
+
+    func testSanitizeScriptsHandlesUTF16SpineFiles() throws {
+        // A BOM'd UTF-16 chapter is valid EPUB content WKWebView renders;
+        // it must be sanitized, not skipped as non-UTF-8.
+        let chapter = tempDirectory.appendingPathComponent("utf16.xhtml")
+        try """
+        <html><body><p>Szia</p>\
+        <script>fetch("file:///etc/passwd")</script></body></html>
+        """.write(to: chapter, atomically: true, encoding: .utf16)
+
+        EPUBParser.sanitizeScripts(in: [chapter])
+
+        var encoding = String.Encoding.utf8
+        let result = try String(contentsOf: chapter, usedEncoding: &encoding)
+        XCTAssertFalse(result.lowercased().contains("<script"))
+        XCTAssertTrue(result.contains("<p>Szia</p>"))
+    }
+
+    // MARK: - Network-supplied HTML hardening
+
+    func testStripScriptsRemovesInlineEventHandlers() {
+        let html = """
+        <body>\
+        <img src="c.png" onload="steal()">\
+        <p onclick='alert(1)'>Tap</p>\
+        <div onmouseover=go>Hover</div>\
+        </body>
+        """
+        let cleaned = EPUBParser.stripScripts(from: html)
+        XCTAssertFalse(cleaned.lowercased().contains("onload"))
+        XCTAssertFalse(cleaned.lowercased().contains("onclick"))
+        XCTAssertFalse(cleaned.lowercased().contains("onmouseover"))
+        XCTAssertFalse(cleaned.contains("steal()"))
+        XCTAssertFalse(cleaned.contains("alert(1)"))
+        // Non-handler content survives.
+        XCTAssertTrue(cleaned.contains("<p"))
+        XCTAssertTrue(cleaned.contains("Tap"))
+        XCTAssertTrue(cleaned.contains("src=\"c.png\""))
+    }
+
+    func testStripScriptsNeutralizesJavascriptURIs() {
+        let html = """
+        <a href="javascript:steal()">x</a>\
+        <a href="JaVaScRiPt: alert(1)">y</a>\
+        <img src='data:text/html,<b>z</b>'>
+        """
+        let cleaned = EPUBParser.stripScripts(from: html).lowercased()
+        XCTAssertFalse(cleaned.contains("javascript:"))
+        XCTAssertFalse(cleaned.contains("data:text/html"))
+        XCTAssertFalse(cleaned.contains("steal()"))
+        XCTAssertFalse(cleaned.contains("alert(1)"))
+    }
+
+    func testStripScriptsNeutralizesEntityEncodedJavascriptURIs() {
+        let html = """
+        <a href="java&#x73;cript:alert(1)">hex s</a>\
+        <a href="javascript&#58;alert(1)">colon</a>\
+        <a href="java&#115;cript:x">decimal s</a>\
+        <a href="&#106;avascript:x">leading j</a>\
+        <a href="chapter&#48;1.xhtml">chapter</a>
+        """
+
+        let cleaned = EPUBParser.stripScripts(from: html)
+
+        XCTAssertFalse(cleaned.contains("href=\"java&#x73;cript:alert(1)\""))
+        XCTAssertFalse(cleaned.contains("href=\"javascript&#58;alert(1)\""))
+        XCTAssertFalse(cleaned.contains("href=\"java&#115;cript:x\""))
+        XCTAssertFalse(cleaned.contains("href=\"&#106;avascript:x\""))
+        XCTAssertTrue(cleaned.contains("href=\"chapter&#48;1.xhtml\""))
+    }
+
+    func testStripScriptsNeutralizesUnquotedAndFormActionURIs() {
+        let html = """
+        <body>\
+        <a href=javascript:alert(1)>Unquoted</a>\
+        <button formaction="javascript:steal()">Go</button>\
+        <form action='javascript:steal()'><input/></form>\
+        </body>
+        """
+        let cleaned = EPUBParser.stripScripts(from: html)
+        XCTAssertFalse(cleaned.contains("alert(1)"))
+        XCTAssertFalse(cleaned.contains("steal()"))
+        XCTAssertTrue(cleaned.contains("Unquoted"))
+        XCTAssertTrue(cleaned.contains("Go"))
+    }
+
+    func testStripScriptsRemovesIframeSrcdoc() {
+        let html = """
+        <body><iframe srcdoc="&lt;script&gt;steal()&lt;/script&gt;"></iframe>\
+        <p>Prose</p></body>
+        """
+        let cleaned = EPUBParser.stripScripts(from: html)
+        XCTAssertFalse(cleaned.lowercased().contains("srcdoc"))
+        XCTAssertTrue(cleaned.contains("<p>Prose</p>"))
+    }
+
+    func testStripScriptsKeepsBenignAttributesAndProse() {
+        // A normal link, an inline style, and prose that merely contains the
+        // letters "onload"/"online" must all pass through unchanged.
+        let html = "<a href=\"chapter2.xhtml\" style=\"color:red\">"
+            + "The page onload felt slow; go online.</a>"
+        XCTAssertEqual(EPUBParser.stripScripts(from: html), html)
+    }
 }

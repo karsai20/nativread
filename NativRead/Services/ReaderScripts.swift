@@ -87,6 +87,14 @@ enum ReaderScripts {
               });
             },
 
+            // Scroll flow: ask Swift to glide the native scroll view to a
+            // vertical offset (CSS px == points at initial-scale=1).
+            scrollVTo(y) {
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "scrollV", y: y
+              });
+            },
+
             movePaged(animate) {
               const body = document.body;
               if (animate && this.transition === "slide") {
@@ -114,12 +122,16 @@ enum ReaderScripts {
                 document.documentElement.appendChild(flash);
               }
               flash.classList.add("lumen-eink-on");
-              // Hold the solid fill for a beat (CSS snaps it on fast),
-              // swap the page behind it, then drop the fill.
+              // Hold the solid ink for a beat (CSS snaps it on fast), swap the
+              // page behind it, give WebKit one more frame to paint the new
+              // column, then snap the fill away — so the reveal is the crisp
+              // finished page, never a half-painted cross-fade.
               setTimeout(() => {
                 move();
-                flash.classList.remove("lumen-eink-on");
-              }, 80);
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                  flash.classList.remove("lumen-eink-on");
+                }));
+              }, 110);
             },
 
             goTo(page, animate) {
@@ -150,13 +162,12 @@ enum ReaderScripts {
               if (MODE === "scroll") {
                 const el = this.scroller();
                 if (el.scrollTop >= this.maxScroll() - 2) { return false; }
-                el.scrollTo({
-                  top: Math.min(
-                    el.scrollTop + window.innerHeight * 0.92,
-                    this.maxScroll()
-                  ),
-                  behavior: "smooth"
-                });
+                // Let Swift glide the native scroll view: WKWebView's JS
+                // `scrollTo({behavior:"smooth"})` is steppy on iOS, the native
+                // animation is 60fps and matches the paged-flow turn.
+                this.scrollVTo(Math.min(
+                  el.scrollTop + window.innerHeight * 0.9, this.maxScroll()
+                ));
                 return true;
               }
               if (this.page >= this.pageCount - 1) { return false; }
@@ -168,12 +179,9 @@ enum ReaderScripts {
               if (MODE === "scroll") {
                 const el = this.scroller();
                 if (el.scrollTop <= 2) { return false; }
-                el.scrollTo({
-                  top: Math.max(
-                    el.scrollTop - window.innerHeight * 0.92, 0
-                  ),
-                  behavior: "smooth"
-                });
+                this.scrollVTo(Math.max(
+                  el.scrollTop - window.innerHeight * 0.9, 0
+                ));
                 return true;
               }
               if (this.page <= 0) { return false; }

@@ -39,17 +39,11 @@ enum AppLanguage: String, CaseIterable, Sendable {
     /// The concrete options shown in the onboarding/settings picker (`.system`
     /// is handled automatically and never presented as a manual choice).
     ///
-    /// Only fully-translated, dictionary-backed languages are listed. `.es`/`.de`
-    /// stay in the enum (and in `bundled(for:)`) so the plumbing is ready, but
-    /// they are withheld from the picker until their String Catalog reaches full
-    /// coverage and their bilingual dictionaries are bundled — otherwise picking
-    /// them would leave most of the app in the English fallback.
+    /// Only fully-translated languages are listed. `.es`/`.de` stay in the enum
+    /// so the plumbing is ready, but they are withheld from the picker until
+    /// their String Catalog reaches full coverage — otherwise picking them
+    /// would leave most of the app in the English fallback.
     static let pickable: [AppLanguage] = [.en, .hu]
-
-    /// The two languages for which a bundled bilingual dictionary exists.
-    /// English uses WordNet; Magyar adds the EN→HU Wiktionary dictionary.
-    /// `.system` is included so the picker can offer "follow app language".
-    static let definePickable: [AppLanguage] = [.en, .hu]
 
     /// The app language that best matches the device's preferred locale, or
     /// `.en` if the device language is not in the supported set.
@@ -77,18 +71,7 @@ final class LocalizationStore {
     /// stored yet) and means "defer to the device locale."
     private(set) var appLanguage: AppLanguage
 
-    /// The user's explicit choice for the Define (dictionary) language.
-    /// `.system` is the factory default and means "follow the app language."
-    private(set) var defineLanguage: AppLanguage
-
     // MARK: - Derived / ephemeral state
-
-    /// The effective language used to select the dictionary set. When
-    /// `defineLanguage` is `.system` this follows `appLanguage`; otherwise the
-    /// user's explicit Define choice takes precedence.
-    var dictionaryLanguage: AppLanguage {
-        defineLanguage == .system ? appLanguage : defineLanguage
-    }
 
     /// Resolved `Locale` for `.environment(\.locale, …)`. When the language
     /// is `.system` the device's current locale is returned unchanged.
@@ -120,7 +103,10 @@ final class LocalizationStore {
 
     private let defaults: UserDefaults
     private static let key = "quire.appLanguage.v1"
+    /// Legacy Define keys (pre Apple-Dictionary rework). Only cleared on reset
+    /// so stale values from upgraded installs don't linger in UserDefaults.
     private static let defineKey = "quire.defineLanguage.v1"
+    private static let defineLanguagesKey = "quire.defineLanguages.v1"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -129,12 +115,6 @@ final class LocalizationStore {
             self.appLanguage = language
         } else {
             self.appLanguage = .system
-        }
-        if let stored = defaults.string(forKey: Self.defineKey),
-           let language = AppLanguage(rawValue: stored) {
-            self.defineLanguage = language
-        } else {
-            self.defineLanguage = .system
         }
         // Route Bundle.main string lookups to the chosen language so every
         // `Text`/`String(localized:)` follows the choice from first launch.
@@ -156,24 +136,12 @@ final class LocalizationStore {
         Bundle.setAppLanguage(language.languageCode)
     }
 
-    /// Applies `defineLanguage` and writes it to `UserDefaults`.
-    func setDefineLanguage(_ language: AppLanguage) {
-        defineLanguage = language
-        defaults.set(language.rawValue, forKey: Self.defineKey)
-    }
-
-    /// Applies `language` as the Define language for the current session
-    /// without writing to `UserDefaults`. Mirrors `overrideWithoutPersisting`
-    /// for symmetric test-hook coverage via a future `-forceDefineLanguage`.
-    func overrideDefineWithoutPersisting(_ language: AppLanguage) {
-        defineLanguage = language
-    }
-
-    /// Removes the persisted language choice; the next launch will default
+    /// Removes the persisted language choices; the next launch will default
     /// to `.system`. Used by the `-resetLanguage` UI-test hook.
     static func resetPersisted(in defaults: UserDefaults = .standard) {
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: defineKey)
+        defaults.removeObject(forKey: defineLanguagesKey)
     }
 
     // MARK: - Localised string helper

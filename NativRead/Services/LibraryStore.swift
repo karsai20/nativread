@@ -53,8 +53,38 @@ final class LibraryStore {
         switch sourceURL.pathExtension.lowercased() {
         case "pdf": return try importPDF(from: sourceURL)
         case "txt": return try importText(from: sourceURL)
+        case "mobi", "azw", "azw3", "prc": return try importMOBI(from: sourceURL)
         default: return try importEPUB(from: sourceURL)
         }
+    }
+
+    @discardableResult
+    func importTranslationPreview(
+        from sourceURL: URL,
+        originalBook: Book,
+        translatedFraction: Double
+    ) throws -> Book {
+        try importEPUB(
+            from: sourceURL,
+            titleOverride: "\(originalBook.title) (Hungarian preview)",
+            variant: .translationPreview,
+            sourceBookID: originalBook.id,
+            translatedFraction: translatedFraction
+        )
+    }
+
+    @discardableResult
+    func importFullTranslation(
+        from sourceURL: URL,
+        originalBook: Book
+    ) throws -> Book {
+        try importEPUB(
+            from: sourceURL,
+            titleOverride: "\(originalBook.title) (Hungarian)",
+            variant: .fullTranslation,
+            sourceBookID: originalBook.id,
+            translatedFraction: 1
+        )
     }
 
     /// Copies the source file in (materializing iCloud placeholders) under
@@ -115,8 +145,27 @@ final class LibraryStore {
         }
     }
 
+    /// Converts a MOBI/AZW3 (KF8) book to an EPUB in a temp file, then hands
+    /// it to the existing EPUB pipeline. The stored book is a real EPUB, so
+    /// `format` stays `.epub` and the reflowable reader opens it directly.
+    private func importMOBI(from sourceURL: URL) throws -> Book {
+        let needsScope = sourceURL.startAccessingSecurityScopedResource()
+        defer { if needsScope { sourceURL.stopAccessingSecurityScopedResource() } }
+        let tempEPUB = fileManager.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).epub")
+        defer { try? fileManager.removeItem(at: tempEPUB) }
+        try KF8Converter.convertToEPUB(source: sourceURL, destination: tempEPUB)
+        return try importEPUB(from: tempEPUB)
+    }
+
     /// Copies the EPUB in, unpacks it, reads metadata and cover.
-    private func importEPUB(from sourceURL: URL) throws -> Book {
+    private func importEPUB(
+        from sourceURL: URL,
+        titleOverride: String? = nil,
+        variant: BookVariant = .original,
+        sourceBookID: UUID? = nil,
+        translatedFraction: Double? = nil
+    ) throws -> Book {
         let id = UUID()
         let needsScope = sourceURL.startAccessingSecurityScopedResource()
         defer { if needsScope { sourceURL.stopAccessingSecurityScopedResource() } }
@@ -154,11 +203,14 @@ final class LibraryStore {
 
             let book = Book(
                 id: id,
-                title: parsed.title,
+                title: titleOverride ?? parsed.title,
                 author: parsed.author,
                 fileName: storedURL.lastPathComponent,
                 coverFileName: coverFileName,
-                spineWeights: parsed.spineWeights
+                spineWeights: parsed.spineWeights,
+                variant: variant,
+                sourceBookID: sourceBookID,
+                translatedFraction: translatedFraction
             )
             books.insert(book, at: 0)
             save()
@@ -327,6 +379,10 @@ final class LibraryStore {
         guard let name = book.coverFileName else { return nil }
         let url = coversDirectory.appendingPathComponent(name)
         return fileManager.fileExists(atPath: url.path) ? url : nil
+    }
+
+    func storedFileURL(for book: Book) -> URL {
+        booksDirectory.appendingPathComponent(book.fileName)
     }
 
     func parsedEPUB(for book: Book) throws -> ParsedEPUB {

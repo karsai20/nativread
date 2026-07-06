@@ -3,11 +3,77 @@
 Deferred work, captured so vague intentions don't get lost.
 Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/projects/karsai20-quire/).
 
-## Deferred features
+## Legal & compliance (EU AI Act + licensing)
 
-- [ ] **Target-language read-aloud (TTS).** On-device Hungarian voice
-  (`AVSpeechSynthesizer`) reads the translated book aloud. Strong delight for the
-  50+ persona who may prefer listening. Deferred from the CEO review (not first round).
+Source: /ship 2026-07-06 compliance pass. GDPR, copyright, and App Store
+posture live in `docs/legal-posture.md`; these are the buildable gaps.
+
+- [ ] **EU AI Act Art 50(2) — machine-readable AI marking.** Embed an
+  "AI-generated (machine translation)" marker in the translated EPUB's OPF
+  metadata at delivery, preserved on re-export (share sheet / Send to Kindle).
+  The transparency chapter applies from **2026-08-02**. Plan task T25.
+  **Priority:** P1 (before public launch / 2026-08-02).
+- [ ] **Explicit "AI-translated" user-facing label.** The current
+  "(Hungarian preview)" title suffix marks *translated*, not *AI*. One copy
+  pass across reader surface + book detail; pairs with the pre-translation
+  disclosure (legal MUST-FIX #4 / plan T16). **Priority:** P1 (with T16/T25).
+- [ ] **OSS acknowledgements screen.** ZIPFoundation is MIT — the license text
+  must accompany the distribution. Add Settings → About → Licenses entry.
+  **Priority:** P2 (before App Store submission).
+- [ ] **Counsel sign-off before commercial launch.** legal-posture.md is agent
+  review, not legal advice; pressure-test the personal-use-derivative position
+  (operator-stores-the-copy fact pattern). **Priority:** P1 (external gate).
+
+## Format support — MOBI/AZW3
+
+- [ ] **Legacy `.mobi` (HUFF/CDIC) decompression.** The current converter
+  handles KF8/PalmDOC (all modern AZW3 + most .mobi). Pre-2011 HUFF/CDIC-
+  compressed .mobi files are not yet supported (the PalmDoc path only handles
+  compression types 1/2, not 17480). Add a HUFF/CDIC decoder if such files show
+  up in practice. **Priority:** P3 (rare for the target audience).
+
+## Translator MVP — deferred from /review 2026-07-05
+
+- [ ] **Streamed upload/download for large EPUBs.** `TranslationBackendClient`
+  currently holds the whole EPUB in memory (`Data(contentsOf:)` + a second
+  multipart copy) and buffers the whole translated result via `session.data`.
+  A 200MB+ image-heavy book can jetsam mid-job. Move to
+  `session.upload(for:fromFile:)` with a streamed multipart temp file and
+  `session.download(for:)` to disk; add a size ceiling on download/unzip
+  (decompression-bomb guard). **Priority:** P2 (P1 before wide distribution).
+- [ ] **Background URLSession for the translate pipeline.** The whole flow runs
+  in a foreground `Task` from the sheet; app suspension kills it mid-request.
+  Use a background `URLSession` (or reconcile-on-relaunch via the persisted
+  `backendJobID` + `status()`), which also fixes the "interrupted job" story
+  beyond the current fail-on-reload. **Priority:** P2.
+- [ ] **Server-authoritative entitlements.** Payment/ownership are client-side
+  only right now (the MVP calls the full path directly; identity is a UUID
+  header over cleartext). When IAP lands, the backend must verify the receipt
+  and not trust `x-nativread-user-id`; move that ID to Keychain and put the
+  backend behind TLS. **Priority:** P1 for the paid phase.
+- [ ] **`alreadyTranslated` result-kind mismatch.** If the backend has a *full*
+  translation cached and the user asks for a *preview*, the client imports the
+  full book labeled "(Hungarian preview)" at `translatedFraction = 0.01`. The
+  upload response needs to say *what kind* of cached result exists. **P2.**
+- [ ] **`UIReferenceLibraryViewController` Manage-Dictionaries probe is fragile.**
+  `DefineView.dictionaryManagementTerm` relies on undocumented behavior; keep it
+  on a per-iOS-release QA checklist. **P3.**
+- [ ] **Multipart filename hardening.** `multipartBody` interpolates the file
+  name into the `Content-Disposition` header unescaped. Safe today (only
+  `<UUID>.epub` is ever sent) but escape/hardcode it before any caller passes a
+  user-named file. **P3.**
+
+## Post-release roadmap
+
+- [ ] **Target-language read-aloud (TTS) — the "audiobook" play.** On-device
+  Hungarian voice (`AVSpeechSynthesizer`) reads the *translated* book aloud.
+  This is the strategically right audio direction (not a generic MP3/m4b
+  player, which is a different product with no translation synergy): the chain
+  English text → Hungarian translation → Hungarian audio runs on Quire's own
+  translation engine, so it delivers a Hungarian audio version of an
+  untranslated English book that no competitor can. Strong delight for the 50+
+  persona who prefers listening. **Sequencing:** post-launch, once the core
+  translate-and-read loop is proven. Deferred from CEO review (not first round).
 
 ## Deferred design debt
 
@@ -93,3 +159,16 @@ common import paths are covered; these are edge-case robustness for TXT.
   EN→ES / EN→DE dictionaries (the two TODOs above), (3) add `.es, .de` back to
   `pickable` and update `LocalizationStoreTests.testPickableIsFullyTranslatedLanguagesOnly`
   + `LanguageSelectionUITests`.
+
+## Completed
+
+- [x] **Pure-Swift AZW3 (KF8) → EPUB import.** `NativRead/EPUB/{PalmDatabase,
+  MOBIHeader,PalmDocDecompressor,MOBIIndex,KF8Converter,KF8EPUBWriter}.swift`;
+  `mobi/azw/azw3/prc` routed through `LibraryStore.importMOBI` → `importEPUB`.
+  Verified end-to-end against a real DRM-free fixture (Alice/Tenniel). Native
+  converter, no C dep, no LGPL. **Completed:** translator-mvp branch (2026-07-06).
+- [x] **GPL dictionary blocker resolved by removal.** Bundled FreeDict/StarDict
+  data deleted; Define uses Apple's built-in `UIReferenceLibraryViewController`.
+  No GPL code or data ships in the binary. (Supersedes the licensing risk flagged
+  2026-06-29; the EN→ES/EN→DE bundling TODOs above remain for the picker work.)
+  **Completed:** translator-mvp branch (2026-07-06).

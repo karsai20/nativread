@@ -2,7 +2,8 @@
 
 Status: PLAN (reviewed 2026-06-30, /plan-eng-review + /plan-ceo-review). Legal
 gate: see [`legal-posture.md`](./legal-posture.md) — **PASS WITH CONDITIONS**; the
-MUST-FIX items there are build tasks here.
+MUST-FIX items there are build tasks here. EU AI Act (Art 50 transparency,
+applies 2026-08-02) folded in 2026-07-06 as MUST-FIX #9 → task T25.
 
 ## CEO review decisions (2026-06-30, SELECTIVE EXPANSION)
 
@@ -168,6 +169,10 @@ sync to USER's cloud (iCloud/CloudKit)
    "translate the rest — $X" with tier + price before buying. No credit balance.
 6. **User-cloud sync.** Apple: **iCloud via CloudKit private DB** (durable copy in
    the user's own cloud) — Phase 1b. Google Drive (`drive.file`) — Phase 2.
+   Kindle is export-only: expose the translated EPUB through the iOS share sheet
+   so users can send it to Files, Mail, or Send to Kindle. Do **not** promise
+   Kindle reading-position/highlight sync; there is no reliable public Kindle API
+   for third-party Whispersync-style writes.
 7. **Account deletion + data export UI (legal #5)** + a **lost-entitlement
    recovery/support path** (outside-voice #11).
 8. **AI-provider disclosure (legal #4)** pre-first-translation (names the chosen
@@ -326,6 +331,8 @@ Synthesized from this review's findings. P1 blocks ship; P2 same branch; P3 foll
   - Surfaced by: Design P1 — 5.2 survival artifact
 - [ ] **T24 (P1, ~1d / ~2h)** — ios — Translator screens on BrandPalette/Typography/Spacing + interaction state table (all states user-visible, paid-but-undelivered non-silent) + 50+ a11y floor (Dynamic Type, 44pt, VoiceOver, contrast)
   - Surfaced by: Design P2/P4/P5/P6 — editorial fit, full state coverage, accessibility
+- [ ] **T25 (P1, ~0.5d / ~1h)** — ios+backend — EU AI Act Art 50 transparency (applies 2026-08-02): machine-readable "AI-generated (machine translation)" marker in the delivered translated EPUB's OPF metadata, preserved on re-export; explicit "AI-translated" label replacing the bare "(Hungarian preview)" wording
+  - Surfaced by: legal-posture.md §EU AI Act (2026-07-06 compliance pass); pairs with T16's disclosure copy
 
 ## Worktree parallelization
 

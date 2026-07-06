@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The global saved-vocabulary sheet: every word the reader kept from the
-/// Define popup, with its reading context and definition, plus Anki-ready
+/// Define popup, with its reading context and personal note, plus Anki-ready
 /// CSV / Markdown export. Uses BrandPalette — launched from the library
 /// header, so it lives in ambient app chrome, not a reading surface.
 struct VocabularyView: View {
@@ -172,6 +172,11 @@ struct VocabularyView: View {
                     .multilineTextAlignment(.leading)
                     .lineLimit(3)
             }
+
+            Text(entry.dictionarySource)
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
+                .lineLimit(1)
 
             if let note = trimmedNote(entry) {
                 Label {

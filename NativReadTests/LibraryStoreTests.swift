@@ -37,12 +37,56 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(store.books.count, 1)
         XCTAssertEqual(book.title, "Imported Title")
         XCTAssertEqual(book.author, "Imported Author")
+        XCTAssertEqual(book.variant, .original)
         XCTAssertEqual(book.spineWeights.count, 3)
         XCTAssertNotNil(store.coverURL(for: book))
         XCTAssertTrue(FileManager.default.fileExists(
             atPath: store.extractedRoot(for: book)
                 .appendingPathComponent("OEBPS/ch1.xhtml").path
         ))
+    }
+
+    func testImportTranslationPreviewMarksSeparateVariant() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+
+        let preview = try store.importTranslationPreview(
+            from: epubURL,
+            originalBook: original,
+            translatedFraction: 0.01
+        )
+
+        XCTAssertEqual(store.books.count, 2)
+        XCTAssertEqual(preview.title, "Imported Title (Hungarian preview)")
+        XCTAssertEqual(preview.variant, .translationPreview)
+        XCTAssertEqual(preview.sourceBookID, original.id)
+        XCTAssertEqual(preview.translatedFraction, 0.01)
+        XCTAssertFalse(preview.isTranslatableSource)
+        XCTAssertTrue(original.isTranslatableSource)
+
+        let reloaded = makeStore()
+        let persisted = reloaded.book(id: preview.id)
+        XCTAssertEqual(persisted?.variant, .translationPreview)
+        XCTAssertEqual(persisted?.sourceBookID, original.id)
+        XCTAssertEqual(persisted?.translatedFraction, 0.01)
+    }
+
+    func testImportFullTranslationMarksSeparateVariant() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+
+        let translated = try store.importFullTranslation(
+            from: epubURL,
+            originalBook: original
+        )
+
+        XCTAssertEqual(store.books.count, 2)
+        XCTAssertEqual(translated.title, "Imported Title (Hungarian)")
+        XCTAssertEqual(translated.variant, .fullTranslation)
+        XCTAssertEqual(translated.sourceBookID, original.id)
+        XCTAssertEqual(translated.translatedFraction, 1)
+        XCTAssertFalse(translated.isTranslatableSource)
+        XCTAssertEqual(translated.variant.badgeText, "HU")
     }
 
     func testLibraryPersistsAcrossInstances() throws {

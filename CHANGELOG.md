@@ -3,6 +3,21 @@
 All notable changes to NativRead are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.2] - 2026-07-06
+
+### Added
+- Translate a whole book with AI: pick a book, confirm you own it, and get a fully translated copy imported back into your library to read with all the usual themes, fonts, search, and Define. A free preview translates the opening so you can judge the quality before committing, and the price for each book is shown up front by length.
+- Read your Kindle books: import `.azw3` / `.mobi` (KF8) files straight from Files and read them like any EPUB, with images, chapters, and full formatting preserved.
+- Export a translated book back out to a standard `.epub` you can keep or move to another reader.
+
+### Changed
+- Streamlined the Define panel to the essentials — save a word and move on, without the extra dictionary-management detour.
+
+### Fixed
+- Corrupt, DRM-protected, or unsupported Kindle files now fail import with a clear message instead of crashing or hanging the app.
+- Closed several ways malicious book content could smuggle executable links or markup past the reader's sanitizer (character-escaped addresses, unquoted and form-submit attributes, embedded-frame content, and non-UTF-8 chapters).
+- The app now reacts immediately when the translator backend rejects a job, instead of waiting for a timeout.
+
 ## [3.1] - 2026-06-30
 
 ### Added

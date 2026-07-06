@@ -70,6 +70,39 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(book.isFinished)
     }
 
+    func testOnlyTranslatedEPUBCopiesAreExportTargets() {
+        let original = Book(title: "T", author: "A", fileName: "f.epub")
+        XCTAssertFalse(original.isTranslatedCopy)
+        XCTAssertFalse(original.canExportTranslatedEPUB)
+
+        let preview = Book(
+            title: "T (Hungarian Preview)",
+            author: "A",
+            fileName: "preview.epub",
+            variant: .translationPreview
+        )
+        XCTAssertTrue(preview.isTranslatedCopy)
+        XCTAssertTrue(preview.canExportTranslatedEPUB)
+
+        let full = Book(
+            title: "T (Hungarian)",
+            author: "A",
+            fileName: "full.epub",
+            variant: .fullTranslation
+        )
+        XCTAssertTrue(full.isTranslatedCopy)
+        XCTAssertTrue(full.canExportTranslatedEPUB)
+
+        let translatedPDF = Book(
+            title: "PDF",
+            author: "A",
+            fileName: "pdf.pdf",
+            format: .pdf,
+            variant: .fullTranslation
+        )
+        XCTAssertFalse(translatedPDF.canExportTranslatedEPUB)
+    }
+
     // MARK: - Settings round-trip
 
     func testReaderSettingsCodableRoundTrip() throws {
@@ -301,7 +334,7 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded.fontSize, 20)
         XCTAssertEqual(decoded.warmth, 0)
         XCTAssertEqual(decoded.themeMode, .system)
-        XCTAssertEqual(decoded.darkTheme, .dusk)
+        XCTAssertEqual(decoded.darkTheme, .ink)
         XCTAssertEqual(decoded.pageFlow, .paged)
         XCTAssertEqual(decoded.pageTransition, .slide)
     }
