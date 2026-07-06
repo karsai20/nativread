@@ -359,6 +359,12 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
 
+        // Translate opens a book picker first; choose the seeded book.
+        let pickerBook =
+            app.buttons["translation.picker.The Lantern of Aldebaran"]
+        XCTAssertTrue(pickerBook.waitForExistence(timeout: 6))
+        pickerBook.tap()
+
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 6)
         )

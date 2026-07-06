@@ -81,9 +81,18 @@ final class SettingsStore {
         )
     }
 
+    /// Parsed backend URL, or nil when unset/invalid. Only http/https with a
+    /// non-empty host is accepted: this is the gate that stops a typo'd or
+    /// pasted arbitrary URL (file://, mailto:, host-less garbage) from silently
+    /// uploading the user's EPUB somewhere unintended.
     var translationBackendURL: URL? {
-        guard !translationBackendURLString.isEmpty else { return nil }
-        return URL(string: translationBackendURLString)
+        guard !translationBackendURLString.isEmpty,
+              let url = URL(string: translationBackendURLString),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = url.host, !host.isEmpty
+        else { return nil }
+        return url
     }
 
     func update(_ transform: (ReaderSettings) -> ReaderSettings) {

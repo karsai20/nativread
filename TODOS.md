@@ -3,6 +3,37 @@
 Deferred work, captured so vague intentions don't get lost.
 Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/projects/karsai20-quire/).
 
+## Translator MVP — deferred from /review 2026-07-05
+
+- [ ] **Streamed upload/download for large EPUBs.** `TranslationBackendClient`
+  currently holds the whole EPUB in memory (`Data(contentsOf:)` + a second
+  multipart copy) and buffers the whole translated result via `session.data`.
+  A 200MB+ image-heavy book can jetsam mid-job. Move to
+  `session.upload(for:fromFile:)` with a streamed multipart temp file and
+  `session.download(for:)` to disk; add a size ceiling on download/unzip
+  (decompression-bomb guard). **Priority:** P2 (P1 before wide distribution).
+- [ ] **Background URLSession for the translate pipeline.** The whole flow runs
+  in a foreground `Task` from the sheet; app suspension kills it mid-request.
+  Use a background `URLSession` (or reconcile-on-relaunch via the persisted
+  `backendJobID` + `status()`), which also fixes the "interrupted job" story
+  beyond the current fail-on-reload. **Priority:** P2.
+- [ ] **Server-authoritative entitlements.** Payment/ownership are client-side
+  only right now (the MVP calls the full path directly; identity is a UUID
+  header over cleartext). When IAP lands, the backend must verify the receipt
+  and not trust `x-nativread-user-id`; move that ID to Keychain and put the
+  backend behind TLS. **Priority:** P1 for the paid phase.
+- [ ] **`alreadyTranslated` result-kind mismatch.** If the backend has a *full*
+  translation cached and the user asks for a *preview*, the client imports the
+  full book labeled "(Hungarian preview)" at `translatedFraction = 0.01`. The
+  upload response needs to say *what kind* of cached result exists. **P2.**
+- [ ] **`UIReferenceLibraryViewController` Manage-Dictionaries probe is fragile.**
+  `DefineView.dictionaryManagementTerm` relies on undocumented behavior; keep it
+  on a per-iOS-release QA checklist. **P3.**
+- [ ] **Multipart filename hardening.** `multipartBody` interpolates the file
+  name into the `Content-Disposition` header unescaped. Safe today (only
+  `<UUID>.epub` is ever sent) but escape/hardcode it before any caller passes a
+  user-named file. **P3.**
+
 ## Deferred features
 
 - [ ] **Target-language read-aloud (TTS).** On-device Hungarian voice

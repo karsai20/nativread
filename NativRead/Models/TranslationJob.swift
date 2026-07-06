@@ -13,13 +13,31 @@ enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable {
 enum TranslationJobPhase: String, Codable, Equatable {
     case draft
     case attested
-    case previewQueued
     case uploading
     case translating
     case importingResult
     case finished
     case failed
-    case waitingForBackend
+
+    /// The backend request is in progress. Reloading a job in one of these
+    /// phases from disk means the app died mid-request; the store fails it.
+    var isInFlight: Bool {
+        switch self {
+        case .uploading, .translating, .importingResult:
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Tolerant decoding: raw values from earlier builds that no longer exist
+    /// (e.g. the removed `previewQueued`/`waitingForBackend` scaffolding) map to
+    /// `.failed` instead of throwing, which would make `load()`'s `try?` wipe
+    /// every persisted job.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = TranslationJobPhase(rawValue: raw) ?? .failed
+    }
 }
 
 enum TranslationRequestKind: String, Codable, Equatable {

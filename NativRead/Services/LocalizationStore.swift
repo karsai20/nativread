@@ -39,17 +39,11 @@ enum AppLanguage: String, CaseIterable, Sendable {
     /// The concrete options shown in the onboarding/settings picker (`.system`
     /// is handled automatically and never presented as a manual choice).
     ///
-    /// Only fully-translated, dictionary-backed languages are listed. `.es`/`.de`
-    /// stay in the enum (and in `bundled(for:)`) so the plumbing is ready, but
-    /// they are withheld from the picker until their String Catalog reaches full
-    /// coverage and their bilingual dictionaries are bundled — otherwise picking
-    /// them would leave most of the app in the English fallback.
+    /// Only fully-translated languages are listed. `.es`/`.de` stay in the enum
+    /// so the plumbing is ready, but they are withheld from the picker until
+    /// their String Catalog reaches full coverage — otherwise picking them
+    /// would leave most of the app in the English fallback.
     static let pickable: [AppLanguage] = [.en, .hu]
-
-    /// The two languages for which a bundled bilingual dictionary exists.
-    /// English uses WordNet; Magyar adds the EN→HU Wiktionary dictionary.
-    /// `.system` is included so the picker can offer "follow app language".
-    static let definePickable: [AppLanguage] = [.en, .hu]
 
     /// The app language that best matches the device's preferred locale, or
     /// `.en` if the device language is not in the supported set.
@@ -77,40 +71,7 @@ final class LocalizationStore {
     /// stored yet) and means "defer to the device locale."
     private(set) var appLanguage: AppLanguage
 
-    /// The set of Define (dictionary) languages the reader has enabled. A
-    /// lookup shows a gloss from every enabled language whose dictionary has
-    /// the word, so a learner can study two languages at once. Seeded from the
-    /// app language on first run; edited in Settings.
-    private(set) var defineLanguages: Set<AppLanguage>
-
     // MARK: - Derived / ephemeral state
-
-    /// The default Define set for an app language: just that language's own
-    /// explicit dictionary choice. WordNet is still appended later by
-    /// `BundledDictionary` as the global fallback. `.system` resolves to the
-    /// closest device language.
-    static func defaultDefineLanguages(
-        for appLanguage: AppLanguage
-    ) -> Set<AppLanguage> {
-        let concrete = appLanguage == .system
-            ? AppLanguage.matchingDevice() : appLanguage
-        return [concrete]
-    }
-
-    /// Keeps Define languages aligned with app-language changes only while the
-    /// user is still on the default set. Once they manually choose one or more
-    /// Define languages, that explicit study set wins.
-    static func defineLanguagesAfterAppLanguageChange(
-        currentDefineLanguages: Set<AppLanguage>,
-        oldAppLanguage: AppLanguage,
-        newAppLanguage: AppLanguage,
-        explicitDefineLanguages: Set<AppLanguage>?
-    ) -> Set<AppLanguage> {
-        if let explicitDefineLanguages { return explicitDefineLanguages }
-        return currentDefineLanguages == defaultDefineLanguages(for: oldAppLanguage)
-            ? defaultDefineLanguages(for: newAppLanguage)
-            : currentDefineLanguages
-    }
 
     /// Resolved `Locale` for `.environment(\.locale, …)`. When the language
     /// is `.system` the device's current locale is returned unchanged.
@@ -142,52 +103,22 @@ final class LocalizationStore {
 
     private let defaults: UserDefaults
     private static let key = "quire.appLanguage.v1"
-    /// Legacy single-value Define key (pre multi-language). Read once for
-    /// migration, then superseded by `defineLanguagesKey`.
+    /// Legacy Define keys (pre Apple-Dictionary rework). Only cleared on reset
+    /// so stale values from upgraded installs don't linger in UserDefaults.
     private static let defineKey = "quire.defineLanguage.v1"
     private static let defineLanguagesKey = "quire.defineLanguages.v1"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        let resolvedAppLanguage: AppLanguage
         if let stored = defaults.string(forKey: Self.key),
            let language = AppLanguage(rawValue: stored) {
-            resolvedAppLanguage = language
+            self.appLanguage = language
         } else {
-            resolvedAppLanguage = .system
+            self.appLanguage = .system
         }
-        self.appLanguage = resolvedAppLanguage
-        self.defineLanguages = Self.loadDefineLanguages(
-            from: defaults, appLanguage: resolvedAppLanguage
-        )
         // Route Bundle.main string lookups to the chosen language so every
         // `Text`/`String(localized:)` follows the choice from first launch.
         Bundle.setAppLanguage(appLanguage.languageCode)
-    }
-
-    /// Loads the enabled Define set: the stored multi-value set if present,
-    /// else migrated from the legacy single Define key, else the default for
-    /// the app language.
-    private static func loadDefineLanguages(
-        from defaults: UserDefaults, appLanguage: AppLanguage
-    ) -> Set<AppLanguage> {
-        if let raw = defaults.string(forKey: defineLanguagesKey) {
-            if raw.isEmpty { return [] }
-            let parsed = Set(
-                raw.split(separator: ",").compactMap {
-                    AppLanguage(rawValue: String($0))
-                }
-            )
-            if !parsed.isEmpty { return parsed }
-        }
-        // Migrate a legacy single choice (`.system` meant "follow app").
-        if let stored = defaults.string(forKey: defineKey),
-           let legacy = AppLanguage(rawValue: stored) {
-            return legacy == .system
-                ? defaultDefineLanguages(for: appLanguage)
-                : [legacy]
-        }
-        return defaultDefineLanguages(for: appLanguage)
     }
 
     /// Applies `language` and writes it to `UserDefaults`.
@@ -203,39 +134,6 @@ final class LocalizationStore {
     func overrideWithoutPersisting(_ language: AppLanguage) {
         appLanguage = language
         Bundle.setAppLanguage(language.languageCode)
-    }
-
-    /// Applies the enabled Define `languages` and persists them. An empty set
-    /// is allowed (lookups fall back to WordNet) but never left implicit.
-    func setDefineLanguages(_ languages: Set<AppLanguage>) {
-        defineLanguages = languages
-        defaults.set(
-            languages.map(\.rawValue).sorted().joined(separator: ","),
-            forKey: Self.defineLanguagesKey
-        )
-    }
-
-    /// Applies a Define set for the current session without persisting. Kept
-    /// for legacy tests around the old bundled dictionary path.
-    func overrideDefineLanguagesWithoutPersisting(_ languages: Set<AppLanguage>) {
-        defineLanguages = languages
-    }
-
-    /// Aligns the current session's Define set with an app-language override,
-    /// without persisting either value. Kept for legacy tests around the old
-    /// bundled dictionary defaults.
-    func overrideDefineLanguagesForAppLanguageWithoutPersisting(
-        _ language: AppLanguage
-    ) {
-        defineLanguages = Self.defaultDefineLanguages(for: language)
-    }
-
-    /// Toggles one Define language on or off and persists the result.
-    func toggleDefineLanguage(_ language: AppLanguage) {
-        var next = defineLanguages
-        if next.contains(language) { next.remove(language) }
-        else { next.insert(language) }
-        setDefineLanguages(next)
     }
 
     /// Removes the persisted language choices; the next launch will default

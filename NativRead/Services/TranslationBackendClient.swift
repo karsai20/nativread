@@ -106,16 +106,30 @@ struct TranslationBackendClient: Sendable {
         jobID: String,
         pollInterval: Duration = .seconds(1),
         timeout: Duration = .seconds(3600),
+        maxConsecutiveFailures: Int = 8,
         onStatus: @escaping (StatusResponse) async -> Void = { _ in }
     ) async throws -> StatusResponse {
         let start = ContinuousClock.now
+        var consecutiveFailures = 0
         while start.duration(to: .now) < timeout {
-            let current = try await status(jobID: jobID)
+            let current: StatusResponse
+            do {
+                current = try await status(jobID: jobID)
+                consecutiveFailures = 0
+            } catch {
+                // A single poll failing (Wi-Fi roam, screen lock, backend
+                // restart) must not fail an hour-long job while the backend
+                // keeps translating. Tolerate a run of blips, then give up.
+                consecutiveFailures += 1
+                if consecutiveFailures >= maxConsecutiveFailures { throw error }
+                try await Task.sleep(for: pollInterval)
+                continue
+            }
             await onStatus(current)
             switch current.status {
             case "done":
                 return current
-            case "error", "cancelled":
+            case "error", "cancelled", "failed":
                 throw ClientError.failedStatus(
                     current.error ?? "Translation failed."
                 )

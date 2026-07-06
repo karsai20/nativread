@@ -43,26 +43,6 @@ final class TranslationStore {
         upsert(job)
     }
 
-    func queueFreeChapter(for book: Book) {
-        var job = self.job(for: book)
-        if job.attestedAt == nil {
-            job.attestedAt = .now
-        }
-        job.bookTitle = book.title
-        job.phase = .previewQueued
-        job.updatedAt = .now
-        upsert(job)
-
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(700))
-            guard var latest = jobs.first(where: { $0.bookID == book.id }),
-                  latest.phase == .previewQueued else { return }
-            latest.phase = .waitingForBackend
-            latest.updatedAt = .now
-            upsert(latest)
-        }
-    }
-
     func markBackendUploadStarted(
         for book: Book,
         kind: TranslationRequestKind = .preview
@@ -193,6 +173,19 @@ final class TranslationStore {
               )
         else { return }
         jobs = decoded.map { job in
+            // An in-flight job reloaded from disk means the app was killed
+            // mid-request (crash, jetsam, force quit). Nothing is resuming it,
+            // so fail it — otherwise both buttons stay disabled forever behind
+            // a perpetual spinner with no way to retry.
+            if job.phase.isInFlight {
+                var stalled = job
+                stalled.phase = .failed
+                stalled.activeRequestKind = nil
+                stalled.translatedChunks = nil
+                stalled.totalChunks = nil
+                stalled.errorMessage = "Translation was interrupted. Try again."
+                return stalled
+            }
             guard job.phase == .finished,
                   job.previewCompletedAt == nil,
                   job.fullCompletedAt == nil

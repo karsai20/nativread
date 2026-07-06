@@ -76,15 +76,8 @@ struct VocabularyEntry: Codable, Equatable, Identifiable {
         word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
-    /// A copy showing a freshly-resolved `definition`, keeping identity,
-    /// context, note and provenance. Kept for legacy tests and imports that
-    /// still exercise the bundled dictionary formatter.
-    func showing(definition: String, source: String) -> VocabularyEntry {
-        VocabularyEntry(
-            id: id, word: word, definition: definition,
-            contextSentence: contextSentence, dictionarySource: source,
-            createdAt: createdAt, note: note, bookID: bookID,
-            chapterTitle: chapterTitle
-        )
-    }
+    /// Provenance recorded when a word is saved from Apple's system Dictionary,
+    /// which does not expose definition text through a public API. Persisted in
+    /// entries, so it must stay identical everywhere it is written.
+    static let appleDictionarySource = "Apple Dictionary"
 }

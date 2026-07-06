@@ -224,14 +224,30 @@ enum EPUBParser {
         }
     }
 
-    /// Removes paired `<script>…</script>` blocks and standalone
-    /// `<script …/>` tags, case-insensitively. EPUB content is XHTML, so
-    /// script elements are well-formed and this targeted pass leaves prose
-    /// untouched.
+    /// Removes script elements, inline event-handler attributes, and
+    /// `javascript:` / `data:text/html` URIs, case-insensitively. EPUB content
+    /// is XHTML so these attribute-anchored passes leave prose untouched. This
+    /// runs on every imported EPUB, including translated copies fetched from
+    /// the network backend, which are otherwise untrusted HTML rendered in the
+    /// JS-enabled reader WebView — a `<script>`-only strip would let inline
+    /// `on*=` handlers and `javascript:` links execute.
     static func stripScripts(from html: String) -> String {
         let patterns = [
+            // Paired and self-closing <script> elements.
             "(?is)<script\\b[^>]*>.*?</script\\s*>",
             "(?is)<script\\b[^>]*/>",
+            // Inline event handlers: on…="…" / on…='…' / on…=bareword,
+            // anchored to attribute position (preceding whitespace) so prose
+            // words like "online" are never matched.
+            "(?i)\\son[a-z]+\\s*=\\s*\"[^\"]*\"",
+            "(?i)\\son[a-z]+\\s*=\\s*'[^']*'",
+            "(?i)\\son[a-z]+\\s*=\\s*[^\\s>]+",
+            // javascript:/data:text/html in href/src/xlink:href. Tolerates the
+            // whitespace/newline/case tricks used to slip past naive filters.
+            "(?is)(href|src|xlink:href)\\s*=\\s*\"\\s*j\\s*a\\s*v\\s*a\\s*s\\s*c\\s*r\\s*i\\s*p\\s*t\\s*:[^\"]*\"",
+            "(?is)(href|src|xlink:href)\\s*=\\s*'\\s*j\\s*a\\s*v\\s*a\\s*s\\s*c\\s*r\\s*i\\s*p\\s*t\\s*:[^']*'",
+            "(?is)(href|src|xlink:href)\\s*=\\s*\"\\s*data\\s*:\\s*text/html[^\"]*\"",
+            "(?is)(href|src|xlink:href)\\s*=\\s*'\\s*data\\s*:\\s*text/html[^']*'",
         ]
         return patterns.reduce(html) { partial, pattern in
             partial.replacingOccurrences(

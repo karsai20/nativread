@@ -112,7 +112,7 @@ struct SettingsView: View {
             sectionLabel("Translation Backend")
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                TextField("http://192.168.1.205:48218", text: $backendURL)
+                TextField("http://translator.local:48218", text: $backendURL)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
@@ -136,7 +136,7 @@ struct SettingsView: View {
                     }
                     .accessibilityIdentifier("settings.translationBackendURL")
 
-                Text("Defaults to the dedicated NativRead translator backend on your Proxmox LAN.")
+                Text("The self-hosted translator server this app uploads books to.")
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
             }

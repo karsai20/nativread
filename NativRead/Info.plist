@@ -71,7 +71,7 @@
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>NativRead connects to your private translator backend on your local network.</string>
 	<key>NativReadDefaultTranslationBackendURL</key>
-	<string>http://192.168.1.205:48218</string>
+	<string></string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>CrimsonPro-VariableFont_wght.ttf</string>

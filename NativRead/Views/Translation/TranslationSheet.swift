@@ -158,21 +158,6 @@ struct TranslationSheet: View {
             Text("Ready to request a one-time preview. The rest of the EPUB stays in the original language.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
-        case .previewQueued:
-            HStack(spacing: Spacing.sm) {
-                ProgressView()
-                    .tint(palette.accent)
-                Text("Preparing request...")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
-            }
-        case .waitingForBackend:
-            Label(
-                "Translator backend is the next connection point.",
-                systemImage: "server.rack"
-            )
-            .font(Typography.meta())
-            .foregroundStyle(palette.secondaryText)
         case .uploading:
             progressMessage("Uploading EPUB to translator...")
         case .translating:
@@ -274,10 +259,9 @@ struct TranslationSheet: View {
     private func requestTranslation(kind: TranslationRequestKind) {
         guard kind == .full || !job.hasFreePreview else { return }
         guard kind == .preview || !job.hasFullTranslation else { return }
-        if !ownsBook {
-            ownsBook = true
-            translations.recordAttestation(for: book)
-        }
+        // Ownership attestation is a legal gate; never set it programmatically.
+        // The buttons are already disabled until the user checks the box.
+        guard ownsBook else { return }
         guard book.format == .epub else {
             translations.markBackendFailed(
                 for: book,
@@ -335,22 +319,26 @@ struct TranslationSheet: View {
                     output,
                     title: upload.title ?? book.title
                 )
-                let library = library
-                _ = try await Task.detached(priority: .userInitiated) {
-                    switch kind {
-                    case .preview:
-                        try library.importTranslationPreview(
-                            from: importedURL,
-                            originalBook: book,
-                            translatedFraction: freePreviewFraction
-                        )
-                    case .full:
-                        try library.importFullTranslation(
-                            from: importedURL,
-                            originalBook: book
-                        )
-                    }
-                }.value
+                // Temp file is consumed by the import below; drop it either way
+                // so translated EPUBs don't accumulate in tmp/.
+                defer { try? FileManager.default.removeItem(at: importedURL) }
+                // Import on the main actor, like every other import path.
+                // LibraryStore is not Sendable and SwiftUI observes `books` on
+                // main; a background `Task.detached` here raced `books`/`save()`
+                // against a concurrent import and could corrupt library.json.
+                switch kind {
+                case .preview:
+                    try library.importTranslationPreview(
+                        from: importedURL,
+                        originalBook: book,
+                        translatedFraction: freePreviewFraction
+                    )
+                case .full:
+                    try library.importFullTranslation(
+                        from: importedURL,
+                        originalBook: book
+                    )
+                }
                 translations.markBackendFinished(for: book, kind: kind)
             } catch {
                 translations.markBackendFailed(
@@ -405,7 +393,7 @@ private extension TranslationJob {
 
     var isBackendActive: Bool {
         switch phase {
-        case .uploading, .translating, .importingResult, .previewQueued:
+        case .uploading, .translating, .importingResult:
             return true
         default:
             return false

@@ -48,6 +48,7 @@ struct TranslationBookPickerSheet: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("translation.picker.\(book.title)")
                 }
             }
             .navigationTitle("Choose Book")

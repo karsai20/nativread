@@ -127,7 +127,7 @@ struct NativReadApp: App {
                 definition: "",
                 contextSentence: "She raised the lantern to the dark "
                     + "doorway.",
-                dictionarySource: "Apple Dictionary"
+                dictionarySource: VocabularyEntry.appleDictionarySource
             ))
         }
     }

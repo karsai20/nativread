@@ -166,4 +166,47 @@ final class EPUBParserTests: XCTestCase {
         // Must not throw or crash on unreadable input.
         EPUBParser.sanitizeScripts(in: [missing])
     }
+
+    // MARK: - Network-supplied HTML hardening
+
+    func testStripScriptsRemovesInlineEventHandlers() {
+        let html = """
+        <body>\
+        <img src="c.png" onload="steal()">\
+        <p onclick='alert(1)'>Tap</p>\
+        <div onmouseover=go>Hover</div>\
+        </body>
+        """
+        let cleaned = EPUBParser.stripScripts(from: html)
+        XCTAssertFalse(cleaned.lowercased().contains("onload"))
+        XCTAssertFalse(cleaned.lowercased().contains("onclick"))
+        XCTAssertFalse(cleaned.lowercased().contains("onmouseover"))
+        XCTAssertFalse(cleaned.contains("steal()"))
+        XCTAssertFalse(cleaned.contains("alert(1)"))
+        // Non-handler content survives.
+        XCTAssertTrue(cleaned.contains("<p"))
+        XCTAssertTrue(cleaned.contains("Tap"))
+        XCTAssertTrue(cleaned.contains("src=\"c.png\""))
+    }
+
+    func testStripScriptsNeutralizesJavascriptURIs() {
+        let html = """
+        <a href="javascript:steal()">x</a>\
+        <a href="JaVaScRiPt: alert(1)">y</a>\
+        <img src='data:text/html,<b>z</b>'>
+        """
+        let cleaned = EPUBParser.stripScripts(from: html).lowercased()
+        XCTAssertFalse(cleaned.contains("javascript:"))
+        XCTAssertFalse(cleaned.contains("data:text/html"))
+        XCTAssertFalse(cleaned.contains("steal()"))
+        XCTAssertFalse(cleaned.contains("alert(1)"))
+    }
+
+    func testStripScriptsKeepsBenignAttributesAndProse() {
+        // A normal link, an inline style, and prose that merely contains the
+        // letters "onload"/"online" must all pass through unchanged.
+        let html = "<a href=\"chapter2.xhtml\" style=\"color:red\">"
+            + "The page onload felt slow; go online.</a>"
+        XCTAssertEqual(EPUBParser.stripScripts(from: html), html)
+    }
 }
