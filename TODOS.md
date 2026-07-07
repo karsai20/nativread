@@ -20,12 +20,26 @@ posture live in `docs/legal-posture.md`; these are the buildable gaps.
   translation)" and the library badge is "AI · HU"; marks *AI*, not just
   language (EU AI Act Art 50 visible-transparency floor). The pre-translation
   disclosure copy (legal MUST-FIX #4 / plan T16) is still separate.
+  v3.2.1 follow-up: translation-sheet copy also says "AI", and titles of
+  variants imported before the labels are migrated on load.
 - [ ] **OSS acknowledgements screen.** ZIPFoundation is MIT — the license text
   must accompany the distribution. Add Settings → About → Licenses entry.
   **Priority:** P2 (before App Store submission).
 - [ ] **Counsel sign-off before commercial launch.** legal-posture.md is agent
   review, not legal advice; pressure-test the personal-use-derivative position
   (operator-stores-the-copy fact pattern). **Priority:** P1 (external gate).
+
+## Branding
+
+- [ ] **Internal repo/docs rename sweep NativRead→NativBook.** The public name
+  is NativBook (CEO review 2026-07-07); D5 renames all PUBLIC surfaces (store,
+  website, colophon, copy). This item is the internal half: repo name,
+  project.yml/targets, docs, CLAUDE.md files. The last rename (Quire→NativRead)
+  was 47 refs across 44 files, one focused pass. **Why:** triple identity
+  (NativBook public / NativRead code / Quire in old docs) confuses every future
+  session. **Depends on:** NativBook name clearance passing (blueprint §3 gate)
+  and open branches landing first (the sweep churns every branch).
+  **Effort:** M human / S with CC. **Priority:** P3.
 
 ## Format support — MOBI/AZW3
 
@@ -78,6 +92,16 @@ posture live in `docs/legal-posture.md`; these are the buildable gaps.
   persona who prefers listening. **Sequencing:** post-launch, once the core
   translate-and-read loop is proven. Deferred from CEO review (not first round).
 
+- [ ] **Server-driven launch-language list.** Replace the hardcoded in-app
+  passed-languages array (eng review D7, 2026-07-07) with a tiny backend-served
+  list + bundled fallback, so a new language can launch — or a language with a
+  live quality incident can be *pulled* — without an App Review cycle.
+  **Why:** the hardcoded list's named ceiling; the remote-pull case is the
+  non-obvious half of the rationale. **Where to start:** one GET endpoint +
+  cached fallback to the bundled array; picker and waitlist options read the
+  same source. **Depends on:** language #4 shipping, or a live quality
+  incident. **Priority:** P3.
+
 ## Deferred design debt
 
 Source: /plan-design-review 2026-06-28.
@@ -91,13 +115,16 @@ Source: /plan-design-review 2026-06-28.
 
 ## Deferred from /plan-ceo-review 2026-06-30 (translator)
 
-- [ ] **Multi-target-language translation.** Launch is Hungarian-only (quality
-  validated only for Hungarian). Add each target language once it clears the
+- [ ] **Multi-target-language translation.** **[PARTIALLY SUPERSEDED 2026-07-07
+  — CEO D4/C: multi-language AT launch (DE/ES candidates) with a raised
+  per-language gate, see blueprint.md §3. This item now covers post-launch
+  languages #4+ only.]** Add each target language once it clears the
   Hungarian-equivalent literary quality bar (re-run the quality pipeline per
-  language). **Why deferred:** shipping unvalidated quality risks a bad first
-  App Store review that poisons the rating for everyone. **Where to start:** the
-  `Translator` interface already makes target language a config change; gate each
-  on the quality pipeline. **Effort:** M per language. **Priority:** P2.
+  language + one native-speaker read). **Why gated:** shipping unvalidated
+  quality risks a bad first App Store review that poisons the rating for
+  everyone. **Where to start:** the `Translator` interface already makes target
+  language a config change; gate each on the quality pipeline; pick candidates
+  from the in-app waitlist counts. **Effort:** M per language. **Priority:** P2.
 - [ ] **Inline-gloss "reading-level" learner mode.** Original text with
   per-sentence tap-to-reveal translation — a middle mode between all-English and
   fully-translated, aimed at language learners (a larger market than non-readers).
