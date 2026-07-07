@@ -3,6 +3,14 @@
 All notable changes to NativRead are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.2.1] - 2026-07-07
+
+### Changed
+- AI-translated books are now clearly labeled as AI throughout the app: library badges read "AI · HU", translated copies are titled "(AI Hungarian translation)" / "(AI Hungarian preview)", and the translation sheet confirmation says so too — so you always know which books were machine-translated (EU AI Act transparency).
+
+### Fixed
+- Books translated before this update are relabeled automatically, so older translated copies in your library get the same AI marking as new ones.
+
 ## [3.2] - 2026-07-06
 
 ### Added
