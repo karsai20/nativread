@@ -170,11 +170,11 @@ struct TranslationSheet: View {
             progressMessage("Importing \(job.activeResultName)...")
         case .finished:
             if job.hasFullTranslation {
-                Label("Full Hungarian translation was added as a separate library book.", systemImage: "checkmark.circle")
+                Label("Full AI Hungarian translation was added as a separate library book.", systemImage: "checkmark.circle")
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
             } else {
-                Label("Hungarian preview was added as a separate library book.", systemImage: "checkmark.circle")
+                Label("AI Hungarian preview was added as a separate library book.", systemImage: "checkmark.circle")
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
             }

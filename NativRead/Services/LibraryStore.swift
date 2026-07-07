@@ -400,7 +400,19 @@ final class LibraryStore {
         guard let data = try? Data(contentsOf: indexURL),
               let decoded = try? JSONDecoder().decode([Book].self, from: data)
         else { return }
-        books = decoded
+        books = decoded.map(Self.migratingAILabel)
+    }
+
+    /// One-shot title migration for variants imported before the EU AI Act
+    /// Art 50 labels: persisted titles predate the "AI" marker that new
+    /// imports get via titleOverride, so rewrite them on load.
+    private static func migratingAILabel(_ book: Book) -> Book {
+        guard book.variant != .original, !book.title.contains("(AI ") else { return book }
+        var migrated = book
+        migrated.title = book.title
+            .replacingOccurrences(of: "(Hungarian preview)", with: "(AI Hungarian preview)")
+            .replacingOccurrences(of: "(Hungarian)", with: "(AI Hungarian translation)")
+        return migrated
     }
 
     private func save() {

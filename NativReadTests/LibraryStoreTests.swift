@@ -63,6 +63,10 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(preview.translatedFraction, 0.01)
         XCTAssertFalse(preview.isTranslatableSource)
         XCTAssertTrue(original.isTranslatableSource)
+        // EU AI Act Art 50 transparency markers: AI prefix required on
+        // translated variants, no badge on originals.
+        XCTAssertEqual(preview.variant.badgeText, "AI · HU PREVIEW")
+        XCTAssertNil(original.variant.badgeText)
 
         let reloaded = makeStore()
         let persisted = reloaded.book(id: preview.id)
@@ -87,6 +91,35 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(translated.translatedFraction, 1)
         XCTAssertFalse(translated.isTranslatableSource)
         XCTAssertEqual(translated.variant.badgeText, "AI · HU")
+    }
+
+    func testLoadMigratesPreAIActTranslatedTitles() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+        let preview = try store.importTranslationPreview(
+            from: epubURL, originalBook: original, translatedFraction: 0.01
+        )
+        let translated = try store.importFullTranslation(
+            from: epubURL, originalBook: original
+        )
+
+        // Rewrite the persisted index to the pre-Art-50 title format.
+        let indexURL = root.appendingPathComponent("store/library.json")
+        let legacy = try String(contentsOf: indexURL, encoding: .utf8)
+            .replacingOccurrences(of: "(AI Hungarian preview)", with: "(Hungarian preview)")
+            .replacingOccurrences(of: "(AI Hungarian translation)", with: "(Hungarian)")
+        try legacy.write(to: indexURL, atomically: true, encoding: .utf8)
+
+        let reloaded = makeStore()
+        XCTAssertEqual(
+            reloaded.book(id: preview.id)?.title,
+            "Imported Title (AI Hungarian preview)"
+        )
+        XCTAssertEqual(
+            reloaded.book(id: translated.id)?.title,
+            "Imported Title (AI Hungarian translation)"
+        )
+        XCTAssertEqual(reloaded.book(id: original.id)?.title, "Imported Title")
     }
 
     func testLibraryPersistsAcrossInstances() throws {
