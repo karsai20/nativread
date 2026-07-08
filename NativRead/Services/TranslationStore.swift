@@ -43,6 +43,15 @@ final class TranslationStore {
         upsert(job)
     }
 
+    func setTargetLanguage(_ language: TranslationTargetLanguage, for book: Book) {
+        var job = self.job(for: book)
+        guard !job.phase.isInFlight else { return }
+        job.bookTitle = book.title
+        job.targetLanguage = language
+        job.updatedAt = .now
+        upsert(job)
+    }
+
     func markBackendUploadStarted(
         for book: Book,
         kind: TranslationRequestKind = .preview

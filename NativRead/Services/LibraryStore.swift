@@ -62,29 +62,75 @@ final class LibraryStore {
     func importTranslationPreview(
         from sourceURL: URL,
         originalBook: Book,
-        translatedFraction: Double
+        translatedFraction: Double,
+        targetLanguage: TranslationTargetLanguage = .hu
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (Hungarian preview)",
+            titleOverride: "\(originalBook.title) (\(targetLanguage.displayName) preview)",
             variant: .translationPreview,
             sourceBookID: originalBook.id,
-            translatedFraction: translatedFraction
+            translatedFraction: translatedFraction,
+            translatedLanguage: targetLanguage
         )
     }
 
     @discardableResult
     func importFullTranslation(
         from sourceURL: URL,
-        originalBook: Book
+        originalBook: Book,
+        targetLanguage: TranslationTargetLanguage = .hu
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (Hungarian translation)",
+            titleOverride: "\(originalBook.title) (\(targetLanguage.displayName) translation)",
             variant: .fullTranslation,
             sourceBookID: originalBook.id,
-            translatedFraction: 1
+            translatedFraction: 1,
+            translatedLanguage: targetLanguage
         )
+    }
+
+    func languageDetectionSample(for book: Book, maxCharacters: Int = 4_000) -> String {
+        let root = extractedRoot(for: book)
+        guard let enumerator = fileManager.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return "" }
+
+        var sample = ""
+        for case let url as URL in enumerator {
+            guard ["xhtml", "html", "htm", "txt"].contains(
+                url.pathExtension.lowercased()
+            ) else { continue }
+            guard let raw = try? String(contentsOf: url) else { continue }
+            sample += " " + Self.plainTextSample(from: raw)
+            if sample.count >= maxCharacters { break }
+        }
+        return String(sample.prefix(maxCharacters))
+    }
+
+    private static func plainTextSample(from raw: String) -> String {
+        raw
+            .replacingOccurrences(
+                of: "(?is)<script\\b[^>]*>.*?</script\\s*>",
+                with: " ", options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: "(?is)<style\\b[^>]*>.*?</style\\s*>",
+                with: " ", options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: "(?is)<[^>]+>", with: " ", options: .regularExpression
+            )
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(
+                of: "\\s+", with: " ", options: .regularExpression
+            )
     }
 
     /// Copies the source file in (materializing iCloud placeholders) under
@@ -164,7 +210,8 @@ final class LibraryStore {
         titleOverride: String? = nil,
         variant: BookVariant = .original,
         sourceBookID: UUID? = nil,
-        translatedFraction: Double? = nil
+        translatedFraction: Double? = nil,
+        translatedLanguage: TranslationTargetLanguage? = nil
     ) throws -> Book {
         let id = UUID()
         let needsScope = sourceURL.startAccessingSecurityScopedResource()
@@ -210,7 +257,8 @@ final class LibraryStore {
                 spineWeights: parsed.spineWeights,
                 variant: variant,
                 sourceBookID: sourceBookID,
-                translatedFraction: translatedFraction
+                translatedFraction: translatedFraction,
+                translatedLanguage: translatedLanguage
             )
             books.insert(book, at: 0)
             save()

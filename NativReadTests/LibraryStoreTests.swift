@@ -65,8 +65,8 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertTrue(original.isTranslatableSource)
         // EU AI Act Art 50 transparency markers: AI prefix required on
         // translated variants, no badge on originals.
-        XCTAssertEqual(preview.variant.badgeText, "AI · HU PREVIEW")
-        XCTAssertNil(original.variant.badgeText)
+        XCTAssertEqual(preview.variantBadgeText, "AI · HU PREVIEW")
+        XCTAssertNil(original.variantBadgeText)
 
         let reloaded = makeStore()
         let persisted = reloaded.book(id: preview.id)
@@ -90,7 +90,35 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(translated.sourceBookID, original.id)
         XCTAssertEqual(translated.translatedFraction, 1)
         XCTAssertFalse(translated.isTranslatableSource)
-        XCTAssertEqual(translated.variant.badgeText, "AI · HU")
+        XCTAssertEqual(translated.variantBadgeText, "AI · HU")
+    }
+
+    func testImportTranslationPersistsTargetLanguageMetadata() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+
+        let preview = try store.importTranslationPreview(
+            from: epubURL,
+            originalBook: original,
+            translatedFraction: 0.01,
+            targetLanguage: .de
+        )
+        let translated = try store.importFullTranslation(
+            from: epubURL,
+            originalBook: original,
+            targetLanguage: .es
+        )
+
+        XCTAssertEqual(preview.title, "Imported Title (German preview)")
+        XCTAssertEqual(preview.translatedLanguage, .de)
+        XCTAssertEqual(preview.variantBadgeText, "AI · DE PREVIEW")
+        XCTAssertEqual(translated.title, "Imported Title (Spanish translation)")
+        XCTAssertEqual(translated.translatedLanguage, .es)
+        XCTAssertEqual(translated.variantBadgeText, "AI · ES")
+
+        let reloaded = makeStore()
+        XCTAssertEqual(reloaded.book(id: preview.id)?.translatedLanguage, .de)
+        XCTAssertEqual(reloaded.book(id: translated.id)?.translatedLanguage, .es)
     }
 
     func testLoadCleansRepeatedAIActTranslatedTitles() throws {

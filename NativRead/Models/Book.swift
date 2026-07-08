@@ -80,8 +80,8 @@ enum BookVariant: String, Codable, Equatable {
     case translationPreview
     case fullTranslation
 
-    /// The "AI" prefix is a required transparency marker (EU AI Act Art 50):
-    /// translated output must be visibly identifiable as AI-generated.
+    /// Legacy fallback for older call sites. Prefer `Book.variantBadgeText`, which
+    /// includes the translated target language when known.
     var badgeText: String? {
         switch self {
         case .original:
@@ -115,6 +115,9 @@ struct Book: Codable, Equatable, Identifiable {
     var variant: BookVariant
     var sourceBookID: UUID?
     var translatedFraction: Double?
+    /// Target language for AI-translated variants. `nil` for original books and
+    /// for legacy translated imports from before multi-language metadata existed.
+    var translatedLanguage: TranslationTargetLanguage?
 
     init(
         id: UUID = UUID(),
@@ -131,7 +134,8 @@ struct Book: Codable, Equatable, Identifiable {
         spineWeights: [Double] = [],
         variant: BookVariant = .original,
         sourceBookID: UUID? = nil,
-        translatedFraction: Double? = nil
+        translatedFraction: Double? = nil,
+        translatedLanguage: TranslationTargetLanguage? = nil
     ) {
         self.id = id
         self.title = title
@@ -148,6 +152,7 @@ struct Book: Codable, Equatable, Identifiable {
         self.variant = variant
         self.sourceBookID = sourceBookID
         self.translatedFraction = translatedFraction
+        self.translatedLanguage = translatedLanguage
     }
 
     /// Tolerant decoding: libraries persisted before highlights existed
@@ -181,6 +186,8 @@ struct Book: Codable, Equatable, Identifiable {
             UUID.self, forKey: .sourceBookID)
         translatedFraction = try container.decodeIfPresent(
             Double.self, forKey: .translatedFraction)
+        translatedLanguage = try container.decodeIfPresent(
+            TranslationTargetLanguage.self, forKey: .translatedLanguage)
     }
 
     var percentText: String {
@@ -190,6 +197,19 @@ struct Book: Codable, Equatable, Identifiable {
 
     var isTranslationPreview: Bool { variant == .translationPreview }
     var isTranslatedCopy: Bool { variant != .original }
+    /// The visible EU AI Act transparency marker for translated output.
+    var variantBadgeText: String? {
+        guard variant != .original else { return nil }
+        let code = translatedLanguage?.shortCode ?? "HU"
+        switch variant {
+        case .original:
+            return nil
+        case .translationPreview:
+            return "AI · \(code) PREVIEW"
+        case .fullTranslation:
+            return "AI · \(code)"
+        }
+    }
     var canExportTranslatedEPUB: Bool {
         format == .epub && isTranslatedCopy
     }

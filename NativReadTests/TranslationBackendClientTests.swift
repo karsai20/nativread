@@ -94,7 +94,16 @@ final class TranslationBackendClientTests: XCTestCase {
 
     func testStartSucceedsWhenBackendReturnsOK() async throws {
         StubURLProtocol.enqueue(200, #"{"ok":true}"#)
-        try await makeClient().start(jobID: "j", sample: false)
+        try await makeClient().start(jobID: "j", sample: false, targetLanguage: .de)
+
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        let body = try XCTUnwrap(request.httpBodyStreamData)
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: body) as? [String: Any]
+        )
+        XCTAssertEqual(json["id"] as? String, "j")
+        XCTAssertEqual(json["sample"] as? Bool, false)
+        XCTAssertEqual(json["targetLanguage"] as? String, "de")
     }
 
     func testWaitUntilDoneReturnsOnDone() async throws {
@@ -209,4 +218,21 @@ final class StubURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
+}
+
+private extension URLRequest {
+    var httpBodyStreamData: Data? {
+        if let httpBody { return httpBody }
+        guard let stream = httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 1024)
+        while stream.hasBytesAvailable {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            if count <= 0 { break }
+            data.append(buffer, count: count)
+        }
+        return data
+    }
 }

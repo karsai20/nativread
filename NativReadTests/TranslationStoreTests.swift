@@ -113,6 +113,25 @@ final class TranslationStoreTests: XCTestCase {
         XCTAssertNotNil(job.attestedAt)
     }
 
+    func testTargetLanguagePersistsForBook() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let book = Book(
+            title: "Book",
+            author: "A",
+            fileName: "book.epub",
+            spineWeights: [1_800]
+        )
+
+        let store = TranslationStore(rootDirectory: root)
+        store.setTargetLanguage(.de, for: book)
+
+        let reloaded = TranslationStore(rootDirectory: root)
+        XCTAssertEqual(reloaded.job(for: book).targetLanguage, .de)
+    }
+
     func testBackendJobStatePersistsForBook() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

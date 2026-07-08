@@ -77,12 +77,20 @@ struct TranslationBackendClient: Sendable {
         return try decode(UploadResponse.self, from: data, response: response)
     }
 
-    func start(jobID: String, sample: Bool) async throws {
+    func start(
+        jobID: String,
+        sample: Bool,
+        targetLanguage: TranslationTargetLanguage = .hu
+    ) async throws {
         var request = makeRequest(path: "api/translate")
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(
-            withJSONObject: ["id": jobID, "sample": sample]
+            withJSONObject: [
+                "id": jobID,
+                "sample": sample,
+                "targetLanguage": targetLanguage.rawValue
+            ]
         )
         let (data, response) = try await session.data(for: request)
         let start = try decode(StartResponse.self, from: data, response: response)

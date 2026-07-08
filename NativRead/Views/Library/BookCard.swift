@@ -95,7 +95,7 @@ struct BookCard: View {
 
     @ViewBuilder
     private var variantBadge: some View {
-        if let badge = book.variant.badgeText {
+        if let badge = book.variantBadgeText {
             Text(badge)
                 .font(.system(size: 8, weight: .bold))
                 .foregroundStyle(.white)

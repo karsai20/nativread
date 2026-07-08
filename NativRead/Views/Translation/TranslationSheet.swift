@@ -13,6 +13,7 @@ struct TranslationSheet: View {
 
     @State private var ownsBook = false
     @State private var isRequestingTranslation = false
+    @State private var detectedLanguage: DetectedBookLanguage = .unknown
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -48,6 +49,9 @@ struct TranslationSheet: View {
         .accessibilityIdentifier("translation.sheet")
         .onAppear {
             ownsBook = job.attestedAt != nil
+            detectedLanguage = DetectedBookLanguage.detect(
+                from: library.languageDetectionSample(for: book)
+            )
         }
     }
 
@@ -70,18 +74,43 @@ struct TranslationSheet: View {
     }
 
     private var languageSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionLabel("Target")
-            HStack {
-                Label("Hungarian", systemImage: "character.bubble")
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            sectionLabel("Languages")
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Detected source")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+
+                Label(detectedLanguage.displayText, systemImage: "text.magnifyingglass")
                     .font(Typography.body(16))
                     .foregroundStyle(palette.text)
-                Spacer()
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(palette.accent)
             }
-            .padding(.vertical, Spacing.xs)
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("Translate to")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+
+                Picker(
+                    "Translate to",
+                    selection: Binding(
+                        get: { job.targetLanguage },
+                        set: { translations.setTargetLanguage($0, for: book) }
+                    )
+                ) {
+                    ForEach(TranslationTargetLanguage.allCases, id: \.self) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(job.isBackendActive)
+                .accessibilityIdentifier("translation.targetLanguage")
+
+                Text(job.targetLanguage.validationNote)
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+            }
         }
     }
 
@@ -170,11 +199,11 @@ struct TranslationSheet: View {
             progressMessage("Importing \(job.activeResultName)...")
         case .finished:
             if job.hasFullTranslation {
-                Label("Full Hungarian translation was added as a separate library book.", systemImage: "checkmark.circle")
+                Label("Full \(job.targetLanguage.displayName) translation was added as a separate library book.", systemImage: "checkmark.circle")
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
             } else {
-                Label("Hungarian preview was added as a separate library book.", systemImage: "checkmark.circle")
+                Label("\(job.targetLanguage.displayName) preview was added as a separate library book.", systemImage: "checkmark.circle")
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
             }
@@ -280,6 +309,7 @@ struct TranslationSheet: View {
         }
 
         isRequestingTranslation = true
+        let targetLanguage = job.targetLanguage
         let sourceURL = library.storedFileURL(for: book)
         let client = TranslationBackendClient(
             baseURL: backendURL,
@@ -300,7 +330,8 @@ struct TranslationSheet: View {
                     )
                     try await client.start(
                         jobID: upload.id,
-                        sample: kind == .preview
+                        sample: kind == .preview,
+                        targetLanguage: targetLanguage
                     )
                     _ = try await client.waitUntilDone(jobID: upload.id) {
                         status in
@@ -331,12 +362,14 @@ struct TranslationSheet: View {
                     try library.importTranslationPreview(
                         from: importedURL,
                         originalBook: book,
-                        translatedFraction: freePreviewFraction
+                        translatedFraction: freePreviewFraction,
+                        targetLanguage: targetLanguage
                     )
                 case .full:
                     try library.importFullTranslation(
                         from: importedURL,
-                        originalBook: book
+                        originalBook: book,
+                        targetLanguage: targetLanguage
                     )
                 }
                 translations.markBackendFinished(for: book, kind: kind)

@@ -1,11 +1,54 @@
 import Foundation
+import NaturalLanguage
 
-enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable {
+enum DetectedBookLanguage: Equatable {
+    case language(code: String, name: String, confidence: Double)
+    case unknown
+
+    var displayText: String {
+        switch self {
+        case .language(_, let name, let confidence):
+            return "\(name) · \(Int((confidence * 100).rounded()))% confidence"
+        case .unknown:
+            return "Could not detect source language"
+        }
+    }
+
+    static func detect(from sample: String) -> DetectedBookLanguage {
+        let trimmed = sample.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 80 else { return .unknown }
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(String(trimmed.prefix(4_000)))
+        guard let language = recognizer.dominantLanguage else { return .unknown }
+        let hypotheses = recognizer.languageHypotheses(withMaximum: 1)
+        let confidence = hypotheses[language] ?? 0
+        let code = language.rawValue
+        let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
+        return .language(code: code, name: name.capitalized, confidence: confidence)
+    }
+}
+
+enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable, Hashable {
     case hu
+    case de
+    case es
 
     var displayName: String {
         switch self {
         case .hu: return "Hungarian"
+        case .de: return "German"
+        case .es: return "Spanish"
+        }
+    }
+
+    var shortCode: String { rawValue.uppercased() }
+
+    var validationNote: String {
+        switch self {
+        case .hu:
+            return "Validated baseline language"
+        case .de, .es:
+            return "Needs full-novel quality validation before launch"
         }
     }
 }
