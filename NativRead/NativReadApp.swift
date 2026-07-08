@@ -88,6 +88,19 @@ struct NativReadApp: App {
                 }
             }
         }
+        if arguments.contains("-seedAliceBooks"), store.books.isEmpty {
+            for name in [
+                "alice-wonderland-en",
+                "alice-csodaorszagban-hu",
+                "alice-wunderland-de"
+            ] {
+                if let url = Bundle.main.url(
+                    forResource: name, withExtension: "epub"
+                ) {
+                    _ = try? store.importBook(from: url)
+                }
+            }
+        }
         // PDF / TXT seeds run the real importer over a freshly generated
         // sample, so the PDF reader and synthesized-TXT path can be driven
         // and screenshotted by UI tests.

@@ -114,7 +114,7 @@ xcodebuild test -project NativRead.xcodeproj -scheme NativRead \
 **Launch-argument hooks** (UI tests + screenshot automation):
 `-resetLibrary`, `-resetSettings`, `-resetLanguage`, `-seedSampleBook`, `-seedProgress`,
 `-seedSampleVocabulary`, `-skipOnboarding`, `-forceOnboarding`, `-onboardingHold`,
-`-autoOpenFirstBook`, `-forceTheme <paper|sepia|dusk|ink>`, `-forceFlow <paged|scroll>`,
+`-seedAliceBooks`, `-autoOpenFirstBook`, `-forceTheme <paper|sepia|dusk|ink>`, `-forceFlow <paged|scroll>`,
 `-forceTransition <slide|fade|instant>`, `-forceLanguage <en|hu>`,
 `-showTypographyPanel`, `-appearanceTab <theme|text|layout>`.
 

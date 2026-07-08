@@ -65,6 +65,9 @@
 		838BB50A8C455A0F17F12197 /* ReaderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4070FDA74FC7D4E62B74BF47 /* ReaderViewModel.swift */; };
 		8935545FAEADCBEAEADE86DA /* TranslationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F70B6ACF70974969BFC1FD /* TranslationStore.swift */; };
 		8C1BAD9D6B779415E78C5D87 /* sample-nocover.epub in Resources */ = {isa = PBXBuildFile; fileRef = 9EB1E7EFC740D1288EB2DDB7 /* sample-nocover.epub */; };
+		8EAA10000000000000000001 /* alice-wonderland-en.epub in Resources */ = {isa = PBXBuildFile; fileRef = 8EAA20000000000000000001 /* alice-wonderland-en.epub */; };
+		8EAA10000000000000000002 /* alice-csodaorszagban-hu.epub in Resources */ = {isa = PBXBuildFile; fileRef = 8EAA20000000000000000002 /* alice-csodaorszagban-hu.epub */; };
+		8EAA10000000000000000003 /* alice-wunderland-de.epub in Resources */ = {isa = PBXBuildFile; fileRef = 8EAA20000000000000000003 /* alice-wunderland-de.epub */; };
 		8C658E56A960159065E22F15 /* TranslationJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06ECFA9B1703A142DD7E8E90 /* TranslationJob.swift */; };
 		9019E1D7C0A4632347B60737 /* NativReadApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3A1D6B115206633B1644A47 /* NativReadApp.swift */; };
 		91BF8D3303D8F8C7DA8C1894 /* TextImporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB09CDDA20ADD37EA4ADFD8 /* TextImporterTests.swift */; };
@@ -178,6 +181,9 @@
 		80C095780ADBB3F69B0F75DB /* NativRead.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NativRead.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		82D6185C5816C08912362D43 /* SearchServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchServiceTests.swift; sourceTree = "<group>"; };
 		8665DC3CA08B5847D28DB270 /* PDFImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFImporter.swift; sourceTree = "<group>"; };
+		8EAA20000000000000000001 /* alice-wonderland-en.epub */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alice-wonderland-en.epub"; sourceTree = "<group>"; };
+		8EAA20000000000000000002 /* alice-csodaorszagban-hu.epub */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alice-csodaorszagban-hu.epub"; sourceTree = "<group>"; };
+		8EAA20000000000000000003 /* alice-wunderland-de.epub */ = {isa = PBXFileReference; lastKnownFileType = file; path = "alice-wunderland-de.epub"; sourceTree = "<group>"; };
 		88C982DD6AF5BB044DD035A8 /* ReaderController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderController.swift; sourceTree = "<group>"; };
 		89216DF6012465A3785EC9ED /* StatsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsStore.swift; sourceTree = "<group>"; };
 		8B066BCE0D1945F8781C1174 /* VocabularyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VocabularyView.swift; sourceTree = "<group>"; };
@@ -521,6 +527,9 @@
 		EB3DFD90FCDD4275AE99C14C /* Fixtures */ = {
 			isa = PBXGroup;
 			children = (
+				8EAA20000000000000000002 /* alice-csodaorszagban-hu.epub */,
+				8EAA20000000000000000001 /* alice-wonderland-en.epub */,
+				8EAA20000000000000000003 /* alice-wunderland-de.epub */,
 				9EB1E7EFC740D1288EB2DDB7 /* sample-nocover.epub */,
 				AEC15A32266675036D4975B8 /* sample.epub */,
 			);
@@ -674,6 +683,9 @@
 				E2B9B1545C21C0766F474FE0 /* CormorantGaramond-VariableFont_wght.ttf in Resources */,
 				1C0F1F3293A2A9DEBB118521 /* CrimsonPro-VariableFont_wght.ttf in Resources */,
 				C87F139879F355968B1E5D2E /* Localizable.xcstrings in Resources */,
+				8EAA10000000000000000002 /* alice-csodaorszagban-hu.epub in Resources */,
+				8EAA10000000000000000001 /* alice-wonderland-en.epub in Resources */,
+				8EAA10000000000000000003 /* alice-wunderland-de.epub in Resources */,
 				BCE33E25AE0E32FA4C4D0A1B /* OFL.txt in Resources */,
 				8C1BAD9D6B779415E78C5D87 /* sample-nocover.epub in Resources */,
 				9D21A199DD5F7A0DC352145B /* sample.epub in Resources */,

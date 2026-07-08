@@ -57,7 +57,7 @@ final class LibraryStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(store.books.count, 2)
-        XCTAssertEqual(preview.title, "Imported Title (AI Hungarian preview)")
+        XCTAssertEqual(preview.title, "Imported Title (Hungarian preview)")
         XCTAssertEqual(preview.variant, .translationPreview)
         XCTAssertEqual(preview.sourceBookID, original.id)
         XCTAssertEqual(preview.translatedFraction, 0.01)
@@ -85,7 +85,7 @@ final class LibraryStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(store.books.count, 2)
-        XCTAssertEqual(translated.title, "Imported Title (AI Hungarian translation)")
+        XCTAssertEqual(translated.title, "Imported Title (Hungarian translation)")
         XCTAssertEqual(translated.variant, .fullTranslation)
         XCTAssertEqual(translated.sourceBookID, original.id)
         XCTAssertEqual(translated.translatedFraction, 1)
@@ -93,7 +93,7 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(translated.variant.badgeText, "AI · HU")
     }
 
-    func testLoadMigratesPreAIActTranslatedTitles() throws {
+    func testLoadCleansRepeatedAIActTranslatedTitles() throws {
         let store = makeStore()
         let original = try store.importBook(from: epubURL)
         let preview = try store.importTranslationPreview(
@@ -103,21 +103,22 @@ final class LibraryStoreTests: XCTestCase {
             from: epubURL, originalBook: original
         )
 
-        // Rewrite the persisted index to the pre-Art-50 title format.
+        // Rewrite the persisted index to the older title format that repeated
+        // the AI marker in the title as well as the variant badge.
         let indexURL = root.appendingPathComponent("store/library.json")
         let legacy = try String(contentsOf: indexURL, encoding: .utf8)
-            .replacingOccurrences(of: "(AI Hungarian preview)", with: "(Hungarian preview)")
-            .replacingOccurrences(of: "(AI Hungarian translation)", with: "(Hungarian)")
+            .replacingOccurrences(of: "(Hungarian preview)", with: "(AI Hungarian preview)")
+            .replacingOccurrences(of: "(Hungarian translation)", with: "(AI Hungarian translation)")
         try legacy.write(to: indexURL, atomically: true, encoding: .utf8)
 
         let reloaded = makeStore()
         XCTAssertEqual(
             reloaded.book(id: preview.id)?.title,
-            "Imported Title (AI Hungarian preview)"
+            "Imported Title (Hungarian preview)"
         )
         XCTAssertEqual(
             reloaded.book(id: translated.id)?.title,
-            "Imported Title (AI Hungarian translation)"
+            "Imported Title (Hungarian translation)"
         )
         XCTAssertEqual(reloaded.book(id: original.id)?.title, "Imported Title")
     }

@@ -66,7 +66,7 @@ final class LibraryStore {
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (AI Hungarian preview)",
+            titleOverride: "\(originalBook.title) (Hungarian preview)",
             variant: .translationPreview,
             sourceBookID: originalBook.id,
             translatedFraction: translatedFraction
@@ -80,7 +80,7 @@ final class LibraryStore {
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (AI Hungarian translation)",
+            titleOverride: "\(originalBook.title) (Hungarian translation)",
             variant: .fullTranslation,
             sourceBookID: originalBook.id,
             translatedFraction: 1
@@ -403,15 +403,15 @@ final class LibraryStore {
         books = decoded.map(Self.migratingAILabel)
     }
 
-    /// One-shot title migration for variants imported before the EU AI Act
-    /// Art 50 labels: persisted titles predate the "AI" marker that new
-    /// imports get via titleOverride, so rewrite them on load.
+    /// One-shot title cleanup for translated variants: EU AI Act Art 50
+    /// transparency is shown by `BookVariant.badgeText`, not repeated in the
+    /// persisted title. Older imports may still carry the prior title prefix.
     private static func migratingAILabel(_ book: Book) -> Book {
-        guard book.variant != .original, !book.title.contains("(AI ") else { return book }
+        guard book.variant != .original, book.title.contains("(AI ") else { return book }
         var migrated = book
         migrated.title = book.title
-            .replacingOccurrences(of: "(Hungarian preview)", with: "(AI Hungarian preview)")
-            .replacingOccurrences(of: "(Hungarian)", with: "(AI Hungarian translation)")
+            .replacingOccurrences(of: "(AI Hungarian preview)", with: "(Hungarian preview)")
+            .replacingOccurrences(of: "(AI Hungarian translation)", with: "(Hungarian translation)")
         return migrated
     }
 
