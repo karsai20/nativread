@@ -72,6 +72,19 @@ posture live in `docs/legal-posture.md`; these are the buildable gaps.
   translation cached and the user asks for a *preview*, the client imports the
   full book labeled "(Hungarian preview)" at `translatedFraction = 0.01`. The
   upload response needs to say *what kind* of cached result exists. **P2.**
+  *(Codex adversarial 2026-07-09 additions: the cache key must also carry
+  `targetLanguage` — upload responds `alreadyTranslated` before `start` ever
+  sends the language, so a second launch language could import the wrong-
+  language cache; and `TranslationStore` keys jobs by `bookID` only, so
+  `previewCompletedAt`/`fullCompletedAt` from one language block requests in
+  another. Both are gated-off today because the picker only offers HU; fix
+  both before language #2 goes live.)*
+- [ ] **Language detection runs on the main thread.** `TranslationSheet
+  .onAppear` → `LibraryStore.languageDetectionSample` reads user-controlled
+  EPUB chapter files synchronously (`String(contentsOf:)`) before capping to
+  4,000 chars; a huge chapter can freeze the UI when the sheet opens. Move
+  the read into a background task and cap bytes-read, not decoded chars.
+  Found by Codex adversarial 2026-07-09. **P2.**
 - [ ] **`UIReferenceLibraryViewController` Manage-Dictionaries probe is fragile.**
   `DefineView.dictionaryManagementTerm` relies on undocumented behavior; keep it
   on a per-iOS-release QA checklist. **P3.**

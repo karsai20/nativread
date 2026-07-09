@@ -4,6 +4,30 @@ import XCTest
 @MainActor
 final class TranslationStoreTests: XCTestCase {
 
+    func testDecodesV32JobJSONWithoutTargetLanguage() throws {
+        // v3.2 persisted jobs before multi-language metadata existed. A
+        // missing targetLanguage must decode as Hungarian — a decode failure
+        // here silently wipes every stored job on upgrade.
+        let v32JSON = """
+        [{
+            "bookID": "00000000-0000-0000-0000-000000000001",
+            "bookTitle": "Old Book",
+            "phase": "attested",
+            "estimatedPages": 120,
+            "priceTier": "pages100To199",
+            "updatedAt": 773340000
+        }]
+        """
+        // Plain JSONDecoder mirrors TranslationStore.load exactly.
+        let jobs = try JSONDecoder().decode(
+            [TranslationJob].self, from: Data(v32JSON.utf8)
+        )
+
+        XCTAssertEqual(jobs.count, 1)
+        XCTAssertEqual(jobs[0].targetLanguage, .hu)
+        XCTAssertEqual(jobs[0].phase, .attested)
+    }
+
     func testEstimatedPageCountUsesSpineWeights() {
         let book = Book(
             title: "Long",

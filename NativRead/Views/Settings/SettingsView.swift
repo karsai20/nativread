@@ -212,7 +212,7 @@ struct SettingsView: View {
                 }
             }
 
-            Text("English uses WordNet-style definitions. Magyar adds English → Hungarian lookup. Other dictionary packs stay hidden until installed.")
+            Text("English uses the built-in glossary. Magyar adds English → Hungarian lookup. Other dictionary packs stay hidden until installed. The Apple system dictionary is always available as a fallback.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
         }

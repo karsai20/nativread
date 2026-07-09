@@ -156,6 +156,53 @@ struct TranslationJob: Codable, Equatable, Identifiable {
     var errorMessage: String?
     var updatedAt: Date
 
+    private enum CodingKeys: String, CodingKey {
+        case bookID, bookTitle, targetLanguage, phase, attestedAt
+        case estimatedPages, priceTier, backendJobID, activeRequestKind
+        case previewCompletedAt, fullCompletedAt, translatedChunks
+        case totalChunks, errorMessage, updatedAt
+    }
+
+    /// Custom decode so jobs persisted by v3.2 (before multi-language
+    /// metadata) still load: a missing `targetLanguage` means Hungarian,
+    /// the only language that existed. Without this, one missing key makes
+    /// the whole `translation-jobs.json` decode fail and silently drops
+    /// every job (attestation, completion markers, backend IDs).
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        bookID = try c.decode(UUID.self, forKey: .bookID)
+        bookTitle = try c.decode(String.self, forKey: .bookTitle)
+        targetLanguage = try c.decodeIfPresent(
+            TranslationTargetLanguage.self, forKey: .targetLanguage
+        ) ?? .hu
+        phase = try c.decode(TranslationJobPhase.self, forKey: .phase)
+        attestedAt = try c.decodeIfPresent(Date.self, forKey: .attestedAt)
+        estimatedPages = try c.decode(Int.self, forKey: .estimatedPages)
+        priceTier = try c.decode(
+            TranslationPriceTier.self, forKey: .priceTier
+        )
+        backendJobID = try c.decodeIfPresent(
+            String.self, forKey: .backendJobID
+        )
+        activeRequestKind = try c.decodeIfPresent(
+            TranslationRequestKind.self, forKey: .activeRequestKind
+        )
+        previewCompletedAt = try c.decodeIfPresent(
+            Date.self, forKey: .previewCompletedAt
+        )
+        fullCompletedAt = try c.decodeIfPresent(
+            Date.self, forKey: .fullCompletedAt
+        )
+        translatedChunks = try c.decodeIfPresent(
+            Int.self, forKey: .translatedChunks
+        )
+        totalChunks = try c.decodeIfPresent(Int.self, forKey: .totalChunks)
+        errorMessage = try c.decodeIfPresent(
+            String.self, forKey: .errorMessage
+        )
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+    }
+
     init(
         bookID: UUID,
         bookTitle: String,

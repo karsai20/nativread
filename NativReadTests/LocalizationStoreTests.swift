@@ -203,10 +203,10 @@ final class LocalizationStoreTests: XCTestCase {
         XCTAssertTrue(result?.definition.contains("lámpás") == true)
     }
 
-    func testEnglishDefineLookupReturnsWordNetStyleDefinition() {
+    func testEnglishDefineLookupReturnsBuiltInGlossaryDefinition() {
         let result = DictionaryProvider.lookup("lantern", language: .en)
 
-        XCTAssertEqual(result?.source, "WordNet")
+        XCTAssertEqual(result?.source, "Built-in glossary")
         XCTAssertTrue(result?.definition.contains("portable light") == true)
     }
 

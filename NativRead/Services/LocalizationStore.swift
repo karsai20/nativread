@@ -63,7 +63,7 @@ enum AppLanguage: String, CaseIterable, Sendable {
 
     var defineSourceName: String {
         switch self {
-        case .en: return "WordNet"
+        case .en: return "Built-in glossary"
         case .hu: return "English → Hungarian"
         case .es: return "Spanish Dictionary"
         case .de: return "German Dictionary"

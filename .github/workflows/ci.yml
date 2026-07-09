@@ -48,12 +48,14 @@ jobs:
           xcodegen generate
 
       - name: Unit tests
+        # No formatter pipe: a pipe without pipefail can mask xcodebuild's
+        # exit code, turning a red suite into a green check.
         run: |
           xcodebuild test \
             -project NativRead.xcodeproj \
             -scheme NativRead \
             -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
             -only-testing:NativReadTests \
-            CODE_SIGNING_ALLOWED=NO | xcbeautify --renderer github-actions
+            CODE_SIGNING_ALLOWED=NO
         env:
           NSUnbufferedIO: "YES"
