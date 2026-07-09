@@ -152,4 +152,65 @@ final class LocalizationStoreTests: XCTestCase {
         XCTAssertNotNil(AppLanguage(rawValue: "es"))
         XCTAssertNotNil(AppLanguage(rawValue: "de"))
     }
+
+    // MARK: - Define language
+
+    func testDefineLanguageDefaultsToEnglishWhenAppLanguageIsSystem() {
+        let store = LocalizationStore(defaults: defaults)
+
+        XCTAssertEqual(store.defineLanguage, .en)
+    }
+
+    func testDefineLanguageDefaultsToPersistedAppLanguageWhenSupported() {
+        defaults.set(AppLanguage.hu.rawValue, forKey: "quire.appLanguage.v1")
+
+        let store = LocalizationStore(defaults: defaults)
+
+        XCTAssertEqual(store.defineLanguage, .hu)
+    }
+
+    func testSetDefineLanguagePersistsSupportedPack() {
+        let store = LocalizationStore(defaults: defaults)
+        store.setDefineLanguage(.hu)
+
+        let reloaded = LocalizationStore(defaults: defaults)
+
+        XCTAssertEqual(reloaded.defineLanguage, .hu)
+    }
+
+    func testSetDefineLanguageIgnoresUnsupportedFuturePacks() {
+        let store = LocalizationStore(defaults: defaults)
+        store.setDefineLanguage(.hu)
+        store.setDefineLanguage(.de)
+
+        XCTAssertEqual(store.defineLanguage, .hu)
+        XCTAssertEqual(LocalizationStore(defaults: defaults).defineLanguage, .hu)
+    }
+
+    func testDefinePickableIsInstalledPacksOnly() {
+        XCTAssertEqual(
+            Set(AppLanguage.definePickable.map(\.rawValue)),
+            ["en", "hu"]
+        )
+    }
+
+    // MARK: - Dictionary provider
+
+    func testHungarianDefineLookupReturnsBundledGloss() {
+        let result = DictionaryProvider.lookup(" Lantern ", language: .hu)
+
+        XCTAssertEqual(result?.source, "English → Hungarian")
+        XCTAssertTrue(result?.definition.contains("lámpás") == true)
+    }
+
+    func testEnglishDefineLookupReturnsWordNetStyleDefinition() {
+        let result = DictionaryProvider.lookup("lantern", language: .en)
+
+        XCTAssertEqual(result?.source, "WordNet")
+        XCTAssertTrue(result?.definition.contains("portable light") == true)
+    }
+
+    func testUnsupportedDefineLookupReturnsNil() {
+        XCTAssertNil(DictionaryProvider.lookup("lantern", language: .de))
+    }
 }

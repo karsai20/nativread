@@ -45,6 +45,32 @@ enum AppLanguage: String, CaseIterable, Sendable {
     /// would leave most of the app in the English fallback.
     static let pickable: [AppLanguage] = [.en, .hu]
 
+    /// Languages that have a real Define pack in the app. This intentionally
+    /// differs from the enum's full set: Spanish/German remain future-ready
+    /// app/translation languages, but Define must only advertise installed or
+    /// bundled dictionary support.
+    static let definePickable: [AppLanguage] = [.en, .hu]
+
+    var defineDisplayName: String {
+        switch self {
+        case .en: return "English Define"
+        case .hu: return "Magyar Define"
+        case .es: return "Español Define"
+        case .de: return "Deutsch Define"
+        case .system: return "System Define"
+        }
+    }
+
+    var defineSourceName: String {
+        switch self {
+        case .en: return "WordNet"
+        case .hu: return "English → Hungarian"
+        case .es: return "Spanish Dictionary"
+        case .de: return "German Dictionary"
+        case .system: return VocabularyEntry.appleDictionarySource
+        }
+    }
+
     /// The app language that best matches the device's preferred locale, or
     /// `.en` if the device language is not in the supported set.
     static func matchingDevice() -> AppLanguage {
@@ -70,6 +96,11 @@ final class LocalizationStore {
     /// The user's explicit choice. `.system` is the factory default (no key
     /// stored yet) and means "defer to the device locale."
     private(set) var appLanguage: AppLanguage
+
+    /// The language pack used by the in-reader Define sheet. Unlike app
+    /// language, this never supports `.system`: Define must be explicit so the
+    /// app does not imply Spanish/German dictionary support before packs exist.
+    private(set) var defineLanguage: AppLanguage
 
     // MARK: - Derived / ephemeral state
 
@@ -103,19 +134,30 @@ final class LocalizationStore {
 
     private let defaults: UserDefaults
     private static let key = "quire.appLanguage.v1"
-    /// Legacy Define keys (pre Apple-Dictionary rework). Only cleared on reset
-    /// so stale values from upgraded installs don't linger in UserDefaults.
+    /// Define language key. Older builds wrote the same key before the Apple
+    /// Dictionary-only detour; keep it so upgraded installs retain a valid
+    /// dictionary choice when possible.
     private static let defineKey = "quire.defineLanguage.v1"
     private static let defineLanguagesKey = "quire.defineLanguages.v1"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        let appLanguage: AppLanguage
         if let stored = defaults.string(forKey: Self.key),
            let language = AppLanguage(rawValue: stored) {
-            self.appLanguage = language
+            appLanguage = language
         } else {
-            self.appLanguage = .system
+            appLanguage = .system
         }
+        self.appLanguage = appLanguage
+        if let stored = defaults.string(forKey: Self.defineKey),
+           let language = AppLanguage(rawValue: stored),
+           Self.isDefineSupported(language) {
+            self.defineLanguage = language
+        } else {
+            self.defineLanguage = Self.defaultDefineLanguage(for: appLanguage)
+        }
+
         // Route Bundle.main string lookups to the chosen language so every
         // `Text`/`String(localized:)` follows the choice from first launch.
         Bundle.setAppLanguage(appLanguage.languageCode)
@@ -126,6 +168,15 @@ final class LocalizationStore {
         appLanguage = language
         defaults.set(language.rawValue, forKey: Self.key)
         Bundle.setAppLanguage(language.languageCode)
+    }
+
+    /// Applies the explicit Define dictionary pack. Unsupported future
+    /// languages are ignored rather than persisted, so Settings cannot promise
+    /// packs that are not actually shipped.
+    func setDefineLanguage(_ language: AppLanguage) {
+        guard Self.isDefineSupported(language) else { return }
+        defineLanguage = language
+        defaults.set(language.rawValue, forKey: Self.defineKey)
     }
 
     /// Applies `language` for the current session without writing to
@@ -142,6 +193,14 @@ final class LocalizationStore {
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: defineKey)
         defaults.removeObject(forKey: defineLanguagesKey)
+    }
+
+    private static func isDefineSupported(_ language: AppLanguage) -> Bool {
+        AppLanguage.definePickable.contains(language)
+    }
+
+    private static func defaultDefineLanguage(for appLanguage: AppLanguage) -> AppLanguage {
+        isDefineSupported(appLanguage) ? appLanguage : .en
     }
 
     // MARK: - Localised string helper

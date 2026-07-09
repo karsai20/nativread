@@ -18,10 +18,15 @@ struct SettingsView: View {
     // only stages locally (checkmark moves, app does not switch); the change is
     // committed on Done so the UI never re-localises out from under the user.
     @State private var pendingAppLanguage: AppLanguage?
+    @State private var pendingDefineLanguage: AppLanguage?
     @State private var backendURL: String = ""
 
     private var selectedAppLanguage: AppLanguage {
         pendingAppLanguage ?? localizationStore.appLanguage
+    }
+
+    private var selectedDefineLanguage: AppLanguage {
+        pendingDefineLanguage ?? localizationStore.defineLanguage
     }
 
     var body: some View {
@@ -31,6 +36,7 @@ struct SettingsView: View {
                     appearanceSection
                     translationBackendSection
                     appLanguageSection
+                    defineLanguageSection
                 }
                 .padding(Spacing.lg)
             }
@@ -57,6 +63,10 @@ struct SettingsView: View {
         if let pendingAppLanguage,
            pendingAppLanguage != localizationStore.appLanguage {
             localizationStore.setLanguage(pendingAppLanguage)
+        }
+        if let pendingDefineLanguage,
+           pendingDefineLanguage != localizationStore.defineLanguage {
+            localizationStore.setDefineLanguage(pendingDefineLanguage)
         }
         settingsStore.setTranslationBackendURL(backendURL)
         dismiss()
@@ -175,6 +185,38 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Define Language
+
+    private var defineLanguageSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            sectionLabel("Define Language")
+
+            VStack(spacing: Spacing.xs) {
+                ForEach(AppLanguage.definePickable, id: \.rawValue) { language in
+                    SettingsChoiceRow(
+                        title: language.defineDisplayName,
+                        subtitle: language.defineSourceName,
+                        isSelected: selectedDefineLanguage == language,
+                        palette: palette
+                    )
+                    .onTapGesture { pendingDefineLanguage = language }
+                    .accessibilityIdentifier(
+                        "settings.definelang.\(language.rawValue)"
+                    )
+                    .accessibilityLabel(language.defineDisplayName)
+                    .accessibilityAddTraits(
+                        selectedDefineLanguage == language
+                            ? [.isSelected] : []
+                    )
+                }
+            }
+
+            Text("English uses WordNet-style definitions. Magyar adds English → Hungarian lookup. Other dictionary packs stay hidden until installed.")
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
+        }
+    }
+
     // MARK: - Section label
 
     /// Uppercase eyebrow label with a trailing hairline rule — the same
@@ -202,14 +244,22 @@ struct SettingsView: View {
 /// `control` font so chrome stays modern and consistent, not serif.
 private struct SettingsChoiceRow: View {
     let title: String
+    var subtitle: String? = nil
     let isSelected: Bool
     let palette: BrandPalette
 
     var body: some View {
         HStack {
-            Text(title)
-                .font(Typography.control(17, weight: isSelected ? .semibold : .regular))
-                .foregroundStyle(isSelected ? palette.accent : palette.text)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(title)
+                    .font(Typography.control(17, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? palette.accent : palette.text)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(Typography.meta())
+                        .foregroundStyle(palette.secondaryText)
+                }
+            }
             Spacer()
             if isSelected {
                 Image(systemName: "checkmark")

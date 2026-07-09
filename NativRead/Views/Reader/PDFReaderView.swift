@@ -9,6 +9,7 @@ struct PDFReaderView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(VocabularyStore.self) private var vocabulary
+    @Environment(LocalizationStore.self) private var localizationStore
 
     init(
         book: Book,
@@ -66,6 +67,7 @@ struct PDFReaderView: View {
             DefineView(
                 word: item.word,
                 palette: palette,
+                defineLanguage: localizationStore.defineLanguage,
                 context: viewModel.defineContext,
                 onSave: { definition, source in
                     viewModel.saveToVocabulary(
