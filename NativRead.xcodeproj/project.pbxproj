@@ -85,6 +85,7 @@
 		B2EBA906B6BCC8878DF873D6 /* VocabularyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B066BCE0D1945F8781C1174 /* VocabularyView.swift */; };
 		B54AD54DE02F8992B7EFFCAD /* SearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C593D1DC18AF7A9E41F9CBF4 /* SearchService.swift */; };
 		B7392D9F90733E3A3AB0B21A /* ContentsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9664F6B66A84BE969D74BB00 /* ContentsSheet.swift */; };
+		B971FB5AC17B4A8F3247B9D5 /* LicensesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106EEDB0A05BB18919998A14 /* LicensesView.swift */; };
 		BC6F3977ABC60D3B62A080AF /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C315CDE39775B8CBBD7D38AB /* RootView.swift */; };
 		BCE33E25AE0E32FA4C4D0A1B /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 1C3042BC774E758D1712935C /* OFL.txt */; };
 		BEF81179B15D3C5438603087 /* ReaderWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66AF8DF5A31C8D521804C225 /* ReaderWebView.swift */; };
@@ -143,6 +144,7 @@
 		07E34D0D4B58C307DCC0B622 /* LoadingOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingOverlay.swift; sourceTree = "<group>"; };
 		0A24A7A30DE0DDE852F3C7DA /* TranslationBackendClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationBackendClient.swift; sourceTree = "<group>"; };
 		0CDFBFF2637F610C6E00BCC5 /* PalmDocDecompressor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmDocDecompressor.swift; sourceTree = "<group>"; };
+		106EEDB0A05BB18919998A14 /* LicensesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensesView.swift; sourceTree = "<group>"; };
 		17F6B80FC78A1664D904F760 /* ReaderAppearanceControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderAppearanceControls.swift; sourceTree = "<group>"; };
 		1931BDF5DB21F97682DA0864 /* KF8ComponentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KF8ComponentTests.swift; sourceTree = "<group>"; };
 		1B110E1CEA86249B2D69CB75 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -554,6 +556,7 @@
 		F9B2808771F957AE28888511 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				106EEDB0A05BB18919998A14 /* LicensesView.swift */,
 				B992500E3C0F70C78777DDBC /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -720,6 +723,7 @@
 				2C11EFF41594565FEDD1A6C3 /* LaunchView.swift in Sources */,
 				5BF8A4121A4A12C4E0D17D88 /* LibraryStore.swift in Sources */,
 				0D9248F7C5E6F544CCE64574 /* LibraryView.swift in Sources */,
+				B971FB5AC17B4A8F3247B9D5 /* LicensesView.swift in Sources */,
 				0286697DC612D8D5409AE604 /* LoadingOverlay.swift in Sources */,
 				F2FC3FA29F62B07C35663D54 /* LocalizationStore.swift in Sources */,
 				544BAD27DD8BF7F5C26D12E5 /* MOBIHeader.swift in Sources */,

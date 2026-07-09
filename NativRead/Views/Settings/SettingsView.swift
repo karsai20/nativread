@@ -37,6 +37,7 @@ struct SettingsView: View {
                     translationBackendSection
                     appLanguageSection
                     defineLanguageSection
+                    aboutSection
                 }
                 .padding(Spacing.lg)
             }
@@ -214,6 +215,82 @@ struct SettingsView: View {
             Text("English uses WordNet-style definitions. Magyar adds English → Hungarian lookup. Other dictionary packs stay hidden until installed.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
+        }
+    }
+
+    // MARK: - About
+
+    private var appVersion: String {
+        let version = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleShortVersionString"
+        ) as? String ?? "—"
+        let build = Bundle.main.object(
+            forInfoDictionaryKey: "CFBundleVersion"
+        ) as? String
+        return build.map { "\(version) (\($0))" } ?? version
+    }
+
+    private var aboutSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            sectionLabel("About")
+
+            VStack(spacing: Spacing.xs) {
+                HStack {
+                    Text("Version")
+                        .font(Typography.control(17))
+                        .foregroundStyle(palette.text)
+                    Spacer()
+                    Text(appVersion)
+                        .font(Typography.control(16))
+                        .foregroundStyle(palette.secondaryText)
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.md)
+                .background {
+                    RoundedRectangle(
+                        cornerRadius: Spacing.radiusSmall, style: .continuous
+                    )
+                    .fill(palette.surface)
+                    .overlay {
+                        RoundedRectangle(
+                            cornerRadius: Spacing.radiusSmall,
+                            style: .continuous
+                        )
+                        .strokeBorder(palette.hairline, lineWidth: 0.8)
+                    }
+                }
+
+                NavigationLink {
+                    LicensesView()
+                } label: {
+                    HStack {
+                        Text("Licenses")
+                            .font(Typography.control(17))
+                            .foregroundStyle(palette.text)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(palette.secondaryText)
+                    }
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.md)
+                    .background {
+                        RoundedRectangle(
+                            cornerRadius: Spacing.radiusSmall,
+                            style: .continuous
+                        )
+                        .fill(palette.surface)
+                        .overlay {
+                            RoundedRectangle(
+                                cornerRadius: Spacing.radiusSmall,
+                                style: .continuous
+                            )
+                            .strokeBorder(palette.hairline, lineWidth: 0.8)
+                        }
+                    }
+                }
+                .accessibilityIdentifier("settings.licenses.link")
+            }
         }
     }
 
