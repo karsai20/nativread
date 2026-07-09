@@ -248,16 +248,30 @@ the store.
   exported translated EPUB (T25 backend half + robustness test — ship next),
   and visible "AI-translated" labeling (done). EPUB is the only translated
   output format; the marker + colophon travel with every export.
-- **Marker spec (eng D2, 2026-07-07):** pinned to the **EC Code of Practice on
-  Transparency of AI-Generated Content (final, published 2026-06-10)** — the
-  first hour of T25 reads the CoP's metadata-embedding technique and records
-  the exact OPF `<meta>` property + value HERE (blocking: the validation test
-  asserts that exact spec, plus a `dc:` entry and the colophon page as the
-  human-readable companion, plus a re-zip round-trip survival check). Do not
-  invent a property name without the CoP in hand. Timing note: the May 2026 AI
-  Omnibus grants pre-2026-08-02 systems until 2026-12-02 for the
-  machine-readable half — irrelevant here (we launch after Aug 2), the gate
-  stays hard.
+- **Marker spec (eng D2, 2026-07-07; RECORDED 2026-07-09, E1 done):** the
+  **EC Code of Practice on Transparency of AI-Generated Content (final,
+  published 2026-06-10)** was read: it prescribes marking *mechanisms*
+  (multi-layer machine-readable metadata; C2PA for signed manifests) but
+  names **no property vocabulary for text publications**. The pinned spec
+  therefore expresses the industry machine-readable value through EPUB 3's
+  package-prefix mechanism, layered per the CoP's ≥2-layer guidance:
+  1. `<package prefix="iptc: http://iptc.org/std/Iptc4xmpExt/2008-02-29/">`
+     + `<meta property="iptc:DigitalSourceType">http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia</meta>`
+  2. `<dc:description id="nativbook-ai-marker">AI-generated content: machine
+     translation from {source} to {target} by NativBook (EU AI Act Art 50).</dc:description>`
+  3. `nativbook-colophon.xhtml` appended to manifest + spine (human-readable
+     companion; survives OPF-stripping conversions).
+  Implemented in `quire-translator/lib/core/ai-marker.ts` (injected in
+  `job.ts` before every delivery, full and sample; idempotent; fails loudly
+  on malformed OPF). Validation: `test/ai-marker.test.ts` asserts the exact
+  spec + re-zip round-trip survival; the iOS import half is
+  `EPUBParserTests.testParsesArt50AIMarkedEPUB`. C2PA signed-manifest
+  layer: deferred until a C2PA↔EPUB binding exists (CoP names none — the
+  CoP's signed-metadata commitment is written for signatories; we are not
+  one, Art 50 itself requires effective+interoperable marking, which the
+  IPTC value provides). Timing note: the May 2026 AI Omnibus grants
+  pre-2026-08-02 systems until 2026-12-02 for the machine-readable half —
+  irrelevant here (we launch after Aug 2), the gate stays hard.
 - **GDPR:** Western provider with EU/US region resolved the hard part.
   Remaining hygiene: DPA with AI provider + host + Sentry-class monitor,
   privacy policy naming all three, data-subject export/delete (T9). The

@@ -269,4 +269,62 @@ final class EPUBParserTests: XCTestCase {
             + "The page onload felt slow; go online.</a>"
         XCTAssertEqual(EPUBParser.stripScripts(from: html), html)
     }
+
+    // MARK: - Art 50 AI-marked EPUB (E2)
+
+    /// The backend injects the EU AI Act machine-readable marker (IPTC
+    /// DigitalSourceType meta + dc:description + colophon spine item) into
+    /// every delivered EPUB. This mirrors that exact OPF shape and asserts
+    /// the app still imports it — the regression gate for the T25 backend
+    /// change. Spec: quire-translator lib/core/ai-marker.ts.
+    func testParsesArt50AIMarkedEPUB() throws {
+        try EPUBFixtures.writeEPUB3(
+            to: tempDirectory, title: "Marked Book", chapterCount: 2
+        )
+        let oebps = tempDirectory.appendingPathComponent("OEBPS")
+        let opfURL = oebps.appendingPathComponent("content.opf")
+        var opf = try String(contentsOf: opfURL, encoding: .utf8)
+        opf = opf.replacingOccurrences(
+            of: "<package ",
+            with: "<package prefix=\"iptc: "
+                + "http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" "
+        )
+        opf = opf.replacingOccurrences(
+            of: "</metadata>",
+            with: """
+                <meta property="iptc:DigitalSourceType">http://cv.iptc.org/\
+            newscodes/digitalsourcetype/trainedAlgorithmicMedia</meta>
+                <dc:description id="nativbook-ai-marker">AI-generated \
+            content: machine translation from English to Hungarian by \
+            NativBook (EU AI Act Art 50).</dc:description>
+              </metadata>
+            """
+        )
+        opf = opf.replacingOccurrences(
+            of: "</manifest>",
+            with: "  <item id=\"nativbook-colophon\" "
+                + "href=\"nativbook-colophon.xhtml\" "
+                + "media-type=\"application/xhtml+xml\"/>\n  </manifest>"
+        )
+        opf = opf.replacingOccurrences(
+            of: "</spine>",
+            with: "  <itemref idref=\"nativbook-colophon\"/>\n  </spine>"
+        )
+        try opf.write(to: opfURL, atomically: true, encoding: .utf8)
+        try EPUBFixtures.chapterXHTML(
+            title: "Colophon", body: "AI translation by NativBook."
+        ).write(
+            to: oebps.appendingPathComponent("nativbook-colophon.xhtml"),
+            atomically: true, encoding: .utf8
+        )
+
+        let parsed = try EPUBParser.parse(extractedRoot: tempDirectory)
+
+        XCTAssertEqual(parsed.title, "Marked Book")
+        XCTAssertEqual(parsed.spineURLs.count, 3)
+        XCTAssertEqual(
+            parsed.spineURLs.last?.lastPathComponent,
+            "nativbook-colophon.xhtml"
+        )
+    }
 }
