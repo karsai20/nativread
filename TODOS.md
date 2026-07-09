@@ -22,9 +22,9 @@ posture live in `docs/legal-posture.md`; these are the buildable gaps.
   disclosure copy (legal MUST-FIX #4 / plan T16) is still separate.
   v3.2.1 follow-up: translation-sheet copy also says "AI", and titles of
   variants imported before the labels are migrated on load.
-- [ ] **OSS acknowledgements screen.** ZIPFoundation is MIT — the license text
-  must accompany the distribution. Add Settings → About → Licenses entry.
-  **Priority:** P2 (before App Store submission).
+- [x] **OSS acknowledgements screen.** DONE 2026-07-09 — Settings → About
+  (version + Licenses link) → `LicensesView` ships the full ZIPFoundation MIT
+  text in-app.
 - [ ] **Counsel sign-off before commercial launch.** legal-posture.md is agent
   review, not legal advice; pressure-test the personal-use-derivative position
   (operator-stores-the-copy fact pattern). **Priority:** P1 (external gate).

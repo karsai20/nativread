@@ -10,6 +10,12 @@ final class LibraryStore {
     private(set) var books: [Book] = []
     var lastError: String?
 
+    /// Flips to true when a finished-book transition satisfies
+    /// `ReviewPromptPolicy`. The root view observes it, shows the StoreKit
+    /// review prompt, and resets it.
+    var reviewPromptRequested = false
+    private let reviewPromptPolicy: ReviewPromptPolicy
+
     private let root: URL
     private let fileManager = FileManager.default
 
@@ -18,7 +24,13 @@ final class LibraryStore {
     var coversDirectory: URL { root.appendingPathComponent("Covers") }
     private var indexURL: URL { root.appendingPathComponent("library.json") }
 
-    init(rootDirectory: URL? = nil) {
+    init(
+        rootDirectory: URL? = nil,
+        reviewPromptDefaults: UserDefaults = .standard
+    ) {
+        self.reviewPromptPolicy = ReviewPromptPolicy(
+            defaults: reviewPromptDefaults
+        )
         if let rootDirectory {
             self.root = rootDirectory
         } else {
@@ -325,6 +337,7 @@ final class LibraryStore {
             return
         }
         var book = books[index]
+        let wasFinished = book.isFinished
         book.progress = ReadingProgress(
             spineIndex: spineIndex,
             pageFraction: pageFraction,
@@ -336,6 +349,14 @@ final class LibraryStore {
         )
         book.lastOpenedAt = .now
         books[index] = book
+        // Review prompt rides the not-finished -> finished transition only —
+        // the peak-happiness moment, never an error or onboarding path.
+        if !wasFinished, book.isFinished,
+           reviewPromptPolicy.registerFinishedBook(
+               isTranslated: book.variant != .original
+           ) {
+            reviewPromptRequested = true
+        }
         // In scroll mode progress updates fire on every scroll frame;
         // writing the whole library JSON to disk each time makes
         // scrolling stutter. Coalesce the writes — persist once the

@@ -99,7 +99,7 @@ struct TranslationSheet: View {
                         set: { translations.setTargetLanguage($0, for: book) }
                     )
                 ) {
-                    ForEach(TranslationTargetLanguage.allCases, id: \.self) { language in
+                    ForEach(TranslationTargetLanguage.passed, id: \.self) { language in
                         Text(language.displayName).tag(language)
                     }
                 }
@@ -108,6 +108,12 @@ struct TranslationSheet: View {
                 .accessibilityIdentifier("translation.targetLanguage")
 
                 Text(job.targetLanguage.validationNote)
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+
+                // Unvalidated languages never ship, not even as "beta" —
+                // they wait for their dated go/no-go (blueprint §3).
+                Text("More languages are coming once each passes our literary quality bar.")
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
             }

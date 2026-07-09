@@ -33,6 +33,13 @@ enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable, Hashab
     case de
     case es
 
+    /// Languages that cleared the raised quality gate (full-novel pipeline
+    /// run + native-speaker read, dated go/no-go — blueprint §3). Only these
+    /// appear in the picker; the rest are waitlist-only. Deliberately a
+    /// hardcoded list (eng D7): a new language is a release event, not a
+    /// hotfix.
+    static let passed: [TranslationTargetLanguage] = [.hu]
+
     var displayName: String {
         switch self {
         case .hu: return "Hungarian"

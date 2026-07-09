@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 /// App root: shows the library and overlays onboarding screens on first launch.
 ///
@@ -14,7 +15,9 @@ import SwiftUI
 struct RootView: View {
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(LocalizationStore.self) private var localizationStore
+    @Environment(LibraryStore.self) private var library
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.requestReview) private var requestReview
 
     /// True while the brand splash is visible.
     @State private var showLaunch: Bool
@@ -54,6 +57,15 @@ struct RootView: View {
                 LaunchView(onFinished: splashDidFinish)
                     .transition(.opacity)
                     .zIndex(2)
+            }
+        }
+        .onChange(of: library.reviewPromptRequested) { _, requested in
+            guard requested else { return }
+            library.reviewPromptRequested = false
+            // Belt-and-braces: the policy only fires on finished books, but
+            // the spec says never during onboarding, so guard it anyway.
+            if !showLaunch, !showLanguagePicker {
+                requestReview()
             }
         }
     }

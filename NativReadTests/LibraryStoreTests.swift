@@ -255,4 +255,39 @@ final class LibraryStoreTests: XCTestCase {
         )
         XCTAssertTrue(leftovers.isEmpty, "no orphan files after failure")
     }
+
+    // MARK: - Review prompt (E8)
+
+    func testFinishingTranslatedBookRequestsReviewPromptOnce() throws {
+        let suiteName = "libstore-review-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = LibraryStore(
+            rootDirectory: root.appendingPathComponent("store"),
+            reviewPromptDefaults: defaults
+        )
+        let original = try store.importBook(from: epubURL)
+        let preview = try store.importTranslationPreview(
+            from: epubURL, originalBook: original, translatedFraction: 1.0
+        )
+
+        // Mid-book progress: no prompt.
+        store.updateProgress(
+            bookID: preview.id, spineIndex: 1, pageFraction: 0.5
+        )
+        XCTAssertFalse(store.reviewPromptRequested)
+
+        // Finishing the translated book crosses the transition: prompt.
+        store.updateProgress(
+            bookID: preview.id, spineIndex: 2, pageFraction: 1.0
+        )
+        XCTAssertTrue(store.reviewPromptRequested)
+
+        // Already-finished updates never re-request.
+        store.reviewPromptRequested = false
+        store.updateProgress(
+            bookID: preview.id, spineIndex: 2, pageFraction: 1.0
+        )
+        XCTAssertFalse(store.reviewPromptRequested)
+    }
 }
