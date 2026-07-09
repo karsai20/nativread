@@ -3,6 +3,17 @@
 All notable changes to NativRead are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.3] - 2026-07-09
+
+### Added
+- Choose the translation language for each book before translating. The picker only offers languages that passed our literary quality bar — more are coming as each one clears it.
+- Pick your Define dictionary language in Settings: English uses the built-in glossary, Magyar adds English → Hungarian lookup, and the Apple system dictionary stays available as a fallback below every definition.
+- Settings → About shows the app version and an open-source Licenses page.
+- Every AI-translated book delivered from now on carries a machine-readable "AI-generated" marker and a colophon page, in line with the EU AI Act — the marker survives export to your other devices.
+
+### Changed
+- After you finish your first AI-translated book (or your third book overall), the app may ask once — and only once — how you like it. Never after an error.
+
 ## [3.2.1] - 2026-07-07
 
 ### Changed
