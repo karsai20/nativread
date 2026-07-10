@@ -116,14 +116,14 @@ Build per translator-plan.md T1–T25. Nothing public.
 | Gate | Source | Status |
 |---|---|---|
 | **NativBook name clearance** — App Store search + EUIPO/WIPO/USPTO knock-out + domain check, BEFORE any public asset | CEO review Q2 | open — do this week |
-| EU AI Act Art 50(2) machine-readable EPUB marker **+ robustness spec**: marker survives re-export/Send-to-Kindle where technically feasible; automated validation test; EPUB is the only translated output format (previews are in-app renders of it) | legal #9 / T25 | backend half open |
+| EU AI Act Art 50(2) machine-readable EPUB marker **+ robustness spec**: marker survives re-export/Send-to-Kindle where technically feasible; automated validation test; EPUB is the only translated output format (previews are in-app renders of it) | legal #9 / T25 | ✅ done 2026-07-09 (E1+E2, spec in §5) |
 | Visible "AI-translated" label | T25 iOS half | ✅ done 2026-07-06 |
 | Ownership attestation in-flow | legal #1 / T23 | open |
 | Privacy labels + provider disclosure + policy/ToS URLs | legal #4, #7 / T16 | drafts done 2026-07-07 (`docs/legal/`, HU+EN); placeholders pend T15/host choices |
-| Account + data deletion & export | legal #5 / T9 | open |
+| Account + data deletion & export | legal #5 / T9 | backend done 2026-07-10 (GET/DELETE /api/account, per-user, tested); iOS Settings entry pending |
 | Server-side StoreKit verify + txn dedupe | legal #8 / T7 | open |
 | Per-user isolation by construction | legal #6 / T1 | done in Phase 1a work |
-| OSS licenses screen (ZIPFoundation MIT) | TODOS P2 | open |
+| OSS licenses screen (ZIPFoundation MIT) | TODOS P2 | ✅ done 2026-07-09 |
 | **External: counsel preliminary read (week 1) → full sign-off before commercial launch** | legal review condition + CEO C-Q5 | **founder decision 2026-07-07: proceeding WITHOUT counsel for now** — accepted risk; agent-drafted doc pack in `docs/legal/` + research annex prepared so a later counsel review is a cheap read-through, not a from-scratch engagement. Gate stays on the books for the commercial phase. |
 
 **Launch languages (supersedes 2026-06-30 "Hungarian-only" — CEO D4/C):**
@@ -511,32 +511,32 @@ upload ──► free chapter (T3) ──► provider ──► ok ────�
             └────────────────────────────────► re-deliver / re-run, NO charge
 ```
 
-- [ ] **E1 (P1, human: ~1d / CC: ~1-2h)** — backend — T25 marker: pin exact CoP-aligned OPF spec, inject marker + colophon
+- [x] **E1 (P1, human: ~1d / CC: ~1-2h)** — backend — T25 marker: pin exact CoP-aligned OPF spec, inject marker + colophon
   - Surfaced by: Architecture #1 (D2) — plan said "OPF marker" with no vocabulary; EC Code of Practice final 2026-06-10
   - Files: quire-translator EPUB build step; spec recorded in blueprint §5
   - Verify: validation test asserts exact property+value + dc: entry + colophon + re-zip round-trip
-- [ ] **E2 (P1, CRITICAL regression, human: ~0.5d / CC: ~1h)** — backend+ios — marked EPUB stays valid + importable
+- [x] **E2 (P1, CRITICAL regression, human: ~0.5d / CC: ~1h)** — backend+ios — marked EPUB stays valid + importable
   - Surfaced by: Test review REGRESSION RULE — T25 modifies the working delivery build step
   - Verify: build → EPUB validity check → import in app; blocks ship if red
-- [ ] **E3 (P1, human: ~0.5d / CC: ~30min)** — backend — T3 moderation-refusal branch
+- [x] **E3 (P1, human: ~0.5d / CC: ~30min)** — backend — T3 moderation-refusal branch
   - Surfaced by: Architecture #3 (D4) — refusal is deterministic; generic retry re-burns cost
   - Verify: fake-provider refusal test: distinct error code, credit not consumed, T15+T18 events emitted
-- [ ] **E4 (P1, human: ~0.5d / CC: ~30min)** — backend — `targetLanguage` in entitlement/tier/job keys
+- [x] **E4 (P1, human: ~0.5d / CC: ~30min)** — backend — `targetLanguage` in entitlement/tier/job keys
   - Surfaced by: Codex #2 (D9) — multi-language launch collides on `(userId, sourceHash)`
   - Verify: isolation + entitlement tests extended to the widened key; free trial stays per-book
-- [ ] **E5 (P1, human: ~1d / CC: ~1h)** — backend+ios — re-upload entitlement restore (T17a)
+- [x] **E5 (P1, human: ~1d / CC: ~1h)** — backend+ios — re-upload entitlement restore (T17a)
   - Surfaced by: Codex #7 (D11) — consumables have no Apple-side restore
   - Verify: re-upload test: no double-charge, no double-grant; purchase UI states the guarantee
-- [ ] **E6 (P1, human: ~0.5d / CC: ~30min)** — backend — T18 failure-bucket events
+- [x] **E6 (P1, human: ~0.5d / CC: ~30min)** — backend — T18 failure-bucket events
   - Surfaced by: Codex #6 (D12) — kill signal needs a denominator control
   - Verify: each bucket emitted from its failure path; retention/pruning covers new rows
-- [ ] **E7 (P1, human: ~0.5d / CC: ~30min)** — backend — waitlist `(userId, language)` write
+- [x] **E7 (P1, human: ~0.5d / CC: ~30min)** — backend — waitlist `(userId, language)` write
   - Surfaced by: Test review — dedupe idempotent, rides T4 rate limit, per-user scoped, metadata-only
   - Verify: dedupe + rate-limit + isolation tests (extend route-isolation.test.ts)
-- [ ] **E8 (P1, human: ~1d / CC: ~1h)** — ios — ReviewPromptPolicy + picker gating tests
+- [x] **E8 (P1, human: ~1d / CC: ~1h)** — ios — ReviewPromptPolicy + picker gating tests
   - Surfaced by: §4/§6 spec + Code Quality #6 (D7) — hardcoded passed-languages list
   - Verify: ReviewPromptPolicyTests (first-translated / third-book / fires-once / never-on-error) + picker shows passed list + "Other"→waitlist
-- [ ] **E9 (P1, human: ~0.5d / CC: ~1h)** — both repos — CI + GitHub protections per §7
+- [x] **E9 (P1, human: ~0.5d / CC: ~1h)** — both repos — CI + GitHub protections per §7
   - Surfaced by: §7 + Architecture #4 (D5) — nativread unit-only; translator install/typecheck/test/lint; SHA-pinned actions; `permissions: contents: read`; secret scanning + push protection + Dependabot
   - Verify: green runs on a test PR in each repo
 - [ ] **E10 (P1, human: ~2d / CC: ~1-2h)** — backend — `abuse.test.ts` automated abuse suite
