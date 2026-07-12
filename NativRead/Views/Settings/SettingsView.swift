@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// App-wide settings sheet: appearance and app language. Styled in the same
-/// editorial idiom as StatsView and VocabularyView — BrandPalette, eyebrow
-/// section labels with hairline rules, Cormorant display typography. Launched
-/// from the library header gear button.
+/// App-wide settings sheet: appearance, language, translation backend, about.
+/// Styled in the same editorial idiom as StatsView and VocabularyView —
+/// BrandPalette surfaces, an in-content serif display header, eyebrow section
+/// labels with hairline rules, page-like appearance tiles, and grouped cards
+/// with hairline row separators. Launched from the library header gear button.
 struct SettingsView: View {
     @Environment(LocalizationStore.self) private var localizationStore
     @Environment(SettingsStore.self) private var settingsStore
@@ -33,16 +34,18 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
+                    header
                     appearanceSection
-                    translationBackendSection
                     appLanguageSection
                     defineLanguageSection
+                    translationBackendSection
                     aboutSection
                 }
                 .padding(Spacing.lg)
             }
             .background(palette.background.ignoresSafeArea())
-            .navigationTitle("Settings")
+            // No nav title — the in-content serif header carries the heading,
+            // so the sheet reads as designed chrome, not a system form.
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -53,6 +56,16 @@ struct SettingsView: View {
             }
         }
         .accessibilityIdentifier("settings.sheet")
+    }
+
+    // MARK: - Header
+
+    /// In-content serif display title, echoing StatsView's editorial anchor.
+    private var header: some View {
+        Text("Settings")
+            .font(Typography.display(34))
+            .foregroundStyle(palette.text)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Commit
@@ -75,20 +88,22 @@ struct SettingsView: View {
 
     // MARK: - Appearance
 
-    /// Light / Dark / System toggle. `System` follows the device — applied
-    /// instantly on tap (unlike language) so the change is its own feedback.
+    /// System / Light / Dark as page-like tiles. `System` follows the device —
+    /// applied instantly on tap (unlike language) so the change is its own
+    /// feedback.
     private var appearanceSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             sectionLabel("Appearance")
 
-            VStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.sm) {
                 ForEach(AppAppearance.allCases, id: \.rawValue) { appearance in
-                    SettingsChoiceRow(
-                        title: appearanceLabel(appearance),
+                    AppearanceTile(
+                        appearance: appearance,
+                        label: appearanceLabel(appearance),
                         isSelected: settingsStore.appAppearance == appearance,
-                        palette: palette
+                        palette: palette,
+                        action: { settingsStore.setAppearance(appearance) }
                     )
-                    .onTapGesture { settingsStore.setAppearance(appearance) }
                     .accessibilityIdentifier(
                         "settings.appearance.\(appearance.rawValue)"
                     )
@@ -116,58 +131,19 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Translation Backend
-
-    private var translationBackendSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("Translation Backend")
-
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                TextField("http://translator.local:48218", text: $backendURL)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    .autocorrectionDisabled()
-                    .font(Typography.control(16))
-                    .foregroundStyle(palette.text)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .background {
-                        RoundedRectangle(
-                            cornerRadius: Spacing.radiusSmall,
-                            style: .continuous
-                        )
-                        .fill(palette.surface)
-                        .overlay {
-                            RoundedRectangle(
-                                cornerRadius: Spacing.radiusSmall,
-                                style: .continuous
-                            )
-                            .strokeBorder(palette.hairline, lineWidth: 0.8)
-                        }
-                    }
-                    .accessibilityIdentifier("settings.translationBackendURL")
-
-                Text("The self-hosted translator server this app uploads books to.")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
-            }
-        }
-        .onAppear {
-            if backendURL.isEmpty {
-                backendURL = settingsStore.translationBackendURLString
-            }
-        }
-    }
-
     // MARK: - App Language
 
     private var appLanguageSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             sectionLabel("App Language")
 
-            VStack(spacing: Spacing.xs) {
-                ForEach(AppLanguage.pickable, id: \.rawValue) { language in
-                    SettingsChoiceRow(
+            VStack(spacing: 0) {
+                ForEach(
+                    Array(AppLanguage.pickable.enumerated()),
+                    id: \.element.rawValue
+                ) { index, language in
+                    if index > 0 { SettingsRowDivider(palette: palette) }
+                    SettingsGroupedRow(
                         title: language.endonym,
                         isSelected: selectedAppLanguage == language,
                         palette: palette
@@ -183,6 +159,7 @@ struct SettingsView: View {
                     )
                 }
             }
+            .settingsGroupedCard(palette: palette)
         }
     }
 
@@ -192,9 +169,13 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             sectionLabel("Define Language")
 
-            VStack(spacing: Spacing.xs) {
-                ForEach(AppLanguage.definePickable, id: \.rawValue) { language in
-                    SettingsChoiceRow(
+            VStack(spacing: 0) {
+                ForEach(
+                    Array(AppLanguage.definePickable.enumerated()),
+                    id: \.element.rawValue
+                ) { index, language in
+                    if index > 0 { SettingsRowDivider(palette: palette) }
+                    SettingsGroupedRow(
                         title: language.defineDisplayName,
                         subtitle: language.defineSourceName,
                         isSelected: selectedDefineLanguage == language,
@@ -211,10 +192,44 @@ struct SettingsView: View {
                     )
                 }
             }
+            .settingsGroupedCard(palette: palette)
 
             Text("English uses the built-in glossary. Magyar adds English → Hungarian lookup. Other dictionary packs stay hidden until installed. The Apple system dictionary is always available as a fallback.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
+        }
+    }
+
+    // MARK: - Translation Backend
+
+    /// Power-user setting — kept visually quiet: one grouped field card with a
+    /// meta caption beneath, placed low so it does not compete with appearance
+    /// and language.
+    private var translationBackendSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            sectionLabel("Translation Backend")
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                TextField("http://translator.local:48218", text: $backendURL)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+                    .autocorrectionDisabled()
+                    .font(Typography.control(16))
+                    .foregroundStyle(palette.text)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.md)
+                    .settingsGroupedCard(palette: palette)
+                    .accessibilityIdentifier("settings.translationBackendURL")
+
+                Text("The self-hosted translator server this app uploads books to.")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+            }
+        }
+        .onAppear {
+            if backendURL.isEmpty {
+                backendURL = settingsStore.translationBackendURLString
+            }
         }
     }
 
@@ -234,7 +249,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             sectionLabel("About")
 
-            VStack(spacing: Spacing.xs) {
+            VStack(spacing: 0) {
                 HStack {
                     Text("Version")
                         .font(Typography.control(17))
@@ -246,19 +261,8 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.md)
-                .background {
-                    RoundedRectangle(
-                        cornerRadius: Spacing.radiusSmall, style: .continuous
-                    )
-                    .fill(palette.surface)
-                    .overlay {
-                        RoundedRectangle(
-                            cornerRadius: Spacing.radiusSmall,
-                            style: .continuous
-                        )
-                        .strokeBorder(palette.hairline, lineWidth: 0.8)
-                    }
-                }
+
+                SettingsRowDivider(palette: palette)
 
                 NavigationLink {
                     LicensesView()
@@ -274,23 +278,11 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.md)
-                    .background {
-                        RoundedRectangle(
-                            cornerRadius: Spacing.radiusSmall,
-                            style: .continuous
-                        )
-                        .fill(palette.surface)
-                        .overlay {
-                            RoundedRectangle(
-                                cornerRadius: Spacing.radiusSmall,
-                                style: .continuous
-                            )
-                            .strokeBorder(palette.hairline, lineWidth: 0.8)
-                        }
-                    }
+                    .contentShape(Rectangle())
                 }
                 .accessibilityIdentifier("settings.licenses.link")
             }
+            .settingsGroupedCard(palette: palette)
         }
     }
 
@@ -311,58 +303,5 @@ struct SettingsView: View {
                 .fill(palette.hairline)
                 .frame(height: Spacing.hairlineWidth)
         }
-    }
-}
-
-// MARK: - Choice row
-
-/// A single tappable row in a Settings picker (language or appearance).
-/// Selected row warms to the accent tint with a hairline ring. Uses the clean
-/// `control` font so chrome stays modern and consistent, not serif.
-private struct SettingsChoiceRow: View {
-    let title: String
-    var subtitle: String? = nil
-    let isSelected: Bool
-    let palette: BrandPalette
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(Typography.control(17, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? palette.accent : palette.text)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(Typography.meta())
-                        .foregroundStyle(palette.secondaryText)
-                }
-            }
-            Spacer()
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(palette.accent)
-            }
-        }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.md)
-        .background {
-            RoundedRectangle(cornerRadius: Spacing.radiusSmall, style: .continuous)
-                .fill(
-                    isSelected
-                        ? palette.accent.opacity(0.12)
-                        : palette.surface
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: Spacing.radiusSmall, style: .continuous)
-                        .strokeBorder(
-                            isSelected
-                                ? palette.accent.opacity(0.55)
-                                : palette.hairline,
-                            lineWidth: isSelected ? 1.2 : 0.8
-                        )
-                }
-        }
-        .animation(.easeOut(duration: 0.18), value: isSelected)
     }
 }
