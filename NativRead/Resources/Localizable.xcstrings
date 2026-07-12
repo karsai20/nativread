@@ -1521,20 +1521,20 @@
         }
       }
     },
-    "transition.label.eink" : {
-      "comment" : "Display name for the e-ink page transition.",
+    "transition.label.fade" : {
+      "comment" : "Display name for the fade page transition.",
       "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "E-Ink"
+            "value" : "Fade"
           }
         },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "E-ink"
+            "value" : "Áttűnés"
           }
         }
       }

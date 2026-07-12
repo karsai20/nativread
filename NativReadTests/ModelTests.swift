@@ -392,9 +392,10 @@ final class ModelTests: XCTestCase {
 
     func testEngineScriptCarriesFlowAndTransition() {
         let paged = ReaderScripts.engine(
-            pageWidth: 390, flow: .paged, transition: .eink
+            pageWidth: 390, flow: .paged, transition: .fade
         )
         XCTAssertTrue(paged.contains("\"paged\""))
+        // Fade's persisted rawValue is the legacy "eink".
         XCTAssertTrue(paged.contains("\"eink\""))
 
         let scroll = ReaderScripts.engine(
@@ -473,37 +474,39 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded, highlight)
     }
 
-    func testEinkTransitionShipsFlashOverlay() {
+    func testFadeTransitionShipsVeilOverlay() {
         let script = ReaderScripts.engine(
-            pageWidth: 390, flow: .paged, transition: .eink
+            pageWidth: 390, flow: .paged, transition: .fade
         )
-        XCTAssertTrue(script.contains("einkFlash"))
+        XCTAssertTrue(script.contains("fadeSwap"))
 
         let css = ReaderStyle.css(
             settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
         )
-        XCTAssertTrue(css.contains("#lumen-eink"))
+        XCTAssertTrue(css.contains("#lumen-fade"))
     }
 
-    func testEinkFlashIsDarkInDarkThemeNotWhite() {
-        // In a dark theme the text colour is light; the e-ink flash must
-        // still be black, otherwise every page turn flashes white.
+    func testFadeVeilIsPageBackgroundNeverInk() {
+        // The fade must wash through blank paper — never black or the
+        // text colour — in every theme (the ink flash was e-paper only).
         var dark = ReaderSettings()
         dark.theme = .dusk
         let darkCSS = ReaderStyle.css(
             settings: dark, pageWidth: 390, pageHeight: 844
         )
-        XCTAssertTrue(darkCSS.contains("background: #000000"))
+        XCTAssertFalse(darkCSS.contains("background: #000000"))
         XCTAssertFalse(
             darkCSS.contains("background: \(ReaderTheme.dusk.textHex)")
         )
 
-        // Light theme keeps the dark ink text as the flash colour.
         let lightCSS = ReaderStyle.css(
             settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
         )
-        XCTAssertTrue(
+        XCTAssertFalse(
             lightCSS.contains("background: \(ReaderTheme.paper.textHex)")
+        )
+        XCTAssertTrue(
+            lightCSS.contains("background: \(ReaderTheme.paper.backgroundHex)")
         )
     }
 

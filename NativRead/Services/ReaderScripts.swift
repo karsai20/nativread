@@ -101,37 +101,39 @@ enum ReaderScripts {
                 body.style.opacity = "1";
                 this.postScroll(true);
               } else if (animate && this.transition === "eink") {
-                this.einkFlash(() => this.postScroll(false));
+                // "eink" is the legacy-persisted rawValue of the Fade case.
+                this.fadeSwap(() => this.postScroll(false));
               } else {
                 body.style.opacity = "1";
                 this.postScroll(false);
               }
             },
 
-            // The signature e-ink refresh: the screen snaps to a solid
-            // ink fill, the page is swapped underneath, then the fill
-            // clears — a crisp, deliberate blink rather than a dissolve.
-            // The overlay lives outside <body> so the page transform
-            // can't move it. The swap happens at peak opacity so the
-            // reader never sees the pages cross-fade.
-            einkFlash(move) {
-              let flash = document.getElementById("lumen-eink");
-              if (!flash) {
-                flash = document.createElement("div");
-                flash.id = "lumen-eink";
-                document.documentElement.appendChild(flash);
+            // Kindle-style fade: the old page washes out to blank paper
+            // (a page-background veil), the page is swapped underneath,
+            // then the veil eases away over the new page. The overlay
+            // lives outside <body> so the page transform can't move it.
+            // The swap happens at peak opacity so the reader never sees
+            // the pages cross-fade.
+            fadeSwap(move) {
+              let veil = document.getElementById("lumen-fade");
+              if (!veil) {
+                veil = document.createElement("div");
+                veil.id = "lumen-fade";
+                document.documentElement.appendChild(veil);
               }
-              flash.classList.add("lumen-eink-on");
-              // Hold the solid ink for a beat (CSS snaps it on fast), swap the
-              // page behind it, give WebKit one more frame to paint the new
-              // column, then snap the fill away — so the reveal is the crisp
-              // finished page, never a half-painted cross-fade.
+              veil.classList.add("lumen-fade-on");
+              // Wait for the veil to be FULLY opaque (120ms fade-in + a
+              // hair), swap the page behind it, give WebKit one more frame
+              // to paint the new column, then ease the veil away — so the
+              // reveal is the crisp finished page, never a half-painted
+              // cross-fade.
               setTimeout(() => {
                 move();
                 requestAnimationFrame(() => requestAnimationFrame(() => {
-                  flash.classList.remove("lumen-eink-on");
+                  veil.classList.remove("lumen-fade-on");
                 }));
-              }, 110);
+              }, 140);
             },
 
             goTo(page, animate) {

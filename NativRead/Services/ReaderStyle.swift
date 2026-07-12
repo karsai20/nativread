@@ -93,27 +93,25 @@ enum ReaderStyle {
                 column-gap: \(margin * 2)px;
                 column-fill: auto;
             }
-            #lumen-eink {
+            #lumen-fade {
                 position: fixed;
                 inset: 0;
-                /* A real e-ink full refresh flashes to solid ink. Use the
-                   dark ink in every theme — in dark themes the text
-                   colour is light, which would flash white. */
-                background: \(theme.isDark ? "#000000" : theme.textHex);
+                /* Kindle-style fade: the veil is the PAGE BACKGROUND in
+                   every theme, so a turn reads as the page washing out to
+                   blank paper — never a black/ink flash (that pattern only
+                   makes sense on real e-paper hardware). */
+                background: \(theme.backgroundHex);
                 opacity: 0;
                 pointer-events: none;
-                /* Clear it with a near-instant snap, NOT a dissolve: a 70ms
-                   fade makes the new page wash up out of black and reads as a
-                   crossfade. A ~26ms snap reveals the already-painted page
-                   crisply, the way a real e-ink refresh blanks then returns. */
-                transition: opacity 26ms steps(2, end);
+                /* Reveal: ease the veil away over the already-painted new
+                   page — the swap happened at full opacity underneath. */
+                transition: opacity 180ms ease-in-out;
                 z-index: 99;
             }
-            #lumen-eink.lumen-eink-on {
-                /* Full, opaque ink. Snap it on instantly so the blink reads as
-                   a deliberate refresh, not a fade-in. */
+            #lumen-fade.lumen-fade-on {
+                /* Covering: the old page gently washes out to blank. */
                 opacity: 1;
-                transition: opacity 12ms linear;
+                transition: opacity 120ms ease-out;
             }
             """
         case .scroll:
