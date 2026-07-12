@@ -274,8 +274,11 @@ enum ReaderScripts {
 
             // Paged flow: the user can flick the native pager to a
             // different page; re-read it from the horizontal offset.
+            // Clamped: a rubber-band offset can round outside the range.
             syncPagedPage() {
-              this.page = Math.round(this.scroller().scrollLeft / PW);
+              this.page = Math.min(Math.max(
+                Math.round(this.scroller().scrollLeft / PW), 0
+              ), this.pageCount - 1);
               this.notify();
             },
 

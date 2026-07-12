@@ -249,9 +249,14 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                         - scrollView.bounds.width
                 )
                 if offset > maxOffset + Self.overscrollThreshold {
+                    // The advance starts loading the next chapter; a sync
+                    // now would read the OLD chapter's rubber-band offset
+                    // and persist stale state under the new spine index.
                     onOverscroll?("forward")
+                    return
                 } else if offset < -Self.overscrollThreshold {
                     onOverscroll?("backward")
+                    return
                 }
                 // A drag that snaps back within the same page won't
                 // decelerate, so sync here too: the engine's page must
