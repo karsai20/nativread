@@ -104,13 +104,6 @@ final class ReaderViewModel {
         controller.onTap = { [weak self] zone in
             self?.handleTap(zone: zone)
         }
-        controller.onSwipe = { [weak self] direction in
-            if direction == "forward" {
-                self?.nextPage()
-            } else {
-                self?.prevPage()
-            }
-        }
         controller.onHighlightRequested = { [weak self] in
             self?.highlightCurrentSelection()
         }

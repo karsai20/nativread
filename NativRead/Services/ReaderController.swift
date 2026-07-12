@@ -15,8 +15,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     var onChapterReady: (() -> Void)?
     /// Tap zones reported by the page: "left", "right", "center".
     var onTap: ((String) -> Void)?
-    /// Horizontal swipe in paged flow: "forward" or "backward".
-    var onSwipe: ((String) -> Void)?
     /// The user picked Highlight in the selection menu.
     var onHighlightRequested: (() -> Void)? {
         get { webView.onHighlightSelection }
@@ -27,8 +25,10 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         get { webView.onDefineSelection }
         set { webView.onDefineSelection = newValue }
     }
-    /// Scroll flow: the user pulled past the chapter edge.
-    /// "forward" (bottom) or "backward" (top).
+    /// The user pulled past the chapter edge. "forward" (bottom/right
+    /// edge) or "backward" (top/left edge). In scroll flow this is a
+    /// vertical overscroll; in paged flow a horizontal one past the last
+    /// or first column.
     var onOverscroll: ((String) -> Void)?
 
     /// Dragging past the chapter edge by this much advances chapters.
@@ -221,26 +221,61 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         )
     }
 
-    // MARK: - Overscroll chapter advance (scroll flow)
+    // MARK: - Overscroll chapter advance
 
     /// The rubber-band overscroll happens at the UIScrollView level,
     /// invisible to the page's JS, so chapter-edge pulls are detected
-    /// here from the drag's end position.
+    /// here from the drag's end position — vertically in scroll flow,
+    /// horizontally past the first/last column in paged flow.
     nonisolated func scrollViewDidEndDragging(
         _ scrollView: UIScrollView, willDecelerate decelerate: Bool
     ) {
         MainActor.assumeIsolated {
-            guard flow == .scroll else { return }
-            let offset = scrollView.contentOffset.y
-            let maxOffset = max(
-                0, scrollView.contentSize.height
-                    - scrollView.bounds.height
-            )
-            if offset > maxOffset + Self.overscrollThreshold {
-                onOverscroll?("forward")
-            } else if offset < -Self.overscrollThreshold {
-                onOverscroll?("backward")
+            if flow == .scroll {
+                let offset = scrollView.contentOffset.y
+                let maxOffset = max(
+                    0, scrollView.contentSize.height
+                        - scrollView.bounds.height
+                )
+                if offset > maxOffset + Self.overscrollThreshold {
+                    onOverscroll?("forward")
+                } else if offset < -Self.overscrollThreshold {
+                    onOverscroll?("backward")
+                }
+            } else {
+                let offset = scrollView.contentOffset.x
+                let maxOffset = max(
+                    0, scrollView.contentSize.width
+                        - scrollView.bounds.width
+                )
+                if offset > maxOffset + Self.overscrollThreshold {
+                    onOverscroll?("forward")
+                } else if offset < -Self.overscrollThreshold {
+                    onOverscroll?("backward")
+                }
+                // A drag that snaps back within the same page won't
+                // decelerate, so sync here too: the engine's page must
+                // never go stale before the next tap turn reads it.
+                if !decelerate {
+                    webView.evaluateJavaScript(
+                        "window.lumen && window.lumen.syncPagedPage()"
+                    )
+                }
             }
+        }
+    }
+
+    /// A finger drag must win over an in-flight programmatic tap-turn:
+    /// freeze the scroll view at whatever offset the animation has
+    /// reached (its presentation layer) and drop the animation, so the
+    /// native pager tracks the finger from there instead of fighting it.
+    nonisolated func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        MainActor.assumeIsolated {
+            guard flow == .paged else { return }
+            if let origin = scrollView.layer.presentation()?.bounds.origin {
+                scrollView.setContentOffset(origin, animated: false)
+            }
+            scrollView.layer.removeAllAnimations()
         }
     }
 
@@ -279,7 +314,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         let page = body["page"] as? Int ?? 0
         let pageCount = body["pageCount"] as? Int ?? 1
         let zone = body["zone"] as? String
-        let direction = body["direction"] as? String
         let scrollX = body["x"] as? Double
         let scrollY = body["y"] as? Double
         let animate = body["animate"] as? Bool ?? false
@@ -323,8 +357,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 self.onState?(page, pageCount)
             case "tap":
                 if let zone { self.onTap?(zone) }
-            case "swipe":
-                if let direction { self.onSwipe?(direction) }
             case "scroll":
                 // The engine requests a horizontal page move; drive the
                 // native scroll view directly (reliable, unlike a JS
@@ -333,15 +365,19 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                     let target = CGPoint(x: scrollX, y: 0)
                     let scroll = self.webView.scrollView
                     if animate {
-                        // A gentle ease-out glide reads more pleasantly than
-                        // UIKit's default paged snap: the page slides in and
-                        // settles. `.allowUserInteraction` keeps rapid taps
-                        // responsive mid-turn; `setContentOffset(animated:
-                        // false)` inside the block lets the curve below own
-                        // the motion.
+                        // A critically-damped spring (damping 1.0 → no
+                        // overshoot) departs quickly and settles softly, the
+                        // Apple Books tap-turn feel. `.beginFromCurrentState`
+                        // lets a rapid second tap retarget mid-glide instead
+                        // of snapping; `.allowUserInteraction` keeps a drag
+                        // able to take over. The inner
+                        // `setContentOffset(animated: false)` lets the spring
+                        // own the motion.
                         UIView.animate(
-                            withDuration: 0.34, delay: 0,
-                            options: [.curveEaseOut, .allowUserInteraction]
+                            withDuration: 0.42, delay: 0,
+                            usingSpringWithDamping: 1.0,
+                            initialSpringVelocity: 0.6,
+                            options: [.allowUserInteraction, .beginFromCurrentState]
                         ) {
                             scroll.setContentOffset(target, animated: false)
                         }
@@ -351,14 +387,17 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 }
             case "scrollV":
                 // Scroll-flow tap advance: glide the native scroll view
-                // vertically. Same ease-out curve as the paged turn so a
-                // tap-to-advance feels smooth, not the steppy JS smooth-scroll.
+                // vertically. Same critically-damped spring as the paged turn
+                // so a tap-to-advance feels smooth, not the steppy JS
+                // smooth-scroll.
                 if let scrollY {
                     let scroll = self.webView.scrollView
                     let target = CGPoint(x: 0, y: scrollY)
                     UIView.animate(
-                        withDuration: 0.34, delay: 0,
-                        options: [.curveEaseOut, .allowUserInteraction]
+                        withDuration: 0.42, delay: 0,
+                        usingSpringWithDamping: 1.0,
+                        initialSpringVelocity: 0.6,
+                        options: [.allowUserInteraction, .beginFromCurrentState]
                     ) {
                         scroll.setContentOffset(target, animated: false)
                     }

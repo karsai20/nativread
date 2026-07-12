@@ -2,7 +2,7 @@ import Foundation
 
 /// The JavaScript reading engine injected into every chapter.
 /// All page/scroll math lives here; Swift only sends intents and
-/// receives `{type:"state"|"tap"|"swipe"|...}` messages back.
+/// receives `{type:"state"|"tap"|...}` messages back.
 enum ReaderScripts {
 
     /// EPUB chapters rarely ship a viewport meta tag, so WKWebView would
@@ -488,26 +488,11 @@ enum ReaderScripts {
             });
           }, true);
 
-          let touchStartX = 0;
-          let touchStartY = 0;
-          document.addEventListener("touchstart", (event) => {
-            touchStartX = event.touches[0].clientX;
-            touchStartY = event.touches[0].clientY;
-          }, { passive: true });
-          document.addEventListener("touchend", (event) => {
-            if (MODE !== "paged") { return; }
-            const dx = event.changedTouches[0].clientX - touchStartX;
-            const dy = event.changedTouches[0].clientY - touchStartY;
-            if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy)) {
-              return;
-            }
-            const selection = window.getSelection();
-            if (selection && !selection.isCollapsed) { return; }
-            window.webkit.messageHandlers.lumen.postMessage({
-              type: "swipe",
-              direction: dx < 0 ? "forward" : "backward"
-            });
-          }, { passive: true });
+          // Horizontal page turns in paged flow are owned entirely by the
+          // native UIScrollView (isPagingEnabled): it tracks the finger and
+          // snaps to columns. A JS swipe listener here would command a second,
+          // conflicting turn mid-deceleration, so there is none — chapter-edge
+          // advances ride the scroll view's overscroll, detected in Swift.
 
           // Reveal as soon as the text is layouted (DOMContentLoaded):
           // waiting for the full load event leaves the page blank for
