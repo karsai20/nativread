@@ -252,6 +252,7 @@ enum ReaderScripts {
               const fsrc = [
                 "precision mediump float;",
                 "uniform sampler2D uSheet;",
+                "uniform vec3 uPaper;",
                 "varying vec2 vXY;",
                 "varying float vLift;",
                 "void main() {",
@@ -259,8 +260,9 @@ enum ReaderScripts {
                 "  if (gl_FrontFacing) {",
                 "    ink.rgb *= 1.0 - 0.16 * vLift;",
                 "  } else {",
-                // The underside: page content bleeding through paper.
-                "    ink.rgb = mix(ink.rgb, vec3(1.0), 0.75);",
+                // The underside: content bleeding through the theme's
+                // paper — never plain white, which flares in dark mode.
+                "    ink.rgb = mix(ink.rgb, uPaper, 0.75);",
                 "    ink.rgb *= 1.0 - 0.06 * vLift;",
                 "  }",
                 "  gl_FragColor = ink;",
@@ -330,11 +332,28 @@ enum ReaderScripts {
                 gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE
               );
               const uni = {};
-              ["uSize", "uFold", "uDir", "uR", "uSheet"].forEach((n) => {
-                uni[n] = gl.getUniformLocation(program, n);
-              });
+              ["uSize", "uFold", "uDir", "uR", "uSheet", "uPaper"]
+                .forEach((n) => {
+                  uni[n] = gl.getUniformLocation(program, n);
+                });
               gl.uniform2f(uni.uSize, W, H);
               gl.uniform1i(uni.uSheet, 0);
+              // The theme's paper color, read from the live page so the
+              // sheet's underside matches dark and sepia themes alike.
+              const readPaper = (el) => {
+                const c = getComputedStyle(el).backgroundColor || "";
+                const open = c.indexOf("(");
+                const close = c.indexOf(")");
+                if (open < 0 || close < 0) { return null; }
+                const parts = c.slice(open + 1, close)
+                  .split(",").map(parseFloat);
+                if (parts.length > 3 && parts[3] === 0) { return null; }
+                return [parts[0] / 255, parts[1] / 255, parts[2] / 255];
+              };
+              const paper = readPaper(document.body)
+                || readPaper(document.documentElement)
+                || [1, 1, 1];
+              gl.uniform3f(uni.uPaper, paper[0], paper[1], paper[2]);
               gl.viewport(0, 0, canvas.width, canvas.height);
               gl.enable(gl.DEPTH_TEST);
               gl.disable(gl.CULL_FACE);
