@@ -200,12 +200,48 @@ private struct SystemDictionaryController: UIViewControllerRepresentable {
 
     func makeUIViewController(
         context: Context
-    ) -> UIReferenceLibraryViewController {
-        UIReferenceLibraryViewController(term: term)
+    ) -> SystemDictionaryHostController {
+        SystemDictionaryHostController(term: term)
     }
 
     func updateUIViewController(
-        _ uiViewController: UIReferenceLibraryViewController,
+        _ uiViewController: SystemDictionaryHostController,
         context: Context
     ) {}
+}
+
+/// Hosts the reference library as a proper child view controller, embedded
+/// only after the sheet's presentation settles. `UIReferenceLibraryViewController`
+/// is designed to be presented, not built mid-transition: creating it during
+/// the sheet animation blocks the main thread on dictionary-asset loading
+/// (choppy open) and skips the appearance pass its content needs to render,
+/// leaving the definition blank until a scroll forces layout.
+final class SystemDictionaryHostController: UIViewController {
+    private let term: String
+    private var didEmbed = false
+
+    init(term: String) {
+        self.term = term
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) unsupported") }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .clear
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !didEmbed else { return }
+        didEmbed = true
+        let reference = UIReferenceLibraryViewController(term: term)
+        addChild(reference)
+        reference.view.frame = view.bounds
+        reference.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(reference.view)
+        reference.didMove(toParent: self)
+    }
 }
