@@ -539,7 +539,7 @@ upload ──► free chapter (T3) ──► provider ──► ok ────�
 - [x] **E9 (P1, human: ~0.5d / CC: ~1h)** — both repos — CI + GitHub protections per §7
   - Surfaced by: §7 + Architecture #4 (D5) — nativread unit-only; translator install/typecheck/test/lint; SHA-pinned actions; `permissions: contents: read`; secret scanning + push protection + Dependabot
   - Verify: green runs on a test PR in each repo
-- [ ] **E10 (P1, human: ~2d / CC: ~1-2h)** — backend — `abuse.test.ts` automated abuse suite
+- [x] **E10 (P1, human: ~2d / CC: ~1-2h)** — backend — `abuse.test.ts` automated abuse suite ✅ done 2026-07-12 (branch `test/e10-abuse-suite`; five probes: free-path auth, cross-user job guessing, purchase-txn replay, zip path-traversal, moderation refusal — all loud-fail; rate-limit + zip-bomb probes deferred to 1a-6/1a-7 and signposted as `test.todo`)
   - Surfaced by: Test review #7 (D8) — §8 manual pass automated; five probes, loud failures
   - Verify: suite red if any probe is accepted; runs in CI
 - [ ] **E11 (P2, human: ~1h / CC: ~15min)** — website — static host + deploy-on-push + domain-at-clearance
