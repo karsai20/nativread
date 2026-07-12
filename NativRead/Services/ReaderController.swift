@@ -53,7 +53,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     private var navigationGeneration = 0
 
     init(
-        pageSize: CGSize, initialCSS: String,
+        pageSize: CGSize, initialCSS: String, backgroundColor: UIColor,
         flow: PageFlow, transition: PageTransition
     ) {
         self.pageSize = pageSize
@@ -80,7 +80,13 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.showsHorizontalScrollIndicator = false
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
-        webView.isOpaque = false
+        // Opaque, with the theme paper behind everything: a transparent
+        // WKWebView forces blended tile compositing, which visibly drops
+        // scroll-flow frame rate. Overscroll rubber-band regions show the
+        // scroll view's background instead of see-through SwiftUI.
+        webView.isOpaque = true
+        webView.backgroundColor = backgroundColor
+        webView.scrollView.backgroundColor = backgroundColor
         super.init()
 
         webView.scrollView.delegate = self

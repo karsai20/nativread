@@ -95,6 +95,10 @@ final class ReaderViewModel {
                 pageHeight: pageSize.height,
                 systemDark: initialSystemDark
             ),
+            backgroundColor: UIColor(
+                settingsStore.settings
+                    .palette(systemDark: initialSystemDark).background
+            ),
             flow: settingsStore.settings.pageFlow,
             transition: settingsStore.settings.pageTransition
         )
@@ -176,6 +180,7 @@ final class ReaderViewModel {
         }
         beginChapterLoading()
         spineIndex = index
+        lastState = nil
         controller.loadChapter(
             at: parsed.spineURLs[index],
             readAccessRoot: extractedRoot,
@@ -202,7 +207,20 @@ final class ReaderViewModel {
         isChapterLoading = false
     }
 
+    /// Last state already applied, to drop no-op notifications. Scroll
+    /// flow notifies ~5×/s while the finger moves; re-setting @Observable
+    /// properties and touching the library on every one re-renders
+    /// SwiftUI mid-scroll for nothing and stutters the glide. Reset on
+    /// chapter change so an identical page/count pair in the next
+    /// chapter still persists its new spine index.
+    private var lastState: (page: Int, pageCount: Int)?
+
     private func handleState(page: Int, pageCount: Int) {
+        guard lastState == nil
+            || lastState! != (page: page, pageCount: pageCount) else {
+            return
+        }
+        lastState = (page: page, pageCount: pageCount)
         self.page = page
         self.pageCount = pageCount
         guard !suppressProgressSave else { return }
