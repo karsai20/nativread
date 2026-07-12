@@ -3,6 +3,20 @@
 All notable changes to NativRead are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [3.4] - 2026-07-12
+
+### Added
+- Three new page-turn styles join Slide: **Curl** — the classic book-like page fold known from Apple Books — plus **Fade** and **None** (instant), so every reading taste from skeuomorphic to speed-reading is covered.
+
+### Changed
+- Page turning in paged mode now follows your finger exactly: drag tracks the page natively, tap-turns settle with a soft glide, and pulling past a chapter's edge turns into the next or previous chapter.
+- The E-ink transition is now **Fade**: instead of a black flash, the page dissolves gently through the paper colour — in dark themes too. Your saved transition setting carries over automatically.
+- Settings has a full editorial redesign: page-like appearance tiles (System / Light / Dark), grouped language sections, a serif header, and a quieter power-user area.
+
+### Fixed
+- Rapid taps and drags no longer fight the page-turn animation, skip pages, or bounce back mid-turn.
+- Pulling hard past a chapter's edge can no longer save your reading position against the wrong chapter.
+
 ## [3.3] - 2026-07-09
 
 ### Added

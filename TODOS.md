@@ -29,6 +29,23 @@ posture live in `docs/legal-posture.md`; these are the buildable gaps.
   review, not legal advice; pressure-test the personal-use-derivative position
   (operator-stores-the-copy fact pattern). **Priority:** P1 (external gate).
 
+## Reader
+
+Source: /ship 2026-07-12 adversarial review (Codex) on feat/reader-polish.
+
+- [ ] **Paged-mode relayout on viewport size change.** The paged engine bakes
+  the page width (`PW`) and CSS column geometry at chapter open from a fixed
+  `pageSize`; a viewport resize mid-chapter would desync native paging from
+  the engine's page math (skipped pages, wrong progress). Moot today: the app
+  is portrait-locked and iPhone-only (`TARGETED_DEVICE_FAMILY: 1`), so no
+  rotation/Split View path exists. **Hard gate before iPad or rotation
+  support.** **Priority:** P3 (P1 the moment iPad/rotation is planned).
+- [ ] **Curl overlay proper view-controller containment.** The curl
+  transition's `UIPageViewController` view is added as a transient (<1s)
+  subview of the WKWebView without UIKit containment; trait/appearance
+  forwarding is undefined. Harmless while portrait-locked iPhone-only —
+  revisit together with the item above. **Priority:** P3.
+
 ## Branding
 
 - [ ] **Internal repo/docs rename sweep NativRead→NativBook.** The public name
