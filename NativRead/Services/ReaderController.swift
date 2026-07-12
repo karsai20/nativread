@@ -72,10 +72,13 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         )
         // Paged flow turns pages by scrolling the root scroller
         // horizontally (a CSS transform leaves WebKit's off-screen
-        // tiles unpainted, so the next page arrives blank). The scroll
-        // view must stay enabled for the programmatic scroll to take
-        // effect, and paging snaps it to whole viewport-wide columns.
-        webView.scrollView.isScrollEnabled = true
+        // tiles unpainted, so the next page arrives blank). Paging
+        // snaps it to whole viewport-wide columns. In curl mode the
+        // page's touch handlers scrub the curl from the finger, so
+        // native panning is disabled (programmatic setContentOffset
+        // still works); every other mode keeps the native pan.
+        webView.scrollView.isScrollEnabled =
+            !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.showsHorizontalScrollIndicator = false
@@ -135,6 +138,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         self.transition = transition
         webView.backgroundColor = backgroundColor
         webView.scrollView.backgroundColor = backgroundColor
+        webView.scrollView.isScrollEnabled =
+            !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
         installUserScripts()
@@ -481,6 +486,14 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 self.captureForCurl(
                     targetX: scrollX ?? 0, forward: forward
                 )
+            case "edgeDrag":
+                // Curl mode disables native panning, so chapter-edge
+                // pulls arrive from the page's touch handlers instead
+                // of the scroll view's rubber band.
+                if let direction = body["direction"] as? String,
+                   self.onOverscroll?(direction) == true {
+                    self.chapterAdvancePending = true
+                }
             case "scrollV":
                 // Scroll-flow tap advance: glide the native scroll view
                 // vertically. Same critically-damped spring as the paged turn

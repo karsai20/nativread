@@ -16,10 +16,12 @@ final class CurlEngineContractTests: XCTestCase {
 
     func testEngineSpeaksCurlProtocol() {
         for token in [
-            "captureCurl",   // JS → Swift: photograph the outgoing page
-            "curlBegin(",    // Swift → JS: bitmap delivery entry point
-            "curlFailed(",   // Swift → JS: capture failed, fall back
-            "curlStart()"    // movePaged routes curl turns here
+            "captureCurl",     // JS → Swift: photograph the outgoing page
+            "curlBegin(",      // Swift → JS: bitmap delivery entry point
+            "curlFailed(",     // Swift → JS: capture failed, fall back
+            "curlStart()",     // movePaged routes curl turns here
+            "curlDragBegin(",  // touch handlers start a finger-scrubbed turn
+            "edgeDrag"         // JS → Swift: chapter-edge pull in curl mode
         ] {
             XCTAssertTrue(
                 engine.contains(token),
