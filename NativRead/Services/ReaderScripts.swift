@@ -40,6 +40,7 @@ enum ReaderScripts {
             page: 0,
             pageCount: 1,
             transition: "\(transition.rawValue)",
+            fadeInFlight: false,
 
             scroller() { return document.scrollingElement; },
             maxScroll() {
@@ -120,6 +121,7 @@ enum ReaderScripts {
             // The swap happens at peak opacity so the reader never sees
             // the pages cross-fade.
             fadeSwap(move) {
+              this.fadeInFlight = true;
               let veil = document.getElementById("lumen-fade");
               if (!veil) {
                 veil = document.createElement("div");
@@ -136,6 +138,7 @@ enum ReaderScripts {
                 move();
                 requestAnimationFrame(() => requestAnimationFrame(() => {
                   veil.classList.remove("lumen-fade-on");
+                  this.fadeInFlight = false;
                 }));
               }, 140);
             },
@@ -176,6 +179,9 @@ enum ReaderScripts {
                 ));
                 return true;
               }
+              if (this.transition === "eink" && this.fadeInFlight) {
+                return true;
+              }
               if (this.page >= this.pageCount - 1) { return false; }
               this.goTo(this.page + 1, true);
               return true;
@@ -188,6 +194,9 @@ enum ReaderScripts {
                 this.scrollVTo(Math.max(
                   el.scrollTop - window.innerHeight * 0.9, 0
                 ));
+                return true;
+              }
+              if (this.transition === "eink" && this.fadeInFlight) {
                 return true;
               }
               if (this.page <= 0) { return false; }

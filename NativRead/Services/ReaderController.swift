@@ -49,6 +49,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     private var transition: PageTransition
     private var pendingFraction: Double?
     private var pendingLocate: (query: String, occurrence: Int)?
+    private var chapterAdvancePending = false
+    private var navigationGeneration = 0
 
     init(
         pageSize: CGSize, initialCSS: String,
@@ -110,6 +112,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         at url: URL, readAccessRoot: URL,
         fraction: Double = 0, locate: (String, Int)? = nil
     ) {
+        navigationGeneration += 1
         pendingFraction = fraction
         pendingLocate = locate.map { (query: $0.0, occurrence: $0.1) }
         webView.alpha = 0
@@ -120,6 +123,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         css: String, backgroundColor: UIColor,
         flow: PageFlow, transition: PageTransition
     ) {
+        navigationGeneration += 1
         settingsCSS = css
         self.flow = flow
         self.transition = transition
@@ -153,6 +157,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     }
 
     func goToFraction(_ fraction: Double) {
+        navigationGeneration += 1
         webView.evaluateJavaScript(
             "window.lumen && window.lumen.goToFraction(\(fraction), false)"
         )
@@ -238,8 +243,10 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                         - scrollView.bounds.height
                 )
                 if offset > maxOffset + Self.overscrollThreshold {
+                    chapterAdvancePending = true
                     onOverscroll?("forward")
                 } else if offset < -Self.overscrollThreshold {
+                    chapterAdvancePending = true
                     onOverscroll?("backward")
                 }
             } else {
@@ -252,9 +259,11 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                     // The advance starts loading the next chapter; a sync
                     // now would read the OLD chapter's rubber-band offset
                     // and persist stale state under the new spine index.
+                    chapterAdvancePending = true
                     onOverscroll?("forward")
                     return
                 } else if offset < -Self.overscrollThreshold {
+                    chapterAdvancePending = true
                     onOverscroll?("backward")
                     return
                 }
@@ -291,6 +300,13 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     ) {
         MainActor.assumeIsolated {
             guard flow == .paged else { return }
+            if chapterAdvancePending {
+                // A hard edge pull can start the next chapter in
+                // didEndDragging, then decelerate after rubber-band
+                // settle; that late sync would read the old document under
+                // the new spine index.
+                return
+            }
             webView.evaluateJavaScript(
                 "window.lumen && window.lumen.syncPagedPage()"
             )
@@ -332,6 +348,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     /// curl.
     private func performCurl(to target: CGPoint) {
         let scroll = webView.scrollView
+        let generation = navigationGeneration
         // One curl at a time: a second tap mid-curl is dropped
         // (responsiveness over fidelity for rapid tappers). The engine
         // already advanced its page for the dropped turn, so resync it to
@@ -344,6 +361,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         webView.takeSnapshot(with: curlSnapshotConfiguration) {
             [weak self] oldImage, _ in
             guard let self else { return }
+            guard generation == self.navigationGeneration else { return }
             guard let oldImage else {
                 // Snapshot failed: degrade to an instant jump.
                 scroll.setContentOffset(target, animated: false)
@@ -358,12 +376,20 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
                 [weak self] in
                 guard let self else { return }
+                guard generation == self.navigationGeneration else {
+                    self.dismissCurl(pageVC)
+                    return
+                }
                 self.webView.takeSnapshot(
                     with: self.curlSnapshotConfiguration
                 ) { newImage, _ in
+                    guard generation == self.navigationGeneration else {
+                        self.dismissCurl(pageVC)
+                        return
+                    }
                     guard let newImage else {
                         // Live page is already on target; just reveal it.
-                        self.dismissCurl()
+                        self.dismissCurl(pageVC)
                         return
                     }
                     pageVC.setViewControllers(
@@ -371,7 +397,12 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                         direction: forward ? .forward : .reverse,
                         animated: true
                     ) { [weak self] _ in
-                        self?.dismissCurl()
+                        guard let self else { return }
+                        guard generation == self.navigationGeneration else {
+                            self.dismissCurl(pageVC)
+                            return
+                        }
+                        self.dismissCurl(pageVC)
                     }
                 }
             }
@@ -396,20 +427,24 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
             [Self.snapshotViewController(oldImage)],
             direction: .forward, animated: false
         )
+        // Transient (<1s) portrait-locked iPhone-only overlay: UIKit
+        // trait/containment forwarding is intentionally omitted. Revisit
+        // before iPad or rotation support lands.
         webView.addSubview(pageVC.view)
         curlPageVC = pageVC
         curlSafetyTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             guard !Task.isCancelled else { return }
-            self?.dismissCurl()
+            self?.dismissCurl(pageVC)
         }
         return pageVC
     }
 
-    private func dismissCurl() {
+    private func dismissCurl(_ pageVC: UIPageViewController) {
+        guard curlPageVC === pageVC else { return }
         curlSafetyTask?.cancel()
         curlSafetyTask = nil
-        curlPageVC?.view.removeFromSuperview()
+        pageVC.view.removeFromSuperview()
         curlPageVC = nil
     }
 
@@ -454,6 +489,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         Task { @MainActor in
             switch type {
             case "ready":
+                self.navigationGeneration += 1
+                self.chapterAdvancePending = false
                 // Reset the scroll position before revealing so a stale
                 // offset left by the previous chapter can never flash an
                 // empty page; goToFraction below sets the precise target.
