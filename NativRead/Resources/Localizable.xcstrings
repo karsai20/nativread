@@ -1294,7 +1294,6 @@
     },
     "Settings" : {
       "comment" : "Navigation title for the settings sheet, and accessibility label for the settings button.",
-      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
