@@ -28,8 +28,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     /// The user pulled past the chapter edge. "forward" (bottom/right
     /// edge) or "backward" (top/left edge). In scroll flow this is a
     /// vertical overscroll; in paged flow a horizontal one past the last
-    /// or first column.
-    var onOverscroll: ((String) -> Void)?
+    /// or first column. Returns true when a chapter load started.
+    var onOverscroll: ((String) -> Bool)?
 
     /// Dragging past the chapter edge by this much advances chapters.
     private static let overscrollThreshold: CGFloat = 70
@@ -243,11 +243,13 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                         - scrollView.bounds.height
                 )
                 if offset > maxOffset + Self.overscrollThreshold {
-                    chapterAdvancePending = true
-                    onOverscroll?("forward")
+                    if onOverscroll?("forward") == true {
+                        chapterAdvancePending = true
+                    }
                 } else if offset < -Self.overscrollThreshold {
-                    chapterAdvancePending = true
-                    onOverscroll?("backward")
+                    if onOverscroll?("backward") == true {
+                        chapterAdvancePending = true
+                    }
                 }
             } else {
                 let offset = scrollView.contentOffset.x
@@ -259,12 +261,14 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                     // The advance starts loading the next chapter; a sync
                     // now would read the OLD chapter's rubber-band offset
                     // and persist stale state under the new spine index.
-                    chapterAdvancePending = true
-                    onOverscroll?("forward")
+                    if onOverscroll?("forward") == true {
+                        chapterAdvancePending = true
+                    }
                     return
                 } else if offset < -Self.overscrollThreshold {
-                    chapterAdvancePending = true
-                    onOverscroll?("backward")
+                    if onOverscroll?("backward") == true {
+                        chapterAdvancePending = true
+                    }
                     return
                 }
                 // A drag that snaps back within the same page won't
@@ -304,7 +308,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 // A hard edge pull can start the next chapter in
                 // didEndDragging, then decelerate after rubber-band
                 // settle; that late sync would read the old document under
-                // the new spine index.
+                // the new spine index. At the first/last chapter the
+                // overscroll callback returns false, so this flag is not set.
                 return
             }
             webView.evaluateJavaScript(

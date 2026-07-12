@@ -116,9 +116,9 @@ final class ReaderViewModel {
         }
         controller.onOverscroll = { [weak self] direction in
             if direction == "forward" {
-                self?.goToNextChapter()
+                return self?.goToNextChapter() ?? false
             } else {
-                self?.goToPreviousChapter()
+                return self?.goToPreviousChapter() ?? false
             }
         }
     }
@@ -312,14 +312,18 @@ final class ReaderViewModel {
         page >= pageCount - 1
     }
 
-    func goToNextChapter() {
-        guard hasNextChapter else { return }
+    @discardableResult
+    func goToNextChapter() -> Bool {
+        guard hasNextChapter else { return false }
         loadChapter(at: spineIndex + 1, fraction: 0)
+        return true
     }
 
-    func goToPreviousChapter() {
-        guard spineIndex > 0 else { return }
+    @discardableResult
+    func goToPreviousChapter() -> Bool {
+        guard spineIndex > 0 else { return false }
         loadChapter(at: spineIndex - 1, fraction: 1)
+        return true
     }
 
     // MARK: - Bookmarks
