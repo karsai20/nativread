@@ -126,15 +126,37 @@ enum ReaderScripts {
             curlLive: null,
 
             // Ask Swift for the bitmap; the turn continues in curlBegin.
+            curlTapRescue: null,
+
             curlStart() {
               if (this.curlBroken || !window.WebGLRenderingContext) {
                 this.curlBroken = true;
                 this.postScroll(true);
                 return;
               }
-              if (this.curlLive) { this.curlLive.stop(); }
               const x = this.page * PW;
+              if (this.curlTapRescue) {
+                // A capture is already in flight (rapid tapping): turn
+                // instantly to the newest target instead of racing a
+                // second snapshot; the in-flight capture is discarded
+                // on arrival because the engine page moved on.
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: x, animate: false
+                });
+                return;
+              }
+              if (this.curlLive) { this.curlLive.stop(); }
               const forward = x > this.scroller().scrollLeft + 1;
+              // The engine page has already advanced; if Swift never
+              // answers (capture dropped by a generation bump), jump the
+              // live view to the engine's current page so persisted
+              // progress can never point at a page the reader isn't on.
+              this.curlTapRescue = setTimeout(() => {
+                this.curlTapRescue = null;
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: this.page * PW, animate: false
+                });
+              }, 1200);
               window.webkit.messageHandlers.lumen.postMessage({
                 type: "captureCurl", x: x, forward: forward
               });
@@ -144,6 +166,10 @@ enum ReaderScripts {
             // chapter and finish the pending turn as a spring slide.
             curlFailed(x) {
               this.curlBroken = true;
+              if (this.curlTapRescue) {
+                clearTimeout(this.curlTapRescue);
+                this.curlTapRescue = null;
+              }
               const drag = this.curlDrag;
               if (drag && !drag.edge && !drag.sheet) {
                 // Mid-drag failure before the sheet mounted: the live
@@ -160,8 +186,18 @@ enum ReaderScripts {
             },
 
             curlBegin(dataUrl, forward, x) {
+              if (this.curlTapRescue) {
+                clearTimeout(this.curlTapRescue);
+                this.curlTapRescue = null;
+              }
               const drag = this.curlDrag && !this.curlDrag.edge
                 && this.curlDrag.toX === x;
+              if (!drag && Math.round(x / PW) !== this.page) {
+                // Stale tap capture: the engine moved on (a later tap
+                // already turned instantly). Curling to this bitmap
+                // would drag the view back to an abandoned target.
+                return;
+              }
               const fail = () => {
                 if (drag) {
                   // The finger owns a drag: latch off and let the
@@ -334,14 +370,28 @@ enum ReaderScripts {
               const t0 = performance.now();
               const ease = (t) =>
                 t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
-              const step = (now) => {
+              // If animation frames die mid-settle (app backgrounded),
+              // resolve to the engine's current page and drop the
+              // overlay — a stuck drag latch deadlocks page turning.
+              const settleSafety = setTimeout(() => {
                 if (this.curlLive !== run) { return; }
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: this.page * PW, animate: false
+                });
+                run.stop();
+              }, 1500);
+              const step = (now) => {
+                if (this.curlLive !== run) {
+                  clearTimeout(settleSafety);
+                  return;
+                }
                 const k = Math.min(1, (now - t0) / duration);
                 sheet.draw(
                   from + (target - from) * ease(k),
                   drag.forward, drag.grabY
                 );
                 if (k < 1) { requestAnimationFrame(step); return; }
+                clearTimeout(settleSafety);
                 if (commit) { run.stop(); return; }
                 // Cancelled: the sheet lies flat again covering the
                 // page; jump the live view back underneath, let it
@@ -382,6 +432,12 @@ enum ReaderScripts {
                 canvas.remove();
                 throw new Error("webgl unavailable");
               }
+              const uni = {};
+              let indexCount = 0;
+              // Any setup failure (shader compile, texture upload) must
+              // tear the overlay down — an orphaned fixed canvas would
+              // cover the page forever.
+              try {
               const vsrc = [
                 "attribute vec2 aXY;",
                 "uniform vec2 uSize;",
@@ -476,6 +532,7 @@ enum ReaderScripts {
                 gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices),
                 gl.STATIC_DRAW
               );
+              indexCount = indices.length;
               gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
               gl.texImage2D(
                 gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img
@@ -492,7 +549,6 @@ enum ReaderScripts {
               gl.texParameteri(
                 gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE
               );
-              const uni = {};
               ["uSize", "uFold", "uDir", "uR", "uSheet", "uPaper"]
                 .forEach((n) => {
                   uni[n] = gl.getUniformLocation(program, n);
@@ -524,6 +580,12 @@ enum ReaderScripts {
               gl.frontFace(gl.CW);
               gl.enable(gl.BLEND);
               gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+              } catch (e) {
+                const lose = gl.getExtension("WEBGL_lose_context");
+                if (lose) { lose.loseContext(); }
+                canvas.remove();
+                throw e;
+              }
               return {
                 // progress 0 = flat photo, 1 = fully peeled away.
                 // The sheet is pinched where it was grabbed: tap turns
@@ -552,7 +614,7 @@ enum ReaderScripts {
                   gl.uniform2f(uni.uDir, dirX, dirY);
                   gl.uniform1f(uni.uR, R);
                   gl.drawElements(
-                    gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0
+                    gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0
                   );
                 },
                 dispose() {
@@ -1055,6 +1117,30 @@ enum ReaderScripts {
           document.addEventListener("touchcancel", (e) => {
             curlTouchDone(e, true);
           }, { passive: true });
+          // Backgrounding kills animation frames: resolve any live drag
+          // instantly (commit past halfway, otherwise restore) so the
+          // overlay and the drag latch can never survive into the next
+          // foreground session.
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState !== "hidden") { return; }
+            const drag = lumen.curlDrag;
+            touch = null;
+            if (!drag) { return; }
+            if (!drag.edge && drag.sheet && drag.run) {
+              if (drag.progress > 0.5) {
+                lumen.page = Math.round(drag.toX / PW);
+                lumen.notify();
+              } else {
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: drag.fromX, animate: false
+                });
+              }
+              drag.run.stop();
+            } else {
+              clearTimeout(drag.rescue);
+              lumen.curlDrag = null;
+            }
+          });
 
           // Reveal as soon as the text is layouted (DOMContentLoaded):
           // waiting for the full load event leaves the page blank for

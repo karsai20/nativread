@@ -356,11 +356,24 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     ///
     /// Known ceiling, accepted: chapter-boundary turns use the loading
     /// veil, never a cross-document curl.
+    /// True while a snapshot request is being served; extra requests are
+    /// dropped (the engine's rescue timers self-heal a dropped turn).
+    private var curlCaptureInFlight = false
+
     private func captureForCurl(targetX: Double, forward: Bool) {
+        // Only the curl transition may drive native snapshots, and only
+        // one at a time — defense in depth so page JS that survived
+        // sanitization can never spam snapshot + JPEG-encode + multi-MB
+        // eval work through this bridge. The engine itself requests at
+        // most one capture per turn.
+        guard transition == .curl, flow == .paged,
+              !curlCaptureInFlight else { return }
+        curlCaptureInFlight = true
         let generation = navigationGeneration
         webView.takeSnapshot(with: curlSnapshotConfiguration) {
             [weak self] image, _ in
             guard let self else { return }
+            self.curlCaptureInFlight = false
             guard generation == self.navigationGeneration else { return }
             guard let image,
                   let data = image.jpegData(compressionQuality: 0.85) else {
