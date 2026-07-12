@@ -98,11 +98,10 @@ enum ReaderScripts {
 
             movePaged(animate) {
               const body = document.body;
-              if (animate && (this.transition === "slide"
-                              || this.transition === "curl")) {
-                // Curl rides the same animated-scroll request; Swift picks
-                // spring vs snapshot-curl choreography, since only Swift
-                // can snapshot the WKWebView. "instant" falls to the else.
+              if (animate && this.transition === "curl") {
+                body.style.opacity = "1";
+                this.curlStart();
+              } else if (animate && this.transition === "slide") {
                 body.style.opacity = "1";
                 this.postScroll(true);
               } else if (animate && this.transition === "eink") {
@@ -112,6 +111,274 @@ enum ReaderScripts {
                 body.style.opacity = "1";
                 this.postScroll(false);
               }
+            },
+
+            // --- Curl page turn ---------------------------------------
+            // A photo of the OUTGOING page is bent around a cylinder on a
+            // transparent WebGL canvas floating over the content, while
+            // the live page jumps instantly underneath. The canvas is
+            // see-through wherever the sheet has peeled away, so the
+            // reader watches the real new page emerge under the lifting
+            // old one. Only the old page is ever photographed (it is
+            // still on screen when Swift snaps it), so no capture can
+            // race WebKit's paint of the destination column.
+            curlBroken: false,
+            curlLive: null,
+
+            // Ask Swift for the bitmap; the turn continues in curlBegin.
+            curlStart() {
+              if (this.curlBroken || !window.WebGLRenderingContext) {
+                this.curlBroken = true;
+                this.postScroll(true);
+                return;
+              }
+              if (this.curlLive) { this.curlLive.stop(); }
+              const x = this.page * PW;
+              const forward = x > this.scroller().scrollLeft + 1;
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "captureCurl", x: x, forward: forward
+              });
+            },
+
+            // Swift could not produce a snapshot: latch off for this
+            // chapter and finish the pending turn as a spring slide.
+            curlFailed(x) {
+              this.curlBroken = true;
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "scroll", x: x, animate: true
+              });
+            },
+
+            curlBegin(dataUrl, forward, x) {
+              const img = new Image();
+              img.onload = () => {
+                try { this.curlRun(img, forward, x); }
+                catch (e) { this.curlFailed(x); }
+              };
+              img.onerror = () => { this.curlFailed(x); };
+              img.src = dataUrl;
+            },
+
+            curlRun(img, forward, x) {
+              const sheet = this.curlMakeSheet(img);
+              const run = { stop: null };
+              this.curlLive = run;
+              const DURATION = 440;
+              // Belt and braces: never leave the overlay stuck if the
+              // animation frames stop coming (app backgrounded mid-turn).
+              const safety = setTimeout(() => run.stop(), 1500);
+              run.stop = () => {
+                if (this.curlLive === run) { this.curlLive = null; }
+                clearTimeout(safety);
+                sheet.dispose();
+              };
+              // First frame: the flat photo exactly covers the live page.
+              // Only after that frame is committed may the page jump
+              // underneath — the same no-flash ordering as the fade veil.
+              sheet.draw(0, forward);
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                if (this.curlLive !== run) { return; }
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: x, animate: false
+                });
+                const t0 = performance.now();
+                const ease = (t) =>
+                  t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
+                const step = (now) => {
+                  if (this.curlLive !== run) { return; }
+                  const t = Math.min(1, (now - t0) / DURATION);
+                  sheet.draw(ease(t), forward);
+                  if (t < 1) { requestAnimationFrame(step); }
+                  else { run.stop(); }
+                };
+                requestAnimationFrame(step);
+              }));
+            },
+
+            // Builds the one-turn WebGL overlay: a grid mesh of the page
+            // photo plus the cylinder-wrap vertex math. Classic geometry:
+            // content before the fold stays flat; within half a
+            // circumference it winds around a cylinder of radius R
+            // (offset d - R*sin(d/R), lift R*(1-cos(d/R))); past that it
+            // lies flat on top, mirrored about the fold. Throws when
+            // WebGL is unavailable so the caller can fall back.
+            curlMakeSheet(img) {
+              const W = window.innerWidth;
+              const H = window.innerHeight;
+              const dpr = Math.min(2, window.devicePixelRatio || 1);
+              const canvas = document.createElement("canvas");
+              canvas.id = "lumen-curl";
+              canvas.width = Math.round(W * dpr);
+              canvas.height = Math.round(H * dpr);
+              canvas.style.cssText = "position:fixed;left:0;top:0;width:"
+                + W + "px;height:" + H
+                + "px;pointer-events:none;z-index:2147483000;";
+              document.documentElement.appendChild(canvas);
+              const gl = canvas.getContext("webgl", {
+                alpha: true, premultipliedAlpha: true
+              });
+              if (!gl) {
+                canvas.remove();
+                throw new Error("webgl unavailable");
+              }
+              const vsrc = [
+                "attribute vec2 aXY;",
+                "uniform vec2 uSize;",
+                "uniform vec2 uFold;",
+                "uniform vec2 uDir;",
+                "uniform float uR;",
+                "varying vec2 vXY;",
+                "varying float vLift;",
+                "const float PI = 3.14159265358979;",
+                "void main() {",
+                "  vec2 pos = aXY * uSize;",
+                "  float d = dot(pos - uFold, uDir);",
+                "  float lift = 0.0;",
+                "  if (d > 0.0) {",
+                "    if (d < PI * uR) {",
+                "      pos -= uDir * (d - uR * sin(d / uR));",
+                "      lift = uR * (1.0 - cos(d / uR));",
+                "    } else {",
+                "      pos -= uDir * (2.0 * d - PI * uR);",
+                "      lift = 2.0 * uR;",
+                "    }",
+                "  }",
+                "  vXY = aXY;",
+                "  vLift = lift / (2.0 * uR);",
+                "  vec2 clip = pos / uSize * 2.0 - 1.0;",
+                "  gl_Position = vec4(clip.x, -clip.y, -vLift * 0.5, 1.0);",
+                "}"
+              ].join("\\n");
+              const fsrc = [
+                "precision mediump float;",
+                "uniform sampler2D uSheet;",
+                "varying vec2 vXY;",
+                "varying float vLift;",
+                "void main() {",
+                "  vec4 ink = texture2D(uSheet, vXY);",
+                "  if (gl_FrontFacing) {",
+                "    ink.rgb *= 1.0 - 0.16 * vLift;",
+                "  } else {",
+                // The underside: page content bleeding through paper.
+                "    ink.rgb = mix(ink.rgb, vec3(1.0), 0.75);",
+                "    ink.rgb *= 1.0 - 0.06 * vLift;",
+                "  }",
+                "  gl_FragColor = ink;",
+                "}"
+              ].join("\\n");
+              const compile = (kind, src) => {
+                const shader = gl.createShader(kind);
+                gl.shaderSource(shader, src);
+                gl.compileShader(shader);
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                  throw new Error(gl.getShaderInfoLog(shader));
+                }
+                return shader;
+              };
+              const program = gl.createProgram();
+              gl.attachShader(program, compile(gl.VERTEX_SHADER, vsrc));
+              gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fsrc));
+              gl.linkProgram(program);
+              if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                throw new Error(gl.getProgramInfoLog(program));
+              }
+              gl.useProgram(program);
+              // GRID x GRID quads over the unit page.
+              const GRID = 40;
+              const verts = [];
+              for (let gy = 0; gy <= GRID; gy++) {
+                for (let gx = 0; gx <= GRID; gx++) {
+                  verts.push(gx / GRID, gy / GRID);
+                }
+              }
+              const indices = [];
+              const at = (gx, gy) => gy * (GRID + 1) + gx;
+              for (let gy = 0; gy < GRID; gy++) {
+                for (let gx = 0; gx < GRID; gx++) {
+                  indices.push(at(gx, gy), at(gx + 1, gy), at(gx, gy + 1));
+                  indices.push(
+                    at(gx + 1, gy), at(gx + 1, gy + 1), at(gx, gy + 1)
+                  );
+                }
+              }
+              gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+              gl.bufferData(
+                gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW
+              );
+              const aXY = gl.getAttribLocation(program, "aXY");
+              gl.enableVertexAttribArray(aXY);
+              gl.vertexAttribPointer(aXY, 2, gl.FLOAT, false, 0, 0);
+              gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+              gl.bufferData(
+                gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices),
+                gl.STATIC_DRAW
+              );
+              gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+              gl.texImage2D(
+                gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE
+              );
+              const uni = {};
+              ["uSize", "uFold", "uDir", "uR", "uSheet"].forEach((n) => {
+                uni[n] = gl.getUniformLocation(program, n);
+              });
+              gl.uniform2f(uni.uSize, W, H);
+              gl.uniform1i(uni.uSheet, 0);
+              gl.viewport(0, 0, canvas.width, canvas.height);
+              gl.enable(gl.DEPTH_TEST);
+              gl.disable(gl.CULL_FACE);
+              // Clip-space y is flipped in the vertex shader, which flips
+              // triangle winding too; without this the front/back test
+              // (page face vs whitened underside) is inverted.
+              gl.frontFace(gl.CW);
+              gl.enable(gl.BLEND);
+              gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+              return {
+                // progress 0 = flat photo, 1 = fully peeled away.
+                // The sheet is pinched near its lower outer corner: the
+                // fold starts as a diagonal there and straightens as the
+                // turn completes, so the whole page clears by the end.
+                draw(progress, forward) {
+                  const grabY = 0.78;
+                  const tilt = (grabY - 0.5) * 1.6 * (1 - progress);
+                  const sx = forward ? 1 : -1;
+                  const norm = Math.hypot(1, tilt);
+                  const dirX = sx / norm;
+                  const dirY = tilt / norm;
+                  // The cylinder tightens a little as the page lifts.
+                  const R = Math.max(20, W * 0.15 * (1 - 0.35 * progress));
+                  // To fully clear, the fold must cross the page width
+                  // plus the final half-circumference.
+                  const REnd = Math.max(20, W * 0.15 * 0.65);
+                  const sweep = (W + Math.PI * REnd) * progress;
+                  const foldX = (forward ? W : 0) - dirX * sweep;
+                  const foldY = grabY * H - dirY * sweep;
+                  gl.clearColor(0, 0, 0, 0);
+                  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                  gl.uniform2f(uni.uFold, foldX, foldY);
+                  gl.uniform2f(uni.uDir, dirX, dirY);
+                  gl.uniform1f(uni.uR, R);
+                  gl.drawElements(
+                    gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0
+                  );
+                },
+                dispose() {
+                  const lose = gl.getExtension("WEBGL_lose_context");
+                  if (lose) { lose.loseContext(); }
+                  canvas.remove();
+                }
+              };
             },
 
             // Kindle-style fade: the old page washes out to blank paper
