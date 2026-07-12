@@ -42,6 +42,18 @@ final class ReaderControllerScrollLockTests: XCTestCase {
         XCTAssertTrue(controller.webView.scrollView.isScrollEnabled)
     }
 
+    /// A transparent WKWebView forces blended tile compositing, which
+    /// visibly drops scroll-flow frame rate — the webview must stay
+    /// opaque with the theme paper behind it.
+    func testWebViewIsOpaqueWithPaperBackground() {
+        let controller = makeController(flow: .scroll, transition: .slide)
+        XCTAssertTrue(controller.webView.isOpaque)
+        XCTAssertEqual(controller.webView.backgroundColor, .white)
+        XCTAssertEqual(
+            controller.webView.scrollView.backgroundColor, .white
+        )
+    }
+
     func testApplySettingsTogglesPanLock() {
         let controller = makeController(flow: .paged, transition: .slide)
         controller.applySettings(
