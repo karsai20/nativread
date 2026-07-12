@@ -144,6 +144,16 @@ enum ReaderScripts {
             // chapter and finish the pending turn as a spring slide.
             curlFailed(x) {
               this.curlBroken = true;
+              const drag = this.curlDrag;
+              if (drag && !drag.edge && !drag.sheet) {
+                // Mid-drag failure before the sheet mounted: the live
+                // page never moved. Clear the drag so page turning is
+                // not deadlocked (next/prev and new drags gate on it)
+                // and never yank the page out from under the finger —
+                // the release falls back through the broken latch.
+                this.curlDrag = null;
+                return;
+              }
               window.webkit.messageHandlers.lumen.postMessage({
                 type: "scroll", x: x, animate: true
               });
@@ -244,12 +254,22 @@ enum ReaderScripts {
                 return;
               }
               const toX = (this.page + (forward ? 1 : -1)) * PW;
-              this.curlDrag = {
+              const drag = {
                 edge: null, fallback: false, forward: forward,
                 touchId: touchId, fromX: this.page * PW, toX: toX,
                 progress: 0, grabY: 0.5, t0: performance.now(),
-                sheet: null, run: null, ended: null
+                sheet: null, run: null, ended: null, rescue: 0
               };
+              this.curlDrag = drag;
+              // Swift can drop the capture silently (generation bumped
+              // by a settings/theme change mid-drag). An unanswered
+              // drag would deadlock page turning, so time it out: the
+              // live page never moved, clearing is safe.
+              drag.rescue = setTimeout(() => {
+                if (this.curlDrag === drag && !drag.sheet) {
+                  this.curlDrag = null;
+                }
+              }, 1200);
               window.webkit.messageHandlers.lumen.postMessage({
                 type: "captureCurl", x: toX, forward: forward
               });
@@ -262,6 +282,7 @@ enum ReaderScripts {
             curlRunDrag(img) {
               const drag = this.curlDrag;
               if (!drag || drag.edge || drag.fallback) { return; }
+              clearTimeout(drag.rescue);
               const sheet = this.curlMakeSheet(img);
               const run = { stop: null };
               this.curlLive = run;
@@ -948,6 +969,15 @@ enum ReaderScripts {
             MODE === "paged" && lumen.transition === "curl";
           document.addEventListener("touchstart", (e) => {
             if (!curlDraggable() || e.touches.length !== 1) {
+              // A second finger lands mid-drag: settle the live drag as
+              // a cancel instead of orphaning it — an orphaned drag
+              // deadlocks page turning (next/prev and new drags gate on
+              // curlDrag).
+              const drag = lumen.curlDrag;
+              if (drag && !drag.ended) {
+                if (drag.edge) { lumen.curlDrag = null; }
+                else { lumen.curlDragFinish(drag, false); }
+              }
               touch = null;
               return;
             }
