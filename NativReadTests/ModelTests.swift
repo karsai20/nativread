@@ -404,6 +404,26 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(scroll.contains("\"scroll\""))
     }
 
+    func testCurlAndInstantTransitionsRoundTrip() throws {
+        XCTAssertEqual(PageTransition.curl.rawValue, "curl")
+        XCTAssertEqual(PageTransition.instant.rawValue, "instant")
+
+        var settings = ReaderSettings()
+        settings.pageTransition = .curl
+        let decoded = try JSONDecoder().decode(
+            ReaderSettings.self, from: JSONEncoder().encode(settings)
+        )
+        XCTAssertEqual(decoded.pageTransition, .curl)
+
+        // Curl must ride the engine's animated-scroll branch (Swift picks
+        // the choreography); the engine carries the raw transition value.
+        let curl = ReaderScripts.engine(
+            pageWidth: 390, flow: .paged, transition: .curl
+        )
+        XCTAssertTrue(curl.contains("transition: \"curl\""))
+        XCTAssertTrue(curl.contains("=== \"curl\""))
+    }
+
     // MARK: - Highlights
 
     func testBookDecodesLegacyJSONWithoutHighlights() throws {

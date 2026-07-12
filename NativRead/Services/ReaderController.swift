@@ -297,6 +297,134 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         }
     }
 
+    // MARK: - Curl transition (tap turns)
+
+    /// Non-nil while a curl animation is on screen.
+    private var curlPageVC: UIPageViewController?
+    private var curlSafetyTask: Task<Void, Never>?
+
+    /// Snapshot config capped at an effective 2× pixel density. Full 3×
+    /// captures add ~1.5s latency and make the turn feel broken (Readest
+    /// production finding); capped, the overlay mounts tens of ms after
+    /// the tap. `snapshotWidth` is in POINTS (image px = points × screen
+    /// scale), so shrink the point width on >2× screens.
+    private var curlSnapshotConfiguration: WKSnapshotConfiguration {
+        let configuration = WKSnapshotConfiguration()
+        let scale = UIScreen.main.scale
+        if scale > 2 {
+            configuration.snapshotWidth = NSNumber(
+                value: Double(webView.bounds.width) * 2.0 / Double(scale)
+            )
+        }
+        return configuration
+    }
+
+    /// Snapshot choreography: the page is a WKWebView with CSS columns, so
+    /// live content can't curl. Instead: snapshot the old page, cover the
+    /// webview with it, jump the scroll view to the target instantly
+    /// underneath, snapshot the new page once WebKit painted it, then play
+    /// a UIPageViewController page-curl between the two images and remove
+    /// the overlay to reveal the live (already-turned) page.
+    ///
+    /// Known ceilings, accepted: a finger drag still slides natively in
+    /// curl mode (Kindle behaves the same — curl plays on tap only), and
+    /// chapter-boundary turns use the loading veil, never a cross-document
+    /// curl.
+    private func performCurl(to target: CGPoint) {
+        let scroll = webView.scrollView
+        // One curl at a time: a second tap mid-curl is dropped
+        // (responsiveness over fidelity for rapid tappers). The engine
+        // already advanced its page for the dropped turn, so resync it to
+        // the real offset to keep state consistent.
+        guard curlPageVC == nil else {
+            evaluate("window.lumen && window.lumen.syncPagedPage()")
+            return
+        }
+        let forward = target.x > scroll.contentOffset.x
+        webView.takeSnapshot(with: curlSnapshotConfiguration) {
+            [weak self] oldImage, _ in
+            guard let self else { return }
+            guard let oldImage else {
+                // Snapshot failed: degrade to an instant jump.
+                scroll.setContentOffset(target, animated: false)
+                return
+            }
+            // Cover the webview with the old page BEFORE jumping, so the
+            // new page never flashes ahead of the curl.
+            let pageVC = self.beginCurlOverlay(oldImage: oldImage)
+            scroll.setContentOffset(target, animated: false)
+            // Give WebKit a beat to paint the target column before
+            // capturing it; snapshotting too early yields a blank page.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+                [weak self] in
+                guard let self else { return }
+                self.webView.takeSnapshot(
+                    with: self.curlSnapshotConfiguration
+                ) { newImage, _ in
+                    guard let newImage else {
+                        // Live page is already on target; just reveal it.
+                        self.dismissCurl()
+                        return
+                    }
+                    pageVC.setViewControllers(
+                        [Self.snapshotViewController(newImage)],
+                        direction: forward ? .forward : .reverse,
+                        animated: true
+                    ) { [weak self] _ in
+                        self?.dismissCurl()
+                    }
+                }
+            }
+        }
+    }
+
+    /// Builds the curl overlay seeded with the old page and installs it
+    /// over the webview (under the SwiftUI chrome, which lives outside
+    /// this container). Arms a safety timeout so a dropped completion can
+    /// never leave the overlay stuck — same pattern as the chapter veil.
+    private func beginCurlOverlay(oldImage: UIImage) -> UIPageViewController {
+        let pageVC = UIPageViewController(
+            transitionStyle: .pageCurl, navigationOrientation: .horizontal
+        )
+        pageVC.view.frame = webView.bounds
+        pageVC.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        pageVC.view.backgroundColor = webView.backgroundColor
+        // No dataSource → no curl gestures; the view itself still swallows
+        // taps so a tap mid-curl can't reach the page's tap zones.
+        pageVC.view.isUserInteractionEnabled = true
+        pageVC.setViewControllers(
+            [Self.snapshotViewController(oldImage)],
+            direction: .forward, animated: false
+        )
+        webView.addSubview(pageVC.view)
+        curlPageVC = pageVC
+        curlSafetyTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            guard !Task.isCancelled else { return }
+            self?.dismissCurl()
+        }
+        return pageVC
+    }
+
+    private func dismissCurl() {
+        curlSafetyTask?.cancel()
+        curlSafetyTask = nil
+        curlPageVC?.view.removeFromSuperview()
+        curlPageVC = nil
+    }
+
+    /// A throwaway VC showing one page snapshot, for the curl pager.
+    private static func snapshotViewController(
+        _ image: UIImage
+    ) -> UIViewController {
+        let vc = UIViewController()
+        let imageView = UIImageView(image: image)
+        imageView.frame = vc.view.bounds
+        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        vc.view.addSubview(imageView)
+        return vc
+    }
+
     // MARK: - Engine messages
 
     /// Fire-and-forget JS eval. Routing through a synchronous method keeps the
@@ -369,7 +497,9 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 if let scrollX {
                     let target = CGPoint(x: scrollX, y: 0)
                     let scroll = self.webView.scrollView
-                    if animate {
+                    if animate, self.transition == .curl {
+                        self.performCurl(to: target)
+                    } else if animate {
                         // A critically-damped spring (damping 1.0 → no
                         // overshoot) departs quickly and settles softly, the
                         // Apple Books tap-turn feel. `.beginFromCurrentState`

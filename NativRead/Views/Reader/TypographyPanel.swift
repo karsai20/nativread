@@ -274,27 +274,33 @@ struct TypographyPanel: View {
     }
 
     private var transitionRow: some View {
-        HStack(spacing: Spacing.xs) {
+        // Four options no longer fit beside the eyebrow label; stack them
+        // under it like flowGroup, pills sharing the width equally.
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Label("Page turn", systemImage: "arrow.right.square")
                 .font(Typography.eyebrow)
                 .tracking(Typography.eyebrowTracking)
                 .textCase(.uppercase)
                 .foregroundStyle(palette.secondaryText)
-            Spacer()
-            ForEach(PageTransition.allCases) { candidate in
-                Button {
-                    updateSettings { $0.pageTransition = candidate }
-                } label: {
-                    Text(candidate.label)
-                        .font(Typography.meta(13))
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, Spacing.xxs + 3)
+            HStack(spacing: Spacing.xs) {
+                ForEach(PageTransition.allCases) { candidate in
+                    Button {
+                        updateSettings { $0.pageTransition = candidate }
+                    } label: {
+                        Text(candidate.label)
+                            .font(Typography.meta(13))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .padding(.horizontal, Spacing.xxs)
+                            .padding(.vertical, Spacing.xxs + 3)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .capsulePill(
+                        isSelected: candidate == settings.pageTransition,
+                        palette: palette
+                    )
+                    .accessibilityIdentifier("transition.\(candidate.rawValue)")
                 }
-                .capsulePill(
-                    isSelected: candidate == settings.pageTransition,
-                    palette: palette
-                )
-                .accessibilityIdentifier("transition.\(candidate.rawValue)")
             }
         }
     }

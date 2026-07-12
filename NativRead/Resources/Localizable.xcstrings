@@ -1520,6 +1520,24 @@
         }
       }
     },
+    "transition.label.curl" : {
+      "comment" : "Display name for the page-curl transition.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Curl"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lapfordítás"
+          }
+        }
+      }
+    },
     "transition.label.fade" : {
       "comment" : "Display name for the fade page transition.",
       "extractionState" : "stale",

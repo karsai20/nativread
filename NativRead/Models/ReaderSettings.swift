@@ -197,8 +197,10 @@ enum PageFlow: String, Codable, CaseIterable, Identifiable {
 /// The animation used when turning a page in paged flow.
 enum PageTransition: String, Codable, CaseIterable, Identifiable {
     case slide
+    case curl
     /// rawValue "eink" is legacy-persisted from when this was an e-ink flash.
     case fade = "eink"
+    /// Shown as "None" in the picker; the rawValue predates the label.
     case instant
 
     var id: String { rawValue }
@@ -206,6 +208,7 @@ enum PageTransition: String, Codable, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .slide:   return Bundle.main.localizedString(forKey: "transition.label.slide", value: "Slide", table: nil)
+        case .curl:    return Bundle.main.localizedString(forKey: "transition.label.curl", value: "Curl", table: nil)
         case .fade:    return Bundle.main.localizedString(forKey: "transition.label.fade", value: "Fade", table: nil)
         case .instant: return Bundle.main.localizedString(forKey: "transition.label.none", value: "None", table: nil)
         }

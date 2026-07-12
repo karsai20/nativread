@@ -97,7 +97,11 @@ enum ReaderScripts {
 
             movePaged(animate) {
               const body = document.body;
-              if (animate && this.transition === "slide") {
+              if (animate && (this.transition === "slide"
+                              || this.transition === "curl")) {
+                // Curl rides the same animated-scroll request; Swift picks
+                // spring vs snapshot-curl choreography, since only Swift
+                // can snapshot the WKWebView. "instant" falls to the else.
                 body.style.opacity = "1";
                 this.postScroll(true);
               } else if (animate && this.transition === "eink") {
