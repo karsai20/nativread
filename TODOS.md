@@ -40,11 +40,6 @@ Source: /ship 2026-07-12 adversarial review (Codex) on feat/reader-polish.
   is portrait-locked and iPhone-only (`TARGETED_DEVICE_FAMILY: 1`), so no
   rotation/Split View path exists. **Hard gate before iPad or rotation
   support.** **Priority:** P3 (P1 the moment iPad/rotation is planned).
-- [ ] **Curl overlay proper view-controller containment.** The curl
-  transition's `UIPageViewController` view is added as a transient (<1s)
-  subview of the WKWebView without UIKit containment; trait/appearance
-  forwarding is undefined. Harmless while portrait-locked iPhone-only —
-  revisit together with the item above. **Priority:** P3.
 
 ## Branding
 
@@ -222,6 +217,11 @@ common import paths are covered; these are edge-case robustness for TXT.
 
 ## Completed
 
+- [x] **Curl overlay proper view-controller containment.** Obsolete by
+  design change: the curl no longer uses a `UIPageViewController` subview —
+  it renders as a WebGL overlay inside the page itself (Readest-style
+  captured turn), so there is no UIKit containment to forward.
+  **Completed:** v3.4 (2026-07-13).
 - [x] **Pure-Swift AZW3 (KF8) → EPUB import.** `NativRead/EPUB/{PalmDatabase,
   MOBIHeader,PalmDocDecompressor,MOBIIndex,KF8Converter,KF8EPUBWriter}.swift`;
   `mobi/azw/azw3/prc` routed through `LibraryStore.importMOBI` → `importEPUB`.

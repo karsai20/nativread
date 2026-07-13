@@ -3,18 +3,22 @@
 All notable changes to NativRead are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [3.4] - 2026-07-12
+## [3.4] - 2026-07-13
 
 ### Added
 - Three new page-turn styles join Slide: **Curl** — the classic book-like page fold known from Apple Books — plus **Fade** and **None** (instant), so every reading taste from skeuomorphic to speed-reading is covered.
+- In Curl mode you can now **drag the page with your finger**: the sheet bends and follows your touch, a flick or pulling past halfway commits the turn, and letting go settles the page back down.
 
 ### Changed
-- Page turning in paged mode now follows your finger exactly: drag tracks the page natively, tap-turns settle with a soft glide, and pulling past a chapter's edge turns into the next or previous chapter.
+- The Curl turn was rebuilt so the new page emerges live under the lifting sheet — no flash of the old page, and the sheet's underside matches your theme's paper colour in dark and sepia too.
+- Page turning in paged mode follows your finger exactly, tap-turns settle with a soft glide, and pulling past a chapter's edge turns into the next or previous chapter.
 - The E-ink transition is now **Fade**: instead of a black flash, the page dissolves gently through the paper colour — in dark themes too. Your saved transition setting carries over automatically.
 - Settings has a full editorial redesign: page-like appearance tiles (System / Light / Dark), grouped language sections, a serif header, and a quieter power-user area.
+- Scrolling in vertical (scroll) reading mode is noticeably smoother.
 
 ### Fixed
-- Rapid taps and drags no longer fight the page-turn animation, skip pages, or bounce back mid-turn.
+- The Define sheet's dictionary no longer opens blank or choppy — the definition appears as soon as the sheet settles.
+- Rapid taps and drags no longer fight the page-turn animation, skip pages, or bounce back mid-turn; interrupted turns (an incoming call, switching apps) always land on the right page.
 - Pulling hard past a chapter's edge can no longer save your reading position against the wrong chapter.
 
 ## [3.3] - 2026-07-09
