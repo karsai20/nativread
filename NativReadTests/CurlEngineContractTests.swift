@@ -55,6 +55,39 @@ final class CurlEngineContractTests: XCTestCase {
         }
     }
 
+    func testScrubCommitReassertsOffsetAfterTouchEnds() {
+        // The drag scrub jumps the live page while a finger is still
+        // down; WebKit can defer painting that column until the visible
+        // rect is stable again. The commit settle must re-post the
+        // offset once the touch has ended so the destination can never
+        // stay blank until the next interaction.
+        // Two sites must post this jump: the settle-safety fallback and
+        // the commit-completion re-assert added for the blank-page fix.
+        let token = "type: \"scroll\", x: this.page * PW, animate: false"
+        let count = engine.components(separatedBy: token).count - 1
+        XCTAssertGreaterThanOrEqual(
+            count, 2,
+            "Curl scrub commit lost its post-touch offset re-assert"
+        )
+    }
+
+    func testCurlUndersideShowsFaintInkBleedThrough() {
+        // The sheet's back face samples its OWN texcoord: the folded
+        // geometry mirrors it on screen, so this reads as ink bleeding
+        // through the paper. Reflecting the texcoord across the fold
+        // (a past bug: "vMirror") cancels that geometric mirror and
+        // shows readable, merely shifted text — guard against it.
+        XCTAssertFalse(
+            engine.contains("vMirror"),
+            "Curl underside re-introduced the texcoord reflection that"
+            + " cancels the geometric mirror"
+        )
+        XCTAssertTrue(
+            engine.contains("mix(ink.rgb, uPaper, 0.9)"),
+            "Curl underside lost its faint paper blend"
+        )
+    }
+
     func testCurlTurnsNeverRequestAnimatedScrollDirectly() {
         // The curl's instant jump must ride animate:false so Swift's
         // spring path can't fight the overlay animation.

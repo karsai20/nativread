@@ -490,6 +490,13 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                         }
                     } else {
                         scroll.setContentOffset(target, animated: false)
+                        // A silent jump during an active touch (curl drag
+                        // scrub) can leave the destination column unpainted:
+                        // WebKit defers tile paint while the visible rect is
+                        // "unstable" mid-touch. A layout pass forces the
+                        // visible-content-rect update so the page can never
+                        // stay blank until the next interaction.
+                        self.webView.setNeedsLayout()
                     }
                 }
             case "captureCurl":

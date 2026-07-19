@@ -392,7 +392,16 @@ enum ReaderScripts {
                 );
                 if (k < 1) { requestAnimationFrame(step); return; }
                 clearTimeout(settleSafety);
-                if (commit) { run.stop(); return; }
+                if (commit) {
+                  // The finger is up by now: re-assert the offset so the
+                  // native side runs a stable-rect layout pass for the
+                  // column WebKit may have left unpainted while the
+                  // mid-drag jump happened under an active touch.
+                  window.webkit.messageHandlers.lumen.postMessage({
+                    type: "scroll", x: this.page * PW, animate: false
+                  });
+                  run.stop(); return;
+                }
                 // Cancelled: the sheet lies flat again covering the
                 // page; jump the live view back underneath, let it
                 // repaint, then uncover.
@@ -477,9 +486,14 @@ enum ReaderScripts {
                 "  if (gl_FrontFacing) {",
                 "    ink.rgb *= 1.0 - 0.16 * vLift;",
                 "  } else {",
-                // The underside: content bleeding through the theme's
-                // paper — never plain white, which flares in dark mode.
-                "    ink.rgb = mix(ink.rgb, uPaper, 0.75);",
+                // The underside: each paper point shows its own ink
+                // bleeding through, faint against the theme's paper
+                // (never plain white, which flares in dark mode). The
+                // on-screen mirroring comes from the folded geometry
+                // itself — do NOT also reflect the texcoord across the
+                // fold: that cancels the geometric mirror and renders
+                // the text readable and merely shifted.
+                "    ink.rgb = mix(ink.rgb, uPaper, 0.9);",
                 "    ink.rgb *= 1.0 - 0.06 * vLift;",
                 "  }",
                 "  gl_FragColor = ink;",
