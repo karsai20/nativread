@@ -66,6 +66,16 @@ struct Highlight: Codable, Equatable, Identifiable {
         self.createdAt = createdAt
         self.note = note
     }
+
+    /// The note with surrounding whitespace stripped, or nil when absent
+    /// or blank — so a blank note never exports or renders.
+    var trimmedNote: String? {
+        guard let note = note?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !note.isEmpty
+        else { return nil }
+        return note
+    }
 }
 
 /// The source format of a book. Drives which reader opens it: `.epub`

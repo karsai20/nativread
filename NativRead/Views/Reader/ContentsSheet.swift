@@ -159,7 +159,7 @@ struct ContentsSheet: View {
                                                 cornerRadius: Spacing.xxs
                                             )
                                         )
-                                    if let note = trimmedNote(highlight) {
+                                    if let note = highlight.trimmedNote {
                                         Label {
                                             Text(note)
                                                 .multilineTextAlignment(.leading)
@@ -183,7 +183,7 @@ struct ContentsSheet: View {
                                     editingNoteFor = highlight
                                 } label: {
                                     Label(
-                                        trimmedNote(highlight) == nil
+                                        highlight.trimmedNote == nil
                                             ? "Add Note" : "Edit Note",
                                         systemImage: "note.text"
                                     )
@@ -202,16 +202,6 @@ struct ContentsSheet: View {
                 }
                 .accessibilityIdentifier("contents.highlights")
         }
-    }
-
-    /// The highlight's note when it has visible content, else nil — so an
-    /// empty or whitespace-only note never renders a stray note row.
-    private func trimmedNote(_ highlight: Highlight) -> String? {
-        guard let note = highlight.note?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !note.isEmpty
-        else { return nil }
-        return note
     }
 
     private var bookmarkList: some View {

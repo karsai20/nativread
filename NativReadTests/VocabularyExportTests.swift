@@ -19,6 +19,21 @@ final class VocabularyExportTests: XCTestCase {
         )
     }
 
+    // MARK: - Trimmed accessors (shared by export and the vocabulary list UI)
+
+    func testTrimmedNoteStripsWhitespaceAndBlanksToNil() {
+        XCTAssertEqual(makeEntry(note: "  keep this  ").trimmedNote, "keep this")
+        XCTAssertNil(makeEntry(note: "   \n ").trimmedNote)
+        XCTAssertNil(makeEntry(note: nil).trimmedNote)
+    }
+
+    func testTrimmedContextStripsWhitespaceAndBlanksToNil() {
+        XCTAssertEqual(
+            makeEntry(context: " A sentence. \n").trimmedContext, "A sentence.")
+        XCTAssertNil(makeEntry(context: "  ").trimmedContext)
+        XCTAssertNil(makeEntry(context: nil).trimmedContext)
+    }
+
     // MARK: - CSV columns / rows
 
     func testCSVHasHeaderAndOneRowPerEntry() {

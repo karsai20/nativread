@@ -127,7 +127,7 @@ struct VocabularyView: View {
                                 editingNoteFor = entry
                             } label: {
                                 Label(
-                                    trimmedNote(entry) == nil
+                                    entry.trimmedNote == nil
                                         ? "Add Note" : "Edit Note",
                                     systemImage: "note.text"
                                 )
@@ -155,7 +155,7 @@ struct VocabularyView: View {
                 .font(Typography.title())
                 .foregroundStyle(palette.accent)
 
-            if let context = trimmedContext(entry) {
+            if let context = entry.trimmedContext {
                 // Context quote: body italic for the literary quoting convention.
                 Text(context)
                     .font(Typography.body())
@@ -178,7 +178,7 @@ struct VocabularyView: View {
                 .foregroundStyle(palette.secondaryText)
                 .lineLimit(1)
 
-            if let note = trimmedNote(entry) {
+            if let note = entry.trimmedNote {
                 Label {
                     Text(note).multilineTextAlignment(.leading)
                 } icon: {
@@ -203,22 +203,6 @@ struct VocabularyView: View {
     }
 
     // MARK: - Helpers
-
-    private func trimmedNote(_ entry: VocabularyEntry) -> String? {
-        guard let note = entry.note?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !note.isEmpty
-        else { return nil }
-        return note
-    }
-
-    private func trimmedContext(_ entry: VocabularyEntry) -> String? {
-        guard let context = entry.contextSentence?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !context.isEmpty
-        else { return nil }
-        return context
-    }
 
     private enum ExportFormat {
         case csvPlain, csvCloze, markdown

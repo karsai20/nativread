@@ -14,6 +14,20 @@ final class HighlightExportTests: XCTestCase {
         )
     }
 
+    // MARK: - Trimmed note (shared by export and the contents sheet)
+
+    func testTrimmedNoteStripsWhitespaceAndBlanksToNil() {
+        func highlight(note: String?) -> Highlight {
+            Highlight(
+                spineIndex: 0, text: "t", occurrence: 0,
+                chapterTitle: "c", note: note
+            )
+        }
+        XCTAssertEqual(highlight(note: " keep ").trimmedNote, "keep")
+        XCTAssertNil(highlight(note: " \n ").trimmedNote)
+        XCTAssertNil(highlight(note: nil).trimmedNote)
+    }
+
     // MARK: - Markdown
 
     func testMarkdownIncludesTitleAndAuthor() {

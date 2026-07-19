@@ -76,6 +76,26 @@ struct VocabularyEntry: Codable, Equatable, Identifiable {
         word.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 
+    /// The note with surrounding whitespace stripped, or nil when absent
+    /// or blank — so a blank note never exports or renders.
+    var trimmedNote: String? {
+        guard let note = note?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !note.isEmpty
+        else { return nil }
+        return note
+    }
+
+    /// The context sentence with surrounding whitespace stripped, or nil
+    /// when absent or blank.
+    var trimmedContext: String? {
+        guard let context = contextSentence?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !context.isEmpty
+        else { return nil }
+        return context
+    }
+
     /// Provenance recorded when a word is saved from Apple's system Dictionary,
     /// which does not expose definition text through a public API. Persisted in
     /// entries, so it must stay identical everywhere it is written.

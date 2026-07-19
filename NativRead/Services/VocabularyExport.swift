@@ -24,7 +24,7 @@ enum VocabularyExport {
                 context,
                 entry.definition,
                 entry.dictionarySource,
-                trimmedNote(entry) ?? "",
+                entry.trimmedNote ?? "",
                 isoDateFormatter.string(from: entry.createdAt)
             ]))
         }
@@ -40,7 +40,7 @@ enum VocabularyExport {
         for entry in entries {
             lines.append("")
             lines.append("## \(entry.word)")
-            if let context = trimmedContext(entry) {
+            if let context = entry.trimmedContext {
                 lines.append("")
                 lines.append("> *\(context)*")
             }
@@ -48,7 +48,7 @@ enum VocabularyExport {
                 lines.append("")
                 lines.append(entry.definition)
             }
-            if let note = trimmedNote(entry) {
+            if let note = entry.trimmedNote {
                 lines.append("")
                 lines.append("*Note: \(note)*")
             }
@@ -73,7 +73,7 @@ enum VocabularyExport {
         let word = entry.word.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
-        guard let context = trimmedContext(entry), !word.isEmpty else {
+        guard let context = entry.trimmedContext, !word.isEmpty else {
             return "{{c1::\(word)}}"
         }
         guard let range = context.range(
@@ -88,26 +88,6 @@ enum VocabularyExport {
     }
 
     // MARK: - Helpers
-
-    /// The entry's context with surrounding whitespace stripped, or nil
-    /// when it is absent or blank.
-    private static func trimmedContext(_ entry: VocabularyEntry) -> String? {
-        guard let context = entry.contextSentence?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !context.isEmpty
-        else { return nil }
-        return context
-    }
-
-    /// The entry's note with surrounding whitespace stripped, or nil
-    /// when it is absent or blank — so a blank note never exports.
-    private static func trimmedNote(_ entry: VocabularyEntry) -> String? {
-        guard let note = entry.note?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !note.isEmpty
-        else { return nil }
-        return note
-    }
 
     private static func csvRow(_ fields: [String]) -> String {
         fields.map(escapeCSVField).joined(separator: ",")
