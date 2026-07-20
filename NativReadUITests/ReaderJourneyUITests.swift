@@ -27,13 +27,27 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         // Give the pagination engine a beat to measure the chapter.
         XCTAssertTrue(
-            app.staticTexts["reader.pageLabel"]
+            app.buttons["reader.position"]
                 .waitForExistence(timeout: 10)
         )
     }
 
     private var pageLabelValue: String {
-        app.staticTexts["reader.pageLabel"].label
+        app.buttons["reader.position"].label
+    }
+
+    /// Reader tools live behind the bottom-right menu since the
+    /// Books-style chrome redesign; fan it out when needed.
+    private func tapMenuItem(_ identifier: String) {
+        let item = app.buttons[identifier]
+        if !item.isHittable {
+            app.buttons["reader.menu"].tap()
+            XCTAssertTrue(
+                item.waitForExistence(timeout: 4),
+                "\(identifier) should appear in the fanned-out menu"
+            )
+        }
+        item.tap()
     }
 
     func testShelfShowsSeededBook() {
@@ -56,7 +70,7 @@ final class ReaderJourneyUITests: XCTestCase {
             withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)
         ).tap()
 
-        let label = app.staticTexts["reader.pageLabel"]
+        let label = app.buttons["reader.position"]
         let changed = NSPredicate(format: "label != %@", initial)
         expectation(for: changed, evaluatedWith: label)
         waitForExpectations(timeout: 8)
@@ -71,9 +85,26 @@ final class ReaderJourneyUITests: XCTestCase {
         waitForExpectations(timeout: 8)
     }
 
+    func testPositionNavigatorUsesAnAccessibleSlider() {
+        openSampleBook()
+        app.buttons["reader.position"].tap()
+
+        let slider = app.sliders["reader.position.slider"]
+        XCTAssertTrue(
+            slider.waitForExistence(timeout: 6),
+            "the compact progress indicator should open a full-size slider"
+        )
+        XCTAssertTrue(app.buttons["reader.position.nextChapter"].exists)
+
+        app.buttons["reader.position.done"].tap()
+        XCTAssertTrue(
+            app.buttons["reader.position"].waitForExistence(timeout: 6)
+        )
+    }
+
     func testTypographyPanelSwitchesTheme() {
         openSampleBook()
-        app.buttons["reader.typography"].tap()
+        tapMenuItem("reader.typography")
 
         // Theme swatches live on the default Theme tab.
         let duskSwatch = app.buttons["theme.dusk"]
@@ -89,15 +120,15 @@ final class ReaderJourneyUITests: XCTestCase {
         // Dismiss the sheet, reopen, and confirm the choice stuck.
         app.swipeDown(velocity: .fast)
         XCTAssertTrue(
-            app.buttons["reader.typography"].waitForExistence(timeout: 6)
+            app.buttons["reader.menu"].waitForExistence(timeout: 6)
         )
-        app.buttons["reader.typography"].tap()
+        tapMenuItem("reader.typography")
         XCTAssertTrue(duskSwatch.waitForExistence(timeout: 6))
     }
 
     func testContentsNavigatesToChapter() {
         openSampleBook()
-        app.buttons["reader.contents"].tap()
+        tapMenuItem("reader.contents")
 
         let chapter = app.buttons
             .containing(NSPredicate(
@@ -114,7 +145,7 @@ final class ReaderJourneyUITests: XCTestCase {
 
     func testSearchFindsTextAcrossBook() {
         openSampleBook()
-        app.buttons["reader.search"].tap()
+        tapMenuItem("reader.search")
 
         let field = app.textFields["search.field"]
         XCTAssertTrue(field.waitForExistence(timeout: 6))
@@ -131,7 +162,7 @@ final class ReaderJourneyUITests: XCTestCase {
             NSPredicate(format: "label CONTAINS %@", "lantern")
         ).firstMatch.tap()
         XCTAssertTrue(
-            app.staticTexts["reader.pageLabel"]
+            app.buttons["reader.position"]
                 .waitForExistence(timeout: 8)
         )
     }
@@ -150,7 +181,7 @@ final class ReaderJourneyUITests: XCTestCase {
         app.swipeUp(velocity: .fast)
         app.swipeUp(velocity: .fast)
 
-        let label = app.staticTexts["reader.pageLabel"]
+        let label = app.buttons["reader.position"]
         let changed = NSPredicate(format: "label != %@", initial)
         expectation(for: changed, evaluatedWith: label)
         waitForExpectations(timeout: 8)
@@ -200,7 +231,7 @@ final class ReaderJourneyUITests: XCTestCase {
     /// Opens the appearance sheet and selects the Layout tab, where the
     /// page-flow and transition controls live in the redesigned tabbed panel.
     private func openLayoutTab() {
-        app.buttons["reader.typography"].tap()
+        tapMenuItem("reader.typography")
         let layout = app.buttons["appearance.tab.layout"]
         XCTAssertTrue(layout.waitForExistence(timeout: 6))
         layout.tap()
@@ -224,7 +255,7 @@ final class ReaderJourneyUITests: XCTestCase {
         // Reopen the panel: choices must have persisted.
         app.swipeDown(velocity: .fast)
         XCTAssertTrue(
-            app.buttons["reader.typography"].waitForExistence(timeout: 6)
+            app.buttons["reader.menu"].waitForExistence(timeout: 6)
         )
         openLayoutTab()
         let paged = app.buttons["flow.paged"]
@@ -248,7 +279,7 @@ final class ReaderJourneyUITests: XCTestCase {
         highlightItem.tap()
 
         // The highlight must be listed in the contents sheet.
-        app.buttons["reader.contents"].tap()
+        tapMenuItem("reader.contents")
         app.buttons["Highlights"].tap()
         let list = app.scrollViews["contents.highlights"]
         XCTAssertTrue(list.waitForExistence(timeout: 6))
@@ -260,7 +291,7 @@ final class ReaderJourneyUITests: XCTestCase {
         app.launchArguments = ["-seedSampleBook", "-skipOnboarding"]
         app.launch()
         openSampleBook()
-        app.buttons["reader.contents"].tap()
+        tapMenuItem("reader.contents")
         app.buttons["Highlights"].tap()
         XCTAssertTrue(
             app.scrollViews["contents.highlights"]
@@ -354,7 +385,7 @@ final class ReaderJourneyUITests: XCTestCase {
         )
     }
 
-    func testTranslateSheetRequiresOwnershipBeforeFreeChapter() {
+    func testTranslateSheetRequiresRightsAndAppleLoginBeforeFreeChapter() {
         let button = app.buttons["library.translate"]
         XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
@@ -375,14 +406,77 @@ final class ReaderJourneyUITests: XCTestCase {
         let attestation = app.buttons["translation.attestation"]
         XCTAssertTrue(attestation.waitForExistence(timeout: 6))
         attestation.tap()
-        XCTAssertTrue(freeChapter.isEnabled)
+        XCTAssertFalse(freeChapter.isEnabled)
+        XCTAssertTrue(
+            app.buttons["translation.signInWithApple"]
+                .waitForExistence(timeout: 6)
+        )
+    }
+
+    func testLocalPlaceholderPurchaseTranslatesAndImportsTheBook() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipOnboarding", "-translationBackendURL",
+            "http://127.0.0.1:48218"
+        ]
+        app.launch()
+
+        let translate = app.buttons["library.translate"]
+        XCTAssertTrue(translate.waitForExistence(timeout: 10))
+        translate.tap()
+
+        let pickerBook =
+            app.buttons["translation.picker.The Lantern of Aldebaran"]
+        XCTAssertTrue(pickerBook.waitForExistence(timeout: 6))
+        pickerBook.tap()
+
+        let attestation = app.buttons["translation.attestation"]
+        XCTAssertTrue(attestation.waitForExistence(timeout: 6))
+        attestation.tap()
+
+        let localAccount = app.buttons["translation.localTestAccount"]
+        XCTAssertTrue(
+            localAccount.waitForExistence(timeout: 6),
+            "a loopback backend should expose the debug-only test account"
+        )
+        localAccount.tap()
+
+        let quote = app.buttons["translation.calculateQuote"]
+        for _ in 0..<4 where !quote.exists {
+            app.swipeUp(velocity: .fast)
+        }
+        XCTAssertTrue(quote.waitForExistence(timeout: 6))
+        XCTAssertTrue(quote.isEnabled)
+        quote.tap()
+
+        let purchase = app.buttons["translation.placeholderPurchase"]
+        XCTAssertTrue(
+            purchase.waitForExistence(timeout: 20),
+            "the exact character quote should offer the smallest test pack"
+        )
+        purchase.tap()
+
+        let fullBook = app.buttons["translation.fullBook"]
+        XCTAssertTrue(
+            fullBook.waitForExistence(timeout: 10),
+            "the placeholder purchase should make the quoted job affordable"
+        )
+        fullBook.tap()
+
+        XCTAssertTrue(
+            app.staticTexts[
+                "Full Hungarian translation was added as a separate library book."
+            ].waitForExistence(timeout: 30),
+            "the fake backend result should be consumed and imported by the app"
+        )
     }
 
     func testBookmarkToggle() {
         openSampleBook()
-        app.buttons["reader.bookmark"].tap()
+        tapMenuItem("reader.bookmark")
 
-        app.buttons["reader.contents"].tap()
+        tapMenuItem("reader.contents")
         app.buttons["Bookmarks"].tap()
 
         // One bookmark for chapter one should be listed.

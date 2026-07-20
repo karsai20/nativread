@@ -15,6 +15,9 @@ final class SettingsStore {
 
     /// Whole-app Light/Dark/System preference (chrome, library, onboarding).
     private(set) var appAppearance: AppAppearance
+    /// True when the reader pinned the interface to portrait so the page
+    /// never rotates with the phone.
+    private(set) var isOrientationLocked: Bool
     private(set) var translationBackendURLString: String
     private(set) var translationUserID: String
 
@@ -25,6 +28,7 @@ final class SettingsStore {
     private static let translationBackendURLKey = "nativread.translationBackendURL.v1"
     private static let translationUserIDKey = "nativread.translationUserID.v1"
     private static let defaultTranslationBackendURLKey = "NativReadDefaultTranslationBackendURL"
+    private static let orientationLockKey = "nativread.orientationLock.v1"
     private static var bundledTranslationBackendURLString: String {
         let value = Bundle.main.object(
             forInfoDictionaryKey: defaultTranslationBackendURLKey
@@ -47,6 +51,9 @@ final class SettingsStore {
         }
         appAppearance = defaults.string(forKey: Self.appearanceKey)
             .flatMap(AppAppearance.init) ?? .system
+        isOrientationLocked = defaults.bool(
+            forKey: Self.orientationLockKey
+        )
         let bundledBackendURL = (
             defaultTranslationBackendURLString
                 ?? Self.bundledTranslationBackendURLString
@@ -65,6 +72,12 @@ final class SettingsStore {
         }
     }
 
+    /// Sets and persists the portrait orientation lock.
+    func setOrientationLocked(_ locked: Bool) {
+        isOrientationLocked = locked
+        defaults.set(locked, forKey: Self.orientationLockKey)
+    }
+
     /// Sets and persists the app-wide appearance preference.
     func setAppearance(_ appearance: AppAppearance) {
         appAppearance = appearance
@@ -78,6 +91,15 @@ final class SettingsStore {
         defaults.set(
             translationBackendURLString,
             forKey: Self.translationBackendURLKey
+        )
+    }
+
+    /// Test/screenshot override for a local translator. Keeping this out of
+    /// UserDefaults prevents an automated run from changing the endpoint a
+    /// person configured in Settings.
+    func overrideTranslationBackendURLWithoutPersisting(_ value: String) {
+        translationBackendURLString = value.trimmingCharacters(
+            in: .whitespacesAndNewlines
         )
     }
 
@@ -130,5 +152,6 @@ final class SettingsStore {
         defaults.removeObject(forKey: appearanceKey)
         defaults.removeObject(forKey: translationBackendURLKey)
         defaults.removeObject(forKey: translationUserIDKey)
+        defaults.removeObject(forKey: orientationLockKey)
     }
 }

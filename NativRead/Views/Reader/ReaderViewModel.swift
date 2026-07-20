@@ -2,7 +2,7 @@ import SwiftUI
 import Observation
 
 enum ReaderSheet: String, Identifiable {
-    case contents, typography, search
+    case contents, position, typography, search
     var id: String { rawValue }
 }
 
@@ -311,6 +311,14 @@ final class ReaderViewModel {
         )
     }
 
+    /// Human-scale whole-book location for compact reader chrome and the
+    /// expanded position navigator. Unlike the old `page / pageCount` label,
+    /// this never mixes chapter-local pages with whole-book percentage.
+    var chapterPositionText: String {
+        guard let parsed, !parsed.spineURLs.isEmpty else { return "" }
+        return "\(spineIndex + 1)/\(parsed.spineURLs.count)"
+    }
+
     // MARK: - Chapter advance (scroll flow affordances)
 
     var hasNextChapter: Bool {
@@ -328,6 +336,47 @@ final class ReaderViewModel {
     /// True when the reader sits on the last screenful of the chapter.
     var isAtChapterEnd: Bool {
         page >= pageCount - 1
+    }
+
+    // MARK: - Chrome page labels
+
+    /// 1-based page number within the chapter, for the resting chrome.
+    var currentPageNumber: Int { page + 1 }
+
+    /// Full pages still ahead in this chapter.
+    var pagesLeftInChapter: Int { max(0, pageCount - 1 - page) }
+
+    /// Whole-book page estimate at the current typography (see
+    /// `Book.estimatedBookPages`).
+    var estimatedBookPageCount: Int {
+        Book.estimatedBookPages(
+            chapterPageCount: pageCount,
+            spineIndex: spineIndex,
+            weights: book?.spineWeights ?? []
+        )
+    }
+
+    /// Estimated pages already read of `estimatedBookPageCount`,
+    /// clamped so an opened book always shows at least page 1.
+    var estimatedBookPagesRead: Int {
+        let total = estimatedBookPageCount
+        let read = Int((bookFraction * Double(total)).rounded())
+        return min(total, max(1, read))
+    }
+
+    /// The stored book file, for the share action in the reader menu.
+    var bookFileURL: URL? {
+        book.map(library.storedFileURL(for:))
+    }
+
+    var isOrientationLocked: Bool {
+        settingsStore.isOrientationLocked
+    }
+
+    /// Persists the flipped lock; the view syncs the UIKit orientation
+    /// mask, keeping AppDelegate out of the view model.
+    func toggleOrientationLock() {
+        settingsStore.setOrientationLocked(!settingsStore.isOrientationLocked)
     }
 
     @discardableResult

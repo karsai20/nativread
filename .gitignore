@@ -33,3 +33,6 @@ secrets*
 *.jks
 GoogleService-Info.plist
 .gstack/
+
+# graphify skill output (regenerable, not source)
+graphify-out/

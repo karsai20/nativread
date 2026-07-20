@@ -29,6 +29,43 @@ final class ModelTests: XCTestCase {
         )
     }
 
+    // MARK: - Whole-book page estimate
+
+    func testEstimatedBookPagesScalesChapterDensityToWholeBook() {
+        // Chapter 1 (weight 2000 of 4000 total) measures 10 pages, so
+        // the whole book is estimated at 20.
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 10, spineIndex: 1,
+                weights: [1000, 2000, 1000]
+            ),
+            20
+        )
+    }
+
+    func testEstimatedBookPagesFallsBackToChapterCount() {
+        // No weights (TXT import edge) or a zero-weight chapter: the
+        // only trustworthy number is the measured chapter itself.
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 7, spineIndex: 0, weights: []
+            ),
+            7
+        )
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 7, spineIndex: 1, weights: [100, 0, 100]
+            ),
+            7
+        )
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 7, spineIndex: 9, weights: [100, 100]
+            ),
+            7
+        )
+    }
+
     func testBookFractionHandlesDegenerateInput() {
         XCTAssertEqual(
             Book.bookFraction(spineIndex: 0, pageFraction: 0.5, weights: []),

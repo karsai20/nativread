@@ -264,4 +264,21 @@ struct Book: Codable, Equatable, Identifiable {
         let inside = weights[spineIndex] * min(max(pageFraction, 0), 1)
         return min(max((before + inside) / total, 0), 1)
     }
+
+    /// Whole-book page estimate scaled from the current chapter's
+    /// measured density (its page count vs its spine weight), so the
+    /// number tracks the live typography instead of a fixed chars-per-
+    /// page heuristic. Falls back to the measured chapter alone when
+    /// weights are missing or degenerate.
+    static func estimatedBookPages(
+        chapterPageCount: Int,
+        spineIndex: Int,
+        weights: [Double]
+    ) -> Int {
+        let total = weights.reduce(0, +)
+        guard spineIndex < weights.count, weights[spineIndex] > 0,
+              total > 0 else { return max(1, chapterPageCount) }
+        let scaled = Double(chapterPageCount) * total / weights[spineIndex]
+        return max(1, Int(scaled.rounded()))
+    }
 }

@@ -1,12 +1,40 @@
 import SwiftUI
 
+/// Exists solely to serve the orientation mask, which SwiftUI cannot
+/// override per-scene. The reader's rotation-lock toggle flips
+/// `lockPortrait` and asks every scene to re-read it.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    static var lockPortrait = false
+
+    func application(
+        _ application: UIApplication,
+        supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        Self.lockPortrait ? .portrait : .all
+    }
+
+    /// Applies a changed `lockPortrait` to the live UI (iOS 16+ API).
+    static func refreshOrientationLock() {
+        for case let scene as UIWindowScene
+            in UIApplication.shared.connectedScenes {
+            for window in scene.windows {
+                window.rootViewController?
+                    .setNeedsUpdateOfSupportedInterfaceOrientations()
+            }
+        }
+    }
+}
+
 @main
 struct NativReadApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self)
+    private var appDelegate
     @State private var library: LibraryStore
     @State private var settingsStore: SettingsStore
     @State private var statsStore: StatsStore
     @State private var vocabularyStore: VocabularyStore
     @State private var translationStore: TranslationStore
+    @State private var translationAuthStore: TranslationAuthStore
     @State private var localizationStore: LocalizationStore
 
     init() {
@@ -23,6 +51,8 @@ struct NativReadApp: App {
 
         let settings = SettingsStore()
         Self.applyThemeArgument(to: settings)
+        Self.applyTranslationBackendArgument(to: settings)
+        AppDelegate.lockPortrait = settings.isOrientationLocked
         _settingsStore = State(initialValue: settings)
 
         _statsStore = State(initialValue: StatsStore())
@@ -32,6 +62,7 @@ struct NativReadApp: App {
         _vocabularyStore = State(initialValue: vocabulary)
 
         _translationStore = State(initialValue: TranslationStore())
+        _translationAuthStore = State(initialValue: TranslationAuthStore())
 
         // Build LocalizationStore after the reset hook so the persisted app
         // language can be overridden for tests without touching user defaults.
@@ -48,6 +79,7 @@ struct NativReadApp: App {
                 .environment(statsStore)
                 .environment(vocabularyStore)
                 .environment(translationStore)
+                .environment(translationAuthStore)
                 .environment(localizationStore)
                 // Apply the chosen locale to the entire view tree so SwiftUI
                 // Text nodes use the right String Catalog translation.
@@ -174,6 +206,23 @@ struct NativReadApp: App {
             if let transition { next.pageTransition = transition }
             return next
         }
+    }
+
+    /// `-translationBackendURL <url>` points UI tests at a local placeholder
+    /// backend for this launch only. Production users still choose and persist
+    /// their endpoint explicitly in Settings.
+    private static func applyTranslationBackendArgument(
+        to store: SettingsStore
+    ) {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flagIndex = arguments.firstIndex(
+            of: "-translationBackendURL"
+        ), arguments.indices.contains(flagIndex + 1) else {
+            return
+        }
+        store.overrideTranslationBackendURLWithoutPersisting(
+            arguments[flagIndex + 1]
+        )
     }
 
     /// `-forceLanguage <code>` (en/es/de/hu) pins the app language for UI
