@@ -45,9 +45,6 @@ final class PDFReaderViewModelTests: XCTestCase {
             library: store,
             settingsStore: SettingsStore(
                 defaults: UserDefaults(suiteName: UUID().uuidString)!
-            ),
-            statsStore: StatsStore(
-                rootDirectory: root.appendingPathComponent("stats-\(UUID().uuidString)")
             )
         )
     }

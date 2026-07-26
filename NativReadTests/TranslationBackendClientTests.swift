@@ -17,6 +17,14 @@ final class TranslationBackendClientTests: XCTestCase {
         )
     }
 
+    private func makeTermsAcceptance() -> TranslationTermsAcceptance {
+        TranslationTermsAcceptance(
+            id: UUID(uuidString: "018F6F4D-90A7-7D8F-8F9A-1D4CF6B9A021")!,
+            acceptedAt: Date(timeIntervalSince1970: 1_753_184_400),
+            localeIdentifier: "hu-HU"
+        )
+    }
+
     override func tearDown() {
         StubURLProtocol.responses = []
         StubURLProtocol.lastRequest = nil
@@ -58,8 +66,11 @@ final class TranslationBackendClientTests: XCTestCase {
         }
     }
 
-    func testUploadSendsUserIDHeaderAndMultipartBody() async throws {
-        StubURLProtocol.enqueue(200, #"{"id":"job-9"}"#)
+    func testUploadSendsUserIDHeaderAndRawEpubBody() async throws {
+        StubURLProtocol.enqueue(
+            200,
+            #"{"id":"job-9","sourceHash":"abc","quote":{"version":"source-chars-v1","sourceCharacters":1001,"requiredCredits":2,"charactersPerCredit":1000}}"#
+        )
         let epub = FileManager.default.temporaryDirectory
             .appendingPathComponent("\(UUID().uuidString).epub")
         try Data("PK\u{03}\u{04}fake".utf8).write(to: epub)
@@ -67,12 +78,132 @@ final class TranslationBackendClientTests: XCTestCase {
 
         let response = try await makeClient().upload(epubURL: epub)
         XCTAssertEqual(response.id, "job-9")
+        XCTAssertEqual(response.sourceHash, "abc")
+        XCTAssertEqual(response.quote?.sourceCharacters, 1_001)
+        XCTAssertEqual(response.quote?.requiredCredits, 2)
         let request = try XCTUnwrap(StubURLProtocol.lastRequest)
         XCTAssertEqual(
             request.value(forHTTPHeaderField: "x-nativread-user-id"), "user-1"
         )
-        let contentType = request.value(forHTTPHeaderField: "Content-Type") ?? ""
-        XCTAssertTrue(contentType.hasPrefix("multipart/form-data; boundary="))
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "Content-Type"),
+            "application/epub+zip"
+        )
+    }
+
+    func testBearerSessionReplacesAnonymousUserHeader() async throws {
+        StubURLProtocol.enqueue(200, #"{"id":"job-9"}"#)
+        let epub = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).epub")
+        try Data("PK\u{03}\u{04}fake".utf8).write(to: epub)
+        defer { try? FileManager.default.removeItem(at: epub) }
+
+        var client = makeClient()
+        client.bearerToken = "signed-session"
+        _ = try await client.upload(epubURL: epub)
+
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "Authorization"),
+            "Bearer signed-session"
+        )
+        XCTAssertNil(request.value(forHTTPHeaderField: "x-nativread-user-id"))
+    }
+
+    func testAppleIdentityTokenIsExchangedForBackendSession() async throws {
+        StubURLProtocol.enqueue(
+            200, #"{"token":"backend-session","expiresIn":2592000}"#
+        )
+
+        let response = try await makeClient()
+            .exchangeAppleIdentityToken("apple-id-token")
+
+        XCTAssertEqual(response.token, "backend-session")
+        XCTAssertEqual(response.expiresIn, 2_592_000)
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        XCTAssertEqual(request.url?.path, "/api/auth/apple")
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "Authorization"),
+            "Bearer apple-id-token"
+        )
+    }
+
+    func testDeleteAccountUsesAuthenticatedDeleteEndpoint() async throws {
+        StubURLProtocol.enqueue(204, "")
+        var client = makeClient()
+        client.userID = nil
+        client.bearerToken = "signed-session"
+
+        try await client.deleteAccount(
+            appleIdentityToken: "fresh-apple-token",
+            appleAuthorizationCode: "one-time-code"
+        )
+
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        XCTAssertEqual(request.url?.path, "/api/account")
+        XCTAssertEqual(request.httpMethod, "DELETE")
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "Authorization"),
+            "Bearer signed-session"
+        )
+        XCTAssertNil(request.value(forHTTPHeaderField: "x-nativread-user-id"))
+        let body = try XCTUnwrap(request.httpBodyStreamData)
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: body) as? [String: String]
+        )
+        XCTAssertEqual(json["appleIdentityToken"], "fresh-apple-token")
+        XCTAssertEqual(json["appleAuthorizationCode"], "one-time-code")
+    }
+
+    func testCreditsDecodeAndPlaceholderPurchaseSendsTransaction() async throws {
+        StubURLProtocol.enqueue(
+            200,
+            #"{"account":{"balance":248,"purchasedCredits":250,"reservedCredits":0,"spentCredits":2},"products":[{"productId":"com.karsai.nativread.credits.250","credits":250}]}"#
+        )
+        let credits = try await makeClient().credits()
+        XCTAssertEqual(credits.account.balance, 248)
+        XCTAssertEqual(credits.products.first?.credits, 250)
+        XCTAssertEqual(StubURLProtocol.lastRequest?.url?.path, "/api/credits")
+
+        StubURLProtocol.enqueue(
+            200,
+            #"{"ok":true,"applied":true,"account":{"balance":250,"purchasedCredits":250,"reservedCredits":0,"spentCredits":0}}"#
+        )
+        let purchase = try await makeClient().grantPlaceholderCredits(
+            transactionID: "test-tx", productID: "com.karsai.nativread.credits.250"
+        )
+        XCTAssertTrue(purchase.applied)
+        XCTAssertEqual(purchase.account.balance, 250)
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        XCTAssertEqual(request.url?.path, "/api/credits/purchase")
+        let body = try XCTUnwrap(request.httpBodyStreamData)
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: body) as? [String: String]
+        )
+        XCTAssertEqual(json["transactionId"], "test-tx")
+        XCTAssertEqual(
+            json["productId"], "com.karsai.nativread.credits.250"
+        )
+    }
+
+    func testDownloadConsumesServerCopy() async throws {
+        StubURLProtocol.enqueue(200, "translated epub")
+
+        let data = try await makeClient().downloadResult(jobID: "job-9")
+
+        XCTAssertEqual(String(decoding: data, as: UTF8.self), "translated epub")
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        let components = try XCTUnwrap(
+            URLComponents(url: request.url!, resolvingAgainstBaseURL: false)
+        )
+        let query = Dictionary(
+            uniqueKeysWithValues: (components.queryItems ?? []).map {
+                ($0.name, $0.value)
+            }
+        )
+        XCTAssertEqual(query["id"]!, "job-9")
+        XCTAssertEqual(query["download"]!, "1")
+        XCTAssertEqual(query["consume"]!, "1")
     }
 
     // MARK: - waitUntilDone polling
@@ -81,7 +212,11 @@ final class TranslationBackendClientTests: XCTestCase {
         // HTTP 200 but {"ok":false} must fail fast, not silently proceed to poll.
         StubURLProtocol.enqueue(200, #"{"ok":false}"#)
         do {
-            try await makeClient().start(jobID: "j", sample: false)
+            try await makeClient().start(
+                jobID: "j",
+                sample: false,
+                termsAcceptance: makeTermsAcceptance()
+            )
             XCTFail("expected .server rejection")
         } catch let error as TranslationBackendClient.ClientError {
             guard case .server = error else {
@@ -94,7 +229,12 @@ final class TranslationBackendClientTests: XCTestCase {
 
     func testStartSucceedsWhenBackendReturnsOK() async throws {
         StubURLProtocol.enqueue(200, #"{"ok":true}"#)
-        try await makeClient().start(jobID: "j", sample: false, targetLanguage: .de)
+        try await makeClient().start(
+            jobID: "j",
+            sample: false,
+            targetLanguage: .de,
+            termsAcceptance: makeTermsAcceptance()
+        )
 
         let request = try XCTUnwrap(StubURLProtocol.lastRequest)
         let body = try XCTUnwrap(request.httpBodyStreamData)
@@ -104,6 +244,35 @@ final class TranslationBackendClientTests: XCTestCase {
         XCTAssertEqual(json["id"] as? String, "j")
         XCTAssertEqual(json["sample"] as? Bool, false)
         XCTAssertEqual(json["targetLanguage"] as? String, "de")
+        XCTAssertEqual(json["rightsAttested"] as? Bool, true)
+        XCTAssertEqual(json["termsAccepted"] as? Bool, true)
+        XCTAssertEqual(
+            json["termsVersion"] as? String,
+            TranslationTerms.currentVersion
+        )
+        let acceptance = try XCTUnwrap(
+            json["termsAcceptance"] as? [String: Any]
+        )
+        XCTAssertEqual(
+            acceptance["id"] as? String,
+            "018f6f4d-90a7-7d8f-8f9a-1d4cf6b9a021"
+        )
+        XCTAssertEqual(acceptance["locale"] as? String, "hu-HU")
+        XCTAssertEqual(acceptance["method"] as? String, "ios-clickwrap")
+        XCTAssertEqual(
+            acceptance["statementVersion"] as? String,
+            TranslationTerms.rightsAttestationVersion
+        )
+        XCTAssertNotNil(acceptance["acceptedAt"] as? String)
+        XCTAssertEqual(json["aiProcessingConsent"] as? Bool, true)
+        XCTAssertEqual(
+            json["aiConsentVersion"] as? String,
+            TranslationPrivacy.currentAIConsentVersion
+        )
+        XCTAssertEqual(
+            json["aiProvider"] as? String,
+            TranslationPrivacy.aiProviderName
+        )
     }
 
     func testWaitUntilDoneReturnsOnDone() async throws {

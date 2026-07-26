@@ -1,96 +1,143 @@
-# NativBook Terms of Service
+# NativRead Terms of Use
 
-**DRAFT — pending legal review. Not yet published.**
-Effective date: [[EFFECTIVE_DATE]] · Version 0.1
+**PRE-RELEASE DRAFT — legal review and completed operator details are required.**
 
-These terms govern your use of the NativBook app and its AI translation
-service, operated by **[[OPERATOR_NAME]]** ("we"), [[OPERATOR_ADDRESS]],
-contact [[CONTACT_EMAIL]].
+Effective 22 July 2026 · Version 1.0
+Archived web version: https://nativread.com/terms/2026-07-22/
+
+These terms govern the NativRead app and its optional AI translation service,
+operated by **[[OPERATOR_NAME]]**, registered/home address
+**[[OPERATOR_ADDRESS]]**, contact **[[CONTACT_EMAIL]]** ("NativRead", "we").
+
+Before a book is uploaded for translation, the user actively accepts the
+current version using an unchecked checkbox. Acceptance is recorded against
+the account with the book fingerprint, time, version, and acceptance ID. A
+material update requires new acceptance.
 
 ## 1. The service
 
-- **The reader is free** and works offline: import and read your own
-  DRM-free EPUB, PDF, TXT, and AZW3 files.
-- **The translation service** translates a book you upload into a supported
-  language using AI. The first content chapter of a book is free to try
-  (once per book per account); translating the whole book is a one-time
-  in-app purchase for that book and language.
+1.1 The offline reader lets you import and read your own supported, DRM-free
+files.
 
-## 2. Your books, your responsibility
+1.2 The translation service uses artificial intelligence to translate an EPUB
+you upload into a supported language and supplies the result as a separate
+book.
 
-- You may only upload books **you lawfully own** (bought, or otherwise
-  lawfully acquired, DRM-free) and only **for your own personal use**. You
-  confirm this for every upload (the ownership declaration).
-- Translations are made **for you alone**. You must not distribute, publish,
-  sell, or share a translated book or any part of it. You may keep it on
-  your own devices and in your own personal cloud storage.
-- We do not provide, index, or help you find books, and we do not assist in
-  circumventing DRM or other technical protection.
-- You are responsible for ensuring your use of the service is lawful in your
-  country. If a rightsholder credibly objects to a specific use, we may
-  disable the related account or content (see our Takedown Policy).
+1.3 The first content chapter may be tried free once per book and account.
+Whole-book translation, when available, is an in-app purchase for the
+identified book and target language.
 
-## 3. Purchases, delivery, refunds
+## 2. Account and eligibility
 
-- Whole-book translation is a one-time in-app purchase through Apple, priced
-  by book length. The exact price is shown **before** you buy; the shown
-  price is the charged price.
-- A purchase entitles you to the translation of **that book into that
-  language** on your account.
-- **Delivery guarantee:** if a paid translation cannot be completed, we
-  retry; if it still fails, **you get a refund** — a paid book is never
-  silently abandoned.
-- **Restore:** purchases are tied to your account and the book's fingerprint.
-  If you reinstall or switch devices, uploading the same book again restores
-  your translation at no extra charge. (Apple's "Restore Purchases" does not
-  apply to these one-time purchases; the re-upload path is the restore.)
-- Apple's own refund process also remains available to you.
+2.1 The translation service is for adults aged 18 or over. The offline reader
+does not require a translation account.
 
-## 4. AI translation — what to expect
+2.2 Sign in with Apple connects translation access and any purchase to your
+account. Keep your credentials secure and notify us if you suspect
+unauthorised use.
 
-- Translations are produced by an AI system. They are clearly labeled as
-  AI-made, in the app and inside the translated file (EU AI Act Art. 50).
-- We only offer languages that have passed our literary quality validation,
-  but **machine translation is not a human translation**: occasional errors,
-  awkward phrasings, or inconsistencies can occur. This does not affect your
-  refund rights for undelivered translations (§3).
-- Some books cannot be translated because the AI provider's content rules
-  refuse the text. If that happens on the free chapter, your free try is not
-  used up; if it happens mid-way on a purchased book, §3's refund applies.
+## 3. Purchases, delivery, and refunds
 
-## 5. Acceptable use
+3.1 The exact App Store price is shown before purchase. A purchase entitles
+your account to translation of the identified book into the identified target
+language.
 
-You must not: use the service on books you do not own; share translated
-files; probe, overload, or abuse the service (rate limits and spend limits
-are enforced); attempt to access other users' data; or use the service for
-any unlawful purpose. We may suspend accounts that do.
+3.2 If a paid translation cannot be completed, we retry or restore the
+reserved translation credit. Apple’s refund process and every mandatory
+consumer remedy remain available.
 
-## 6. Account and data
+3.3 After reinstalling or changing devices, uploading the same book through
+the same account may restore the existing entitlement while the account and
+lawfully retained entitlement record remain available.
 
-You can delete your account in the app at any time; deletion removes stored
-files and entitlement records (see the Privacy Policy at [[POLICY_URL]]).
-Since entitlements are account-bound, deleting your account also ends your
-ability to restore past purchases.
+## 4. AI translation
 
-## 7. Liability
+4.1 Artificial intelligence, not a human literary translator, creates the
+translation. It may contain errors, inaccuracies, inconsistencies, or unusual
+wording. Do not rely on it as professional, legal, medical, or safety-critical
+advice.
 
-Nothing in these terms excludes liability that cannot be excluded by law
-(including our liability for intentional breach or harm to life, limb, or
-health). Otherwise, our liability is limited to the amount you paid for the
-affected purchase. The service is provided "as is" to the extent the law
-allows; we do not warrant uninterrupted availability.
+4.2 Before book text is sent to an external AI provider, we request separate,
+provider-specific permission. That permission is not bundled into acceptance
+of these Terms. Declining it does not affect the offline reader.
 
-## 8. Changes and termination
+4.3 The AI provider’s rules may refuse some content. A free preview is not
+treated as consumed after that kind of technical or provider refusal.
 
-We may update these terms; material changes will be announced in the app
-before they take effect. If you do not accept a change, stop using the
-service and delete your account. We may discontinue the translation service
-with reasonable notice; §3's delivery guarantee applies to any purchase made
-before discontinuation.
+## 5. Data processing
 
-## 9. Governing law
+5.1 A book stays on your device until you start a translation. The purposes,
+legal bases, providers, retention, deletion, and your rights are detailed in
+the Privacy Policy: https://nativread.com/privacy/.
 
-Hungarian law governs these terms; mandatory consumer protections of your
-country of residence remain unaffected. Disputes: the courts competent under
-Hungarian law; EU consumers may also use the ODR platform
-(ec.europa.eu/consumers/odr).
+5.2 You may withdraw permission for future AI processing. Withdrawal does not
+make processing already completed at your request unlawful.
+
+## 6. Acceptable use
+
+6.1 You must not use the service unlawfully, infringe another person’s rights,
+probe or overload the service, bypass a security control, or try to access
+another user’s data.
+
+6.2 We apply rate, size, concurrency, and spend limits. Serious or repeated
+abuse may lead to account restriction or termination.
+
+## 7. User content and copyright responsibility
+
+7.1 You may upload only a DRM-free book or document that you lawfully acquired
+and for which you have the permission or another lawful basis required to
+create the requested translation. Buying or possessing a copy does not
+necessarily grant translation rights.
+
+7.2 You expressly represent that uploading and processing the book, and your
+use of the result, do not infringe another person’s copyright or other
+intellectual-property right.
+
+7.3 You are responsible for checking the legal basis for your use. NativRead
+does not conduct advance or retrospective legal review of uploaded books.
+Technical acceptance of a file does not approve or certify its lawfulness.
+
+7.4 The translation is supplied only for your personal, non-commercial
+reading. Except for copies reasonably necessary on devices or private storage
+you control, you must not reproduce, publish, sell, distribute, make
+available, or share it or any extract with another person.
+
+7.5 To the extent permitted by applicable law, if your intentional or
+negligent breach of clauses 7.1–7.4 causes a substantiated third-party claim,
+you are responsible for the documented direct loss reasonably resulting from
+that breach. This does not remove a mandatory consumer right or transfer to
+you any legal duty that the law places on NativRead.
+
+7.6 After a credible rightsholder notice, we may suspend the disputed
+processing while we investigate. Repeated or serious infringement may lead to
+account restriction or termination. Notices:
+https://nativread.com/rightsholders/.
+
+## 8. Liability
+
+8.1 We do not promise uninterrupted availability. The service may pause for
+planned or necessary maintenance.
+
+8.2 Nothing in these terms excludes or limits liability, guarantees, remedies,
+or consumer rights that cannot lawfully be excluded or limited.
+
+## 9. Changes and termination
+
+9.1 A material update requires renewed, active acceptance before a new
+translation. An empty or preselected checkbox is never treated as acceptance.
+
+9.2 You may stop using the translation service and delete your account in the
+app. We may discontinue the service with reasonable notice, without affecting
+mandatory rights attached to completed purchases.
+
+## 10. Governing law and remedies
+
+10.1 Hungarian law applies without reducing mandatory consumer protection in
+your country of residence.
+
+10.2 You may use the courts and any competent consumer alternative-dispute-
+resolution forum available to you. Complaints and support:
+**[[CONTACT_EMAIL]]**.
+
+Apple’s Standard EULA separately governs the licence to use the app unless a
+custom EULA is supplied through the App Store.

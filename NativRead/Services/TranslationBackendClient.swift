@@ -1,4 +1,7 @@
+import AuthenticationServices
 import Foundation
+import Observation
+import Security
 
 struct TranslationBackendClient: Sendable {
     enum ClientError: LocalizedError, Equatable {
@@ -28,15 +31,53 @@ struct TranslationBackendClient: Sendable {
     }
 
     struct UploadResponse: Decodable, Equatable, Sendable {
+        struct Quote: Decodable, Equatable, Sendable {
+            let version: String
+            let sourceCharacters: Int
+            let requiredCredits: Int
+            let charactersPerCredit: Int
+        }
+
         let id: String
         let title: String?
         let spineItemCount: Int?
         let provider: String?
         let alreadyTranslated: Bool?
+        let sourceHash: String?
+        let quote: Quote?
     }
 
     struct StartResponse: Decodable, Equatable, Sendable {
         let ok: Bool
+    }
+
+    struct SessionResponse: Decodable, Equatable, Sendable {
+        let token: String
+        let expiresIn: Int
+    }
+
+    struct CreditAccount: Decodable, Equatable, Sendable {
+        let balance: Int
+        let purchasedCredits: Int
+        let reservedCredits: Int
+        let spentCredits: Int
+    }
+
+    struct CreditProduct: Decodable, Equatable, Sendable, Identifiable {
+        var id: String { productId }
+        let productId: String
+        let credits: Int
+    }
+
+    struct CreditsResponse: Decodable, Equatable, Sendable {
+        let account: CreditAccount
+        let products: [CreditProduct]
+    }
+
+    struct CreditPurchaseResponse: Decodable, Equatable, Sendable {
+        let ok: Bool
+        let applied: Bool
+        let account: CreditAccount
     }
 
     struct StatusResponse: Decodable, Equatable, Sendable {
@@ -54,33 +95,83 @@ struct TranslationBackendClient: Sendable {
 
     var baseURL: URL
     var userID: String? = nil
+    var bearerToken: String? = nil
     var session: URLSession = .shared
 
+    func exchangeAppleIdentityToken(_ identityToken: String) async throws -> SessionResponse {
+        var request = makeRequest(path: "api/auth/apple")
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(identityToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await session.data(for: request)
+        return try decode(SessionResponse.self, from: data, response: response)
+    }
+
+    /// Permanently deletes the authenticated backend account and its
+    /// associated data. The backend owns Sign in with Apple token revocation
+    /// because the client never receives or stores Apple's server refresh
+    /// token.
+    func deleteAccount(
+        appleIdentityToken: String,
+        appleAuthorizationCode: String
+    ) async throws {
+        var request = makeRequest(path: "api/account")
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: [
+                "appleIdentityToken": appleIdentityToken,
+                "appleAuthorizationCode": appleAuthorizationCode
+            ]
+        )
+        let (data, response) = try await session.data(for: request)
+        try validate(response: response, data: data)
+    }
+
     func upload(epubURL: URL) async throws -> UploadResponse {
-        let boundary = "nativread-\(UUID().uuidString)"
         var request = makeRequest(path: "api/upload")
         request.httpMethod = "POST"
-        request.setValue(
-            "multipart/form-data; boundary=\(boundary)",
-            forHTTPHeaderField: "Content-Type"
-        )
+        request.setValue("application/epub+zip", forHTTPHeaderField: "Content-Type")
 
         let fileData = try Data(contentsOf: epubURL)
-        let body = multipartBody(
-            fieldName: "epub",
-            fileName: epubURL.lastPathComponent,
-            mimeType: "application/epub+zip",
-            fileData: fileData,
-            boundary: boundary
-        )
-        let (data, response) = try await session.upload(for: request, from: body)
+        let (data, response) = try await session.upload(for: request, from: fileData)
         return try decode(UploadResponse.self, from: data, response: response)
+    }
+
+    func credits() async throws -> CreditsResponse {
+        let (data, response) = try await session.data(
+            for: makeRequest(path: "api/credits")
+        )
+        return try decode(CreditsResponse.self, from: data, response: response)
+    }
+
+    /// Debug/LAN placeholder only. Production keeps unsigned grants disabled
+    /// and will replace this call with verified StoreKit transaction data.
+    func grantPlaceholderCredits(
+        transactionID: String,
+        productID: String
+    ) async throws -> CreditPurchaseResponse {
+        var request = makeRequest(path: "api/credits/purchase")
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: [
+                "transactionId": transactionID,
+                "productId": productID
+            ]
+        )
+        let (data, response) = try await session.data(for: request)
+        return try decode(
+            CreditPurchaseResponse.self, from: data, response: response
+        )
     }
 
     func start(
         jobID: String,
         sample: Bool,
-        targetLanguage: TranslationTargetLanguage = .hu
+        targetLanguage: TranslationTargetLanguage = .hu,
+        termsAcceptance: TranslationTermsAcceptance
     ) async throws {
         var request = makeRequest(path: "api/translate")
         request.httpMethod = "POST"
@@ -89,7 +180,26 @@ struct TranslationBackendClient: Sendable {
             withJSONObject: [
                 "id": jobID,
                 "sample": sample,
-                "targetLanguage": targetLanguage.rawValue
+                "targetLanguage": targetLanguage.rawValue,
+                // Keep the legacy field until the backend contract migrates;
+                // the accepted Terms contain the same book-rights rule.
+                "rightsAttested": true,
+                "termsAccepted": true,
+                "termsVersion": TranslationTerms.currentVersion,
+                "termsAcceptance": [
+                    "id": termsAcceptance.id.uuidString.lowercased(),
+                    "acceptedAt": ISO8601DateFormatter().string(
+                        from: termsAcceptance.acceptedAt
+                    ),
+                    "locale": termsAcceptance.localeIdentifier,
+                    "method": "ios-clickwrap",
+                    "statementVersion":
+                        TranslationTerms.rightsAttestationVersion
+                ],
+                "aiProcessingConsent": true,
+                "aiConsentVersion":
+                    TranslationPrivacy.currentAIConsentVersion,
+                "aiProvider": TranslationPrivacy.aiProviderName
             ]
         )
         let (data, response) = try await session.data(for: request)
@@ -157,7 +267,11 @@ struct TranslationBackendClient: Sendable {
         )
         components?.queryItems = [
             URLQueryItem(name: "id", value: jobID),
-            URLQueryItem(name: "download", value: "1")
+            URLQueryItem(name: "download", value: "1"),
+            // The server buffers the finished EPUB into this response, then
+            // removes both the uploaded source and its translated copy. The
+            // imported book lives only in the user's local NativRead library.
+            URLQueryItem(name: "consume", value: "1")
         ]
         guard let url = components?.url else {
             throw ClientError.invalidBackendURL
@@ -181,7 +295,11 @@ struct TranslationBackendClient: Sendable {
 
     private func makeRequest(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        if let userID, !userID.isEmpty {
+        if let bearerToken, !bearerToken.isEmpty {
+            request.setValue(
+                "Bearer \(bearerToken)", forHTTPHeaderField: "Authorization"
+            )
+        } else if let userID, !userID.isEmpty {
             request.setValue(userID, forHTTPHeaderField: "x-nativread-user-id")
         }
         return request
@@ -212,31 +330,183 @@ struct TranslationBackendClient: Sendable {
         }
     }
 
-    private func multipartBody(
-        fieldName: String,
-        fileName: String,
-        mimeType: String,
-        fileData: Data,
-        boundary: String
-    ) -> Data {
-        var body = Data()
-        body.append("--\(boundary)\r\n")
-        body.append(
-            "Content-Disposition: form-data; name=\"\(fieldName)\"; filename=\"\(fileName)\"\r\n"
-        )
-        body.append("Content-Type: \(mimeType)\r\n\r\n")
-        body.append(fileData)
-        body.append("\r\n--\(boundary)--\r\n")
-        return body
-    }
-
     private struct BackendError: Decodable {
         let error: String
     }
 }
 
-private extension Data {
-    mutating func append(_ string: String) {
-        append(Data(string.utf8))
+@MainActor
+@Observable
+final class TranslationAuthStore {
+    private(set) var sessionToken: String?
+    private(set) var isSigningIn = false
+    private(set) var isDeletingAccount = false
+    private(set) var errorMessage: String?
+    private(set) var accountDeletionErrorMessage: String?
+
+    private let keychain = TranslationSessionKeychain()
+
+    init(initialSessionToken: String? = nil) {
+        if let initialSessionToken, !initialSessionToken.isEmpty {
+            sessionToken = initialSessionToken
+            return
+        }
+        guard let record = keychain.load(), record.expiresAt > .now else {
+            keychain.delete()
+            return
+        }
+        sessionToken = record.token
+    }
+
+    var isSignedIn: Bool { sessionToken != nil }
+
+    func completeAppleSignIn(
+        _ result: Result<ASAuthorization, Error>,
+        backendURL: URL
+    ) async {
+        isSigningIn = true
+        errorMessage = nil
+        defer { isSigningIn = false }
+
+        do {
+            let authorization = try result.get()
+            guard let credential = authorization.credential
+                    as? ASAuthorizationAppleIDCredential,
+                  let identityData = credential.identityToken,
+                  let identityToken = String(
+                    data: identityData, encoding: .utf8
+                  )
+            else {
+                throw TranslationBackendClient.ClientError.invalidResponse
+            }
+
+            let response = try await TranslationBackendClient(baseURL: backendURL)
+                .exchangeAppleIdentityToken(identityToken)
+            let record = TranslationSessionRecord(
+                token: response.token,
+                expiresAt: .now.addingTimeInterval(
+                    TimeInterval(response.expiresIn)
+                )
+            )
+            try keychain.save(record)
+            sessionToken = response.token
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func signOut() {
+        keychain.delete()
+        sessionToken = nil
+        errorMessage = nil
+        accountDeletionErrorMessage = nil
+    }
+
+    /// Returns only after the backend confirms permanent deletion. A network
+    /// or server failure keeps the local session so the reader can retry and
+    /// is never falsely told that the account was erased.
+    func deleteAccount(
+        _ result: Result<ASAuthorization, Error>,
+        backendURL: URL
+    ) async -> Bool {
+        guard let sessionToken else {
+            accountDeletionErrorMessage = "Sign in again before deleting your account."
+            return false
+        }
+
+        isDeletingAccount = true
+        accountDeletionErrorMessage = nil
+        defer { isDeletingAccount = false }
+
+        do {
+            let authorization = try result.get()
+            guard let credential = authorization.credential
+                    as? ASAuthorizationAppleIDCredential,
+                  let identityData = credential.identityToken,
+                  let authorizationCodeData = credential.authorizationCode,
+                  let identityToken = String(
+                    data: identityData, encoding: .utf8
+                  ),
+                  let authorizationCode = String(
+                    data: authorizationCodeData, encoding: .utf8
+                  )
+            else {
+                throw TranslationBackendClient.ClientError.invalidResponse
+            }
+            try await TranslationBackendClient(
+                baseURL: backendURL,
+                bearerToken: sessionToken
+            ).deleteAccount(
+                appleIdentityToken: identityToken,
+                appleAuthorizationCode: authorizationCode
+            )
+            signOut()
+            return true
+        } catch {
+            accountDeletionErrorMessage = error.localizedDescription
+            return false
+        }
+    }
+}
+
+private struct TranslationSessionRecord: Codable {
+    let token: String
+    let expiresAt: Date
+}
+
+private struct TranslationSessionKeychain {
+    private let service = "com.karsai.nativread.translation-session"
+    private let account = "backend"
+
+    func load() -> TranslationSessionRecord? {
+        var query = baseQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var item: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+              let data = item as? Data
+        else { return nil }
+        return try? JSONDecoder().decode(TranslationSessionRecord.self, from: data)
+    }
+
+    func save(_ record: TranslationSessionRecord) throws {
+        let data = try JSONEncoder().encode(record)
+        let attributes = [kSecValueData as String: data]
+        let status = SecItemUpdate(
+            baseQuery as CFDictionary, attributes as CFDictionary
+        )
+        if status == errSecItemNotFound {
+            var query = baseQuery
+            query[kSecValueData as String] = data
+            query[kSecAttrAccessible as String] =
+                kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            let addStatus = SecItemAdd(query as CFDictionary, nil)
+            guard addStatus == errSecSuccess else {
+                throw KeychainError(status: addStatus)
+            }
+        } else if status != errSecSuccess {
+            throw KeychainError(status: status)
+        }
+    }
+
+    func delete() {
+        SecItemDelete(baseQuery as CFDictionary)
+    }
+
+    private var baseQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+    }
+
+    private struct KeychainError: LocalizedError {
+        let status: OSStatus
+
+        var errorDescription: String? {
+            SecCopyErrorMessageString(status, nil) as String?
+                ?? "Could not store the secure login session."
+        }
     }
 }

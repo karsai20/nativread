@@ -4,59 +4,78 @@
 app ships. Task mapping: T23 (attestation), T16 (AI disclosure), T25
 (colophon + marker), eng D4 (refusal), eng D11 (restore guarantee). All
 strings ride the editorial voice: plain, large, reassuring — no legalese on
-screen; the long documents live at [[TERMS_URL]] / [[POLICY_URL]].
+screen. The privacy policy is also available at
+https://nativread.com/privacy/.
 
-## 1. Ownership attestation (T23 — shown at EVERY upload, one checkbox + confirm)
-
-HU:
-> **A sajátod ez a könyv?**
-> A fordítást csak a saját példányodból, kizárólag a magad számára
-> készítjük el.
->
-> ☐ Kijelentem, hogy ez a könyv jogszerűen az enyém, és a fordítást csak
-> személyes használatra kérem.
->
-> [Mégse] [Fordítás indítása]
-
-EN:
-> **Is this book yours?**
-> We translate only your own copy, only for you.
->
-> ☐ I confirm this book is lawfully mine and I request the translation for
-> my personal use only.
->
-> [Cancel] [Start translation]
-
-## 2. AI-provider disclosure (T16 — shown once, before the first translation)
+## 1. Terms acceptance (shown once per book and terms version, before upload)
 
 HU:
-> **Mielőtt elindulna az első fordítás**
-> A fordítást mesterséges intelligencia készíti ([[AI_PROVIDER]]
-> szolgáltatásával). A könyved szövege csak a fordítás idejére kerül
-> feldolgozásra, a modell tanítására nem használják, és a szerverünkön nem
-> marad meg. Részletek: Adatkezelési tájékoztató.
+> **Saját könyv, saját jogosultság**
 >
-> [Tájékoztató megnyitása] [Értem, kezdjük]
+> ☐ Kijelentem, hogy a könyvet jogszerűen szereztem be, és rendelkezem a
+> fordításhoz szükséges engedéllyel vagy más jogalappal. A fordítást kizárólag
+> saját, személyes, nem kereskedelmi olvasásra használom; nem teszem közzé,
+> nem terjesztem, nem adom el és nem osztom meg. Elfogadom a Felhasználási
+> feltételeket (2026. július 22.).
+>
+> [Felhasználási feltételek elolvasása]
 
 EN:
-> **Before your first translation**
-> Translations are made by AI (using [[AI_PROVIDER]]). Your book's text is
-> processed only for the duration of the translation, is not used to train
-> the model, and is not kept on our server. Details: Privacy Policy.
+> **Your book, your rights**
 >
-> [Open policy] [Got it, let's go]
+> ☐ I confirm that I lawfully acquired this book and have the necessary
+> permission or another lawful basis to translate it. I will use the
+> translation only for my own personal, non-commercial reading and will not
+> publish, distribute, sell, or share it. I accept the Terms of Use
+> (22 July 2026).
+>
+> [Read the Terms of Use]
+
+The box is empty by default for a new book/version. Acceptance is stored
+locally and server-side with the authenticated account, book fingerprint,
+client/server timestamps, acceptance ID, method, locale, attestation version,
+terms version, and immutable terms URL. A material update requires renewed
+acceptance before the next translation. AI-provider permission remains a
+separate affirmative action and is never bundled into this checkbox.
+
+## 2. AI-provider permission (T16 — shown before third-party processing)
+
+HU:
+> **Mielőtt fordítunk**
+> Az engedélyed szükséges, mielőtt ezt a könyvet AI-fordítás céljából
+> továbbítjuk. A könyv szövegét a Google Gemini API, egy külső AI-szolgáltatás
+> dolgozza fel. A fizetős API a szöveget nem használja modellek fejlesztésére.
+> A NativRead szerverpéldányai a feldolgozás és kézbesítés után, megszakadt
+> kézbesítésnél legfeljebb 30 napon belül törlődnek. A szolgáltatást csak
+> 18 éven felüliek használhatják.
+>
+> [Adatkezelési tájékoztató elolvasása] [AI-fordítás engedélyezése] [Most nem]
+
+EN:
+> **Before we translate**
+> Your permission is needed before this book is shared for AI translation.
+> The book text is processed by Google Gemini API, a third-party AI service.
+> Its paid API does not use the text to improve models. NativRead's server
+> copies are deleted after processing and delivery, or within 30 days if
+> delivery is interrupted. This service is for adults aged 18 or over.
+>
+> [Read the Privacy Policy] [Allow AI translation] [Not now]
+
+Permission is versioned separately from Terms acceptance. A provider or
+material processing change requires renewed permission. The backend rejects
+missing, stale, or provider-mismatched permission.
 
 ## 3. Colophon page (T25 — appended to every translated EPUB; the human-readable Art 50 companion)
 
 HU:
-> Ezt a könyvet mesterséges intelligencia fordította a NativBook
+> Ezt a könyvet mesterséges intelligencia fordította a NativRead
 > alkalmazással, a tulajdonos saját példányából, személyes használatra.
-> AI-fordítás · NativBook · [[EFFECTIVE_DATE_YEAR]]
+> AI-fordítás · NativRead · [[EFFECTIVE_DATE_YEAR]]
 
 EN:
-> This book was translated by artificial intelligence with the NativBook
+> This book was translated by artificial intelligence with the NativRead
 > app, from the owner's own copy, for personal use.
-> AI translation · NativBook · [[EFFECTIVE_DATE_YEAR]]
+> AI translation · NativRead · [[EFFECTIVE_DATE_YEAR]]
 
 (The machine-readable OPF marker spec lives in blueprint §5 / task E1 — the
 colophon is its human-readable pair and must never ship without it.)
@@ -99,12 +118,12 @@ EN:
 ## 7. DRM expectation copy (onboarding, §1 DRM-reality — honest, no acquisition pointers)
 
 HU:
-> A NativBook a saját, DRM-mentes könyveiddel működik (EPUB, PDF, TXT, AZW3).
+> A NativRead a saját, DRM-mentes könyveiddel működik (EPUB, PDF, TXT, AZW3).
 > A másolásvédett (DRM-es) könyveket a védelem miatt nem tudjuk megnyitni
 > vagy lefordítani.
 
 EN:
-> NativBook works with your own DRM-free books (EPUB, PDF, TXT, AZW3).
+> NativRead works with your own DRM-free books (EPUB, PDF, TXT, AZW3).
 > Copy-protected (DRM) books can't be opened or translated because of their
 > protection.
 

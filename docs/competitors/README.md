@@ -1,7 +1,7 @@
 # Competitor app icons
 
 App Store icon artwork (1024×) for e-reader competitors, pulled via the
-iTunes lookup API for visual comparison against Quire's own icon
+iTunes lookup API for visual comparison against NativRead's own icon
 (`../../NativRead/Resources/Assets.xcassets/AppIcon.appiconset/icon-1024.png`).
 
 | File | App | Background | Motif |
@@ -20,22 +20,22 @@ iTunes lookup API for visual comparison against Quire's own icon
 | `pocketbook.png` | PocketBook | Teal-green | Row of classic book spines |
 | `readwise-reader.png` | Readwise Reader | Dark navy | Serif "R" + page curl |
 
-## Takeaways vs. Quire
+## Takeaways vs. NativRead
 
 - **Open-book silhouette is the crowded default** — 8 of 13 use it
-  (Apple, Yomu, Readest, ReadEra, FBReader, eBoox, Libby, + Quire).
+  (Apple, Yomu, Readest, ReadEra, FBReader, eBoox, Libby, + NativRead).
   The glyph alone does not differentiate.
 - **Readest is the closest collision**: open book + parchment pages +
-  faint text lines + a hanging ribbon — almost exactly Quire's recipe,
+  faint text lines + a hanging ribbon — almost exactly NativRead's recipe,
   just on white instead of dark pine-green.
 - **ReadEra & FBReader** also pair an open book with text lines and a
-  ribbon. Quire shares all three elements with this whole cluster.
+  ribbon. NativRead shares all three elements with this whole cluster.
 - **Background colour is the real distinguisher.** The strongest icons
   here lean on one saturated field (Kobo red, KyBook red, Apple orange,
-  ReadEra blue). Quire's dark pine-green is distinctive in the set —
+  ReadEra blue). NativRead's dark pine-green is distinctive in the set —
   only PocketBook (teal-green) and Libby (maroon/teal) are nearby.
 - **Lettermarks read cleanest at small sizes** (KyBook "k", Readwise
-  "R", Kobo wordmark). Quire's detailed parchment/ribbon scene risks
+  "R", Kobo wordmark). NativRead's detailed parchment/ribbon scene risks
   muddiness in the home-screen / Spotlight small renders.
 
 Source: `https://itunes.apple.com/lookup?id=<appId>&country=us` →

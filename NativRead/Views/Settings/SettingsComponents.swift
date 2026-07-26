@@ -9,7 +9,7 @@ import SwiftUI
 
 extension View {
     /// Wraps a stack of rows in one surface with a hairline border, echoing the
-    /// StatsView streak card. Clips to the card radius so a selected row's accent
+    /// library cards. Clips to the card radius so a selected row's accent
     /// wash respects the rounded corners instead of bleeding past them.
     func settingsGroupedCard(palette: BrandPalette) -> some View {
         self

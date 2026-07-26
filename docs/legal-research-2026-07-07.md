@@ -32,7 +32,7 @@ The accepted-risk fact pattern (server temporarily holds the user's book and
 the translation) sits between two CJEU poles:
 
 ```
-VCAST (C-265/16)                      NativBook                 Austro-Mechana (C-433/20)
+VCAST (C-265/16)                      NativRead                 Austro-Mechana (C-433/20)
 service SOURCED the content ◄──── user supplies their own ────► purely passive cloud
 + actively made the copies          lawful copy; service            storage of user's
 = private-copy exception            actively TRANSFORMS it          own uploads
@@ -46,7 +46,7 @@ service SOURCED the content ◄──── user supplies their own ────
   itself.
 - *Austro-Mechana*: private copying **does** extend to cloud storage where the
   provider is passive.
-- NativBook is neither: the user brings their own lawfully acquired file
+- NativRead is neither: the user brings their own lawfully acquired file
   (unlike VCAST), but the service actively processes it (unlike passive
   storage). No CJEU case is on all fours. Counsel's read should say which pole
   the "active transformation of user-supplied content, ephemeral, never
@@ -76,7 +76,7 @@ Immersive Translate, eBook-translator apps). Why that is plausible:
    places with deep pockets or mass distribution.
 4. **Liability shifted to the user.** The services universally use ownership
    attestations, framing themselves as user-directed tools (the same posture
-   NativBook takes, with a stronger version: ephemeral server + no sharing).
+   NativRead takes, with a stronger version: ephemeral server + no sharing).
 5. **Jurisdictional distance.** Several are US-based (fair-use colored) or
    China-based browser extensions — hard or unattractive targets in the EU.
 

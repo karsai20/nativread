@@ -70,8 +70,12 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>NativRead connects to your private translator backend on your local network.</string>
+	<key>NativReadAIProviderName</key>
+	<string>Google Gemini API</string>
 	<key>NativReadDefaultTranslationBackendURL</key>
 	<string></string>
+	<key>NativReadPrivacyPolicyURL</key>
+	<string>https://nativread.com/privacy/</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>CrimsonPro-VariableFont_wght.ttf</string>
@@ -89,6 +93,8 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>

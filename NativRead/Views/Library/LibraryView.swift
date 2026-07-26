@@ -5,17 +5,17 @@ import UniformTypeIdentifiers
 struct LibraryView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settingsStore
-    @Environment(StatsStore.self) private var statsStore
-    @Environment(VocabularyStore.self) private var vocabularyStore
     @Environment(TranslationStore.self) private var translationStore
+    @Environment(TranslationAuthStore.self) private var translationAuthStore
     @Environment(LocalizationStore.self) private var localizationStore
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceTransparency)
+    private var reduceTransparency
 
     @State private var isImporterPresented = false
     @State private var openBook: Book?
     @State private var importError: String?
-    @State private var isStatsPresented = false
-    @State private var isVocabularyPresented = false
     @State private var isSettingsPresented = false
     @State private var isImporting = false
     @State private var isTranslationPickerPresented = false
@@ -55,9 +55,11 @@ struct LibraryView: View {
                 shelf
             }
 
-            bottomActionBar
-                .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, Spacing.md)
+            if !library.books.isEmpty {
+                bottomActionBar
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.md)
+            }
 
             if isImporting {
                 LoadingOverlay(palette: palette, message: "Importing…")
@@ -93,7 +95,6 @@ struct LibraryView: View {
                     book: book,
                     library: library,
                     settingsStore: settingsStore,
-                    statsStore: statsStore,
                     initialSystemDark: colorScheme == .dark
                 )
             } else {
@@ -101,20 +102,9 @@ struct LibraryView: View {
                     book: book,
                     library: library,
                     settingsStore: settingsStore,
-                    statsStore: statsStore,
                     initialSystemDark: colorScheme == .dark
                 )
             }
-        }
-        .sheet(isPresented: $isStatsPresented) {
-            StatsView()
-                .environment(statsStore)
-                .environment(settingsStore)
-        }
-        .sheet(isPresented: $isVocabularyPresented) {
-            VocabularyView()
-                .environment(vocabularyStore)
-                .environment(settingsStore)
         }
         .sheet(item: $translationBook) { book in
             TranslationSheet(book: book)
@@ -152,6 +142,15 @@ struct LibraryView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importError ?? "")
+        }
+        .task(id: translationRecoveryID) {
+            guard scenePhase == .active else { return }
+            await TranslationRecovery.reconcilePendingJobs(
+                translations: translationStore,
+                library: library,
+                settings: settingsStore,
+                auth: translationAuthStore
+            )
         }
     }
 
@@ -391,27 +390,8 @@ struct LibraryView: View {
                 .foregroundStyle(palette.text)
             }
             Spacer()
-            HStack(spacing: Spacing.sm) {
-                statsButton
-                settingsButton
-            }
+            settingsButton
         }
-    }
-
-    private var statsButton: some View {
-        Button {
-            isStatsPresented = true
-        } label: {
-            Image(systemName: "chart.bar.xaxis")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(palette.accent)
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle().fill(palette.surface)
-                )
-        }
-        .accessibilityIdentifier("library.stats")
-        .accessibilityLabel("Reading statistics")
     }
 
     private var settingsButton: some View {
@@ -421,7 +401,10 @@ struct LibraryView: View {
             Image(systemName: "gearshape")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(palette.accent)
-                .frame(width: 40, height: 40)
+                .frame(
+                    width: Spacing.minTapTarget,
+                    height: Spacing.minTapTarget
+                )
                 .background(
                     Circle().fill(palette.surface)
                 )
@@ -444,14 +427,6 @@ struct LibraryView: View {
             .disabled(translationCandidate == nil)
 
             bottomAction(
-                title: "Vocabulary",
-                systemImage: "character.book.closed",
-                accessibilityIdentifier: "library.vocabulary"
-            ) {
-                isVocabularyPresented = true
-            }
-
-            bottomAction(
                 title: "Import",
                 systemImage: "plus",
                 accessibilityIdentifier: "library.import"
@@ -463,7 +438,10 @@ struct LibraryView: View {
         .padding(Spacing.xs)
         .background {
             Capsule()
-                .fill(palette.surface.opacity(colorScheme == .dark ? 0.94 : 0.97))
+                .fill(palette.surface.opacity(
+                    reduceTransparency
+                        ? 1 : (colorScheme == .dark ? 0.94 : 0.97)
+                ))
                 .shadow(
                     color: .black.opacity(palette.shadowOpacity),
                     radius: 18, x: 0, y: 8
@@ -473,6 +451,11 @@ struct LibraryView: View {
             Capsule()
                 .strokeBorder(palette.hairline, lineWidth: 0.8)
         }
+    }
+
+    private var translationRecoveryID: String {
+        let tokenState = translationAuthStore.sessionToken ?? "signed-out"
+        return "\(scenePhase)-\(tokenState)-\(translationStore.recoveryRevision)"
     }
 
     private func bottomAction(

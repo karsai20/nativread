@@ -3,6 +3,22 @@
 All notable changes to NativRead are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Changed
+- Before the first AI translation, NativRead now clearly names Google Gemini API, explains exactly what book data leaves the device and for how long, and asks for separate, versioned permission. Declining keeps the offline reader fully usable.
+- Settings now includes an in-app Privacy Policy and a permanent account-deletion flow. Deletion reconfirms and revokes Sign in with Apple, removes server-side translation data and entitlements, and leaves books stored on the device untouched.
+- The translation sheet now leads with the book, target language, and free first chapter. Sign in appears only after accepting the versioned, readable Terms of Use, while optional process details and developer-only whole-book controls stay collapsed.
+- First launch now detects the iPhone language and asks for confirmation directly on the animated welcome—there is no separate language screen. The user-paced three-step guide explains adding, translating, and comfortably reading a book, with large controls, landscape layouts, and Reduce Motion support.
+- Word lookup now uses the native iOS **Look Up** action exclusively. The custom Define sheet, saved vocabulary, and vocabulary exports were removed.
+- Reading streaks and statistics were removed so the app stays focused on translating and reading.
+- First launch now states the core promise — **Your books. In your language.** — and an empty shelf shows one clear Add a book action instead of duplicate import controls.
+- App chrome now scales with Dynamic Type, key controls meet the 44-point target, Reduce Motion/Reduce Transparency are respected, and reader controls expose clearer VoiceOver actions.
+
+### Fixed
+- Rotating into landscape rebuilds EPUB pagination for the new viewport while preserving the chapter position, instead of keeping portrait-width columns and drifting out of alignment.
+- Relaunching the app no longer marks an active backend translation as interrupted. NativRead reconnects to the saved backend job, downloads the finished EPUB, and imports it automatically.
+
 ## [3.4] - 2026-07-13
 
 ### Added
@@ -75,7 +91,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - Redesigned reader appearance sheet, now organized into Theme, Text, and Layout tabs for calmer, less crowded controls.
 
 ### Changed
-- The app is now **NativRead** (formerly Quire) — new name, icon, and identity throughout.
+- The app now uses the **NativRead** name, icon, and identity throughout.
 - New editorial design system: Charter serif typography and the Paper (Light) / Ink (Dark) reading themes.
 - Cleaner reading chrome and more consistent typography across the library and reader.
 

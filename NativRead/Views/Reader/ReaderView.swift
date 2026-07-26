@@ -8,14 +8,14 @@ struct ReaderView: View {
     @State private var isMenuOpen = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(VocabularyStore.self) private var vocabulary
-    @Environment(LocalizationStore.self) private var localizationStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency)
+    private var reduceTransparency
 
     init(
         book: Book,
         library: LibraryStore,
         settingsStore: SettingsStore,
-        statsStore: StatsStore,
         initialSystemDark: Bool
     ) {
         let bounds = UIScreen.main.bounds
@@ -23,7 +23,6 @@ struct ReaderView: View {
             book: book,
             library: library,
             settingsStore: settingsStore,
-            statsStore: statsStore,
             pageSize: bounds.size,
             initialSystemDark: initialSystemDark
         ))
@@ -40,7 +39,10 @@ struct ReaderView: View {
             } else {
                 // Taps, swipes and scrolling are handled inside the web
                 // view by the JS engine so native text selection works.
-                ReaderWebView(controller: viewModel.controller)
+                ReaderWebView(
+                    controller: viewModel.controller,
+                    onViewportChange: viewModel.viewportDidChange(to:)
+                )
                     .ignoresSafeArea()
                 chapterLoadingVeil
                 nextChapterAffordance
@@ -49,7 +51,7 @@ struct ReaderView: View {
             chrome
         }
         .animation(
-            .easeOut(duration: 0.2),
+            reduceMotion ? nil : .easeOut(duration: 0.2),
             value: viewModel.isChapterLoading
         )
         .statusBarHidden(!viewModel.isChromeVisible)
@@ -62,20 +64,20 @@ struct ReaderView: View {
         .onChange(of: colorScheme) {
             viewModel.setSystemDark(colorScheme == .dark)
         }
+        .onChange(of: reduceMotion) {
+            viewModel.setReduceMotion(reduceMotion)
+        }
         .onChange(of: viewModel.isChromeVisible) {
             // A collapsed chrome must never come back with the fan open.
             if !viewModel.isChromeVisible { isMenuOpen = false }
         }
         .onAppear {
             viewModel.setSystemDark(colorScheme == .dark)
+            viewModel.setReduceMotion(reduceMotion)
             viewModel.open()
             if ProcessInfo.processInfo.arguments
                 .contains("-showTypographyPanel") {
                 viewModel.activeSheet = .typography
-            }
-            if ProcessInfo.processInfo.arguments
-                .contains("-showDefineSheet") {
-                viewModel.defineWord = "lantern"
             }
         }
         .onDisappear {
@@ -93,31 +95,7 @@ struct ReaderView: View {
                 SearchSheet(viewModel: viewModel)
             }
         }
-        .sheet(item: defineItem) { item in
-            DefineView(
-                word: item.word,
-                palette: palette,
-                defineLanguage: localizationStore.defineLanguage,
-                context: viewModel.defineContext,
-                onSave: { definition, source in
-                    viewModel.saveToVocabulary(
-                        definition: definition,
-                        dictionarySource: source,
-                        into: vocabulary
-                    )
-                },
-                isAlreadySaved: vocabulary.contains(word: item.word)
-            )
-        }
-    }
-
-    /// Bridges the view model's `String?` define target to the
-    /// `Identifiable` value `.sheet(item:)` needs.
-    private var defineItem: Binding<DefineItem?> {
-        Binding(
-            get: { viewModel.defineWord.map(DefineItem.init) },
-            set: { viewModel.defineWord = $0?.word }
-        )
+        .accessibilityAction(.escape) { dismiss() }
     }
 
     // MARK: - Chapter loading veil
@@ -193,7 +171,7 @@ struct ReaderView: View {
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .animation(
-                .easeOut(duration: 0.22),
+                reduceMotion ? nil : .easeOut(duration: 0.22),
                 value: viewModel.isAtChapterEnd
             )
         }
@@ -223,7 +201,10 @@ struct ReaderView: View {
                 }
             }
         }
-        .animation(.easeOut(duration: 0.22), value: viewModel.isChromeVisible)
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: 0.22),
+            value: viewModel.isChromeVisible
+        )
     }
 
     /// Ambient labels that stay up while reading. They never intercept
@@ -259,6 +240,7 @@ struct ReaderView: View {
                 .foregroundStyle(palette.secondaryText)
                 .lineLimit(1)
                 .padding(.horizontal, 64)
+                .accessibilityIdentifier("reader.chapterPagesLeft")
 
             HStack {
                 Spacer()
@@ -277,24 +259,38 @@ struct ReaderView: View {
     private func floatingCircle(
         icon: String,
         identifier: String,
+        isActive: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(palette.text)
+                .foregroundStyle(isActive ? palette.accent : palette.text)
                 .frame(width: 48, height: 48)
-                .background(floatingCircleBackground)
+                .background(floatingCircleBackground(isActive: isActive))
                 .contentShape(Circle())
         }
         .accessibilityIdentifier(identifier)
     }
 
-    private var floatingCircleBackground: some View {
+    private func floatingCircleBackground(isActive: Bool = false) -> some View {
         Circle()
-            .fill(palette.background.opacity(0.96))
+            .fill(palette.background.opacity(reduceTransparency ? 1 : 0.96))
+            .overlay {
+                if isActive {
+                    Circle().fill(
+                        palette.accent.opacity(
+                            ReaderControlStyle.selectedAccentOpacity
+                        )
+                    )
+                }
+            }
             .shadow(color: .black.opacity(0.14), radius: 8, y: 2)
-            .overlay(Circle().strokeBorder(palette.hairline))
+            .overlay(
+                Circle().strokeBorder(
+                    isActive ? palette.accent : palette.hairline
+                )
+            )
     }
 
     /// Bottom chrome: pages-read pill on the left, and the Books-style
@@ -360,7 +356,7 @@ struct ReaderView: View {
                             .font(Typography.title(19))
                             .foregroundStyle(palette.text)
                             .frame(width: 48, height: 48)
-                            .background(floatingCircleBackground)
+                            .background(floatingCircleBackground())
                             .contentShape(Circle())
                     }
                     .accessibilityIdentifier("reader.typography")
@@ -376,7 +372,7 @@ struct ReaderView: View {
                                     ))
                                     .foregroundStyle(palette.text)
                                     .frame(width: 48, height: 48)
-                                    .background(floatingCircleBackground)
+                                    .background(floatingCircleBackground())
                                     .contentShape(Circle())
                             }
                             .accessibilityIdentifier("reader.share")
@@ -386,14 +382,18 @@ struct ReaderView: View {
                         floatingCircle(
                             icon: viewModel.isOrientationLocked
                                 ? "lock.rotation" : "rotate.right",
-                            identifier: "reader.rotationLock"
+                            identifier: "reader.rotationLock",
+                            isActive: viewModel.isOrientationLocked
                         ) {
                             viewModel.toggleOrientationLock()
                             AppDelegate.lockPortrait =
                                 viewModel.isOrientationLocked
                             AppDelegate.refreshOrientationLock()
                         }
-                        .accessibilityLabel(Text("Lock rotation"))
+                        .accessibilityLabel(Text(
+                            viewModel.isOrientationLocked
+                                ? "Unlock rotation" : "Lock rotation"
+                        ))
 
                         floatingCircle(
                             icon: viewModel.currentBookmark != nil
@@ -402,7 +402,10 @@ struct ReaderView: View {
                         ) {
                             viewModel.toggleBookmark()
                         }
-                        .accessibilityLabel(Text("Bookmark"))
+                        .accessibilityLabel(Text(
+                            viewModel.currentBookmark != nil
+                                ? "Remove bookmark" : "Add bookmark"
+                        ))
                     }
                     .transition(fanTransition(delay: 0))
                 }
@@ -417,7 +420,8 @@ struct ReaderView: View {
             .accessibilityLabel(Text("Reading menu"))
         }
         .animation(
-            .spring(response: 0.34, dampingFraction: 0.72),
+            reduceMotion
+                ? nil : .spring(response: 0.34, dampingFraction: 0.72),
             value: isMenuOpen
         )
     }
@@ -426,7 +430,8 @@ struct ReaderView: View {
     /// the menu button, the nearest first — the delay makes the fan
     /// visibly cascade instead of appearing as one block.
     private func fanTransition(delay: Double) -> AnyTransition {
-        .scale(scale: 0.3, anchor: .bottomTrailing)
+        guard !reduceMotion else { return .opacity }
+        return .scale(scale: 0.3, anchor: .bottomTrailing)
             .combined(with: .opacity)
             .combined(with: .offset(y: 16))
             .animation(
@@ -459,13 +464,6 @@ struct ReaderView: View {
         .foregroundStyle(palette.text)
         .padding(Spacing.xl)
     }
-}
-
-/// Wraps a define target so it can drive `.sheet(item:)`. The word itself
-/// is the identity, so re-selecting the same word re-presents cleanly.
-private struct DefineItem: Identifiable {
-    let word: String
-    var id: String { word }
 }
 
 /// Expanded whole-book navigator. The native Slider supplies the adjustable

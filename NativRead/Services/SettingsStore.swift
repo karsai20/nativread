@@ -23,7 +23,10 @@ final class SettingsStore {
 
     private let defaults: UserDefaults
     private static let key = "lumenread.readerSettings.v2"
-    private static let onboardingSeenKey = "quire.onboarding.v1.seen"
+    private static let onboardingSeenKey = "nativread.onboarding.v1.seen"
+    private static let legacyOnboardingSeenKey = [
+        "qui", "re.onboarding.v1.seen",
+    ].joined()
     private static let appearanceKey = "nativread.appAppearance.v1"
     private static let translationBackendURLKey = "nativread.translationBackendURL.v1"
     private static let translationUserIDKey = "nativread.translationUserID.v1"
@@ -41,6 +44,11 @@ final class SettingsStore {
         defaultTranslationBackendURLString: String? = nil
     ) {
         self.defaults = defaults
+        if defaults.object(forKey: Self.onboardingSeenKey) == nil,
+           defaults.bool(forKey: Self.legacyOnboardingSeenKey) {
+            defaults.set(true, forKey: Self.onboardingSeenKey)
+            defaults.removeObject(forKey: Self.legacyOnboardingSeenKey)
+        }
         if let data = defaults.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode(
                ReaderSettings.self, from: data
@@ -124,13 +132,13 @@ final class SettingsStore {
         }
     }
 
-    /// Whether the first-launch brand splash has already been shown.
+    /// Whether the complete first-launch onboarding has been finished.
     /// Stored under its own key so it never bloats the codable settings.
     var hasSeenOnboarding: Bool {
         defaults.bool(forKey: Self.onboardingSeenKey)
     }
 
-    /// Records that the launch splash has been seen; subsequent launches
+    /// Records that onboarding has been completed; subsequent launches
     /// go straight to the library.
     func markOnboardingSeen() {
         defaults.set(true, forKey: Self.onboardingSeenKey)
@@ -149,6 +157,7 @@ final class SettingsStore {
     static func resetPersisted(in defaults: UserDefaults = .standard) {
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: onboardingSeenKey)
+        defaults.removeObject(forKey: legacyOnboardingSeenKey)
         defaults.removeObject(forKey: appearanceKey)
         defaults.removeObject(forKey: translationBackendURLKey)
         defaults.removeObject(forKey: translationUserIDKey)

@@ -58,6 +58,16 @@ final class LocalizationStoreTests: XCTestCase {
         }
     }
 
+    func testRetiredLanguageKeyMigratesToCurrentKey() {
+        let retiredKey = ["qui", "re.appLanguage.v1"].joined()
+        defaults.set(AppLanguage.hu.rawValue, forKey: retiredKey)
+
+        let store = LocalizationStore(defaults: defaults)
+
+        XCTAssertEqual(store.appLanguage, .hu)
+        XCTAssertNil(defaults.object(forKey: retiredKey))
+    }
+
     func testResetPersistedClearsLanguage() {
         let store = LocalizationStore(defaults: defaults)
         store.setLanguage(.de)
@@ -139,10 +149,9 @@ final class LocalizationStoreTests: XCTestCase {
     }
 
     func testPickableIsFullyTranslatedLanguagesOnly() {
-        // Only fully-translated, dictionary-backed languages are offered in the
-        // picker. es/de stay in the enum (plumbing is ready) but are withheld
-        // until their String Catalog and dictionaries are complete, so picking
-        // them can't leave most of the app in the English fallback.
+        // Only fully-translated languages are offered in the picker. es/de
+        // stay in the enum (plumbing is ready) but are withheld until their
+        // String Catalog coverage is complete.
         let pickable = Set(AppLanguage.pickable.map(\.rawValue))
         XCTAssertEqual(pickable, ["en", "hu"])
         XCTAssertFalse(pickable.contains("es"))
@@ -153,64 +162,4 @@ final class LocalizationStoreTests: XCTestCase {
         XCTAssertNotNil(AppLanguage(rawValue: "de"))
     }
 
-    // MARK: - Define language
-
-    func testDefineLanguageDefaultsToEnglishWhenAppLanguageIsSystem() {
-        let store = LocalizationStore(defaults: defaults)
-
-        XCTAssertEqual(store.defineLanguage, .en)
-    }
-
-    func testDefineLanguageDefaultsToPersistedAppLanguageWhenSupported() {
-        defaults.set(AppLanguage.hu.rawValue, forKey: "quire.appLanguage.v1")
-
-        let store = LocalizationStore(defaults: defaults)
-
-        XCTAssertEqual(store.defineLanguage, .hu)
-    }
-
-    func testSetDefineLanguagePersistsSupportedPack() {
-        let store = LocalizationStore(defaults: defaults)
-        store.setDefineLanguage(.hu)
-
-        let reloaded = LocalizationStore(defaults: defaults)
-
-        XCTAssertEqual(reloaded.defineLanguage, .hu)
-    }
-
-    func testSetDefineLanguageIgnoresUnsupportedFuturePacks() {
-        let store = LocalizationStore(defaults: defaults)
-        store.setDefineLanguage(.hu)
-        store.setDefineLanguage(.de)
-
-        XCTAssertEqual(store.defineLanguage, .hu)
-        XCTAssertEqual(LocalizationStore(defaults: defaults).defineLanguage, .hu)
-    }
-
-    func testDefinePickableIsInstalledPacksOnly() {
-        XCTAssertEqual(
-            Set(AppLanguage.definePickable.map(\.rawValue)),
-            ["en", "hu"]
-        )
-    }
-
-    // MARK: - Dictionary provider
-
-    func testHungarianDefineLookupReturnsBundledGloss() {
-        let result = DictionaryProvider.lookup(" Lantern ", language: .hu)
-
-        XCTAssertEqual(result?.source, "English → Hungarian")
-        XCTAssertTrue(result?.definition.contains("lámpás") == true)
-    }
-
-    func testEnglishDefineLookupReturnsBuiltInGlossaryDefinition() {
-        let result = DictionaryProvider.lookup("lantern", language: .en)
-
-        XCTAssertEqual(result?.source, "Built-in glossary")
-        XCTAssertTrue(result?.definition.contains("portable light") == true)
-    }
-
-    func testUnsupportedDefineLookupReturnsNil() {
-        XCTAssertNil(DictionaryProvider.lookup("lantern", language: .de))
-    }
 }

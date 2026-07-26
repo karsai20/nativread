@@ -24,7 +24,7 @@ Cinzel
   Copyright 2012 The Cinzel Project Authors
   https://github.com/google/fonts/tree/main/ofl/cinzel
   License: SIL Open Font License 1.1
-  Used for the launch / brand wordmark ("QUIRE").
+  Used for the launch / brand wordmark ("NATIVREAD").
 
 Source: Google Fonts (github.com/google/fonts/ofl).
 

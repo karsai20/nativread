@@ -904,64 +904,6 @@ enum ReaderScripts {
               return { text: text, occurrence: seen };
             },
 
-            // The current selection's plain text, trimmed, or "" when
-            // nothing usable is selected. Drives the Define lookup.
-            selectedText() {
-              const selection = window.getSelection();
-              if (!selection || selection.isCollapsed
-                  || !selection.rangeCount) { return ""; }
-              return (selection.toString() || "").replace(/\\s+/g, " ").trim();
-            },
-
-            // The sentence the current selection sits in, for saving a
-            // word with its reading context. Pure DOM read: expands from
-            // the selection's text node out to the nearest .!?… (or block)
-            // boundaries, collapses whitespace, and returns "" when no
-            // usable context can be derived. Never lays out, scrolls, or
-            // mutates the DOM or engine state.
-            selectionSentence() {
-              const selection = window.getSelection();
-              if (!selection || selection.isCollapsed
-                  || !selection.rangeCount) { return ""; }
-              const range = selection.getRangeAt(0);
-              const selected = (selection.toString() || "").trim();
-              if (!selected.length) { return ""; }
-              // Read the enclosing text from the common ancestor; for a
-              // selection inside one text node that is the paragraph.
-              let host = range.commonAncestorContainer;
-              if (host.nodeType === Node.TEXT_NODE) {
-                host = host.parentNode;
-              }
-              if (!host) { return ""; }
-              const block = host.textContent || "";
-              if (!block.length) { return ""; }
-              // Locate the selection within the block text. Prefer an
-              // exact match; fall back to the block itself if not found.
-              const lower = block.toLowerCase();
-              const at = lower.indexOf(selected.toLowerCase());
-              const TERMINATORS = ".!?\\u2026";
-              const isEnd = (ch) => TERMINATORS.indexOf(ch) !== -1;
-              let from = 0;
-              let to = block.length;
-              if (at !== -1) {
-                // Walk left to the char after the previous terminator.
-                for (let i = at - 1; i >= 0; i--) {
-                  if (isEnd(block[i])) { from = i + 1; break; }
-                }
-                // Walk right to and including the next terminator.
-                const selEnd = at + selected.length;
-                to = block.length;
-                for (let i = selEnd; i < block.length; i++) {
-                  if (isEnd(block[i])) { to = i + 1; break; }
-                }
-              }
-              const sentence = block
-                .slice(from, to)
-                .replace(/\\s+/g, " ")
-                .trim();
-              return sentence;
-            },
-
             clearSelection() {
               const selection = window.getSelection();
               if (selection) { selection.removeAllRanges(); }

@@ -48,6 +48,16 @@ final class SettingsStoreOnboardingTests: XCTestCase {
         XCTAssertTrue(reloaded.hasSeenOnboarding)
     }
 
+    func testRetiredOnboardingKeyMigratesWithoutRepeatingOnboarding() {
+        let retiredKey = ["qui", "re.onboarding.v1.seen"].joined()
+        defaults.set(true, forKey: retiredKey)
+
+        let store = SettingsStore(defaults: defaults)
+
+        XCTAssertTrue(store.hasSeenOnboarding)
+        XCTAssertNil(defaults.object(forKey: retiredKey))
+    }
+
     func testResetPersistedClearsOnboarding() {
         let store = SettingsStore(defaults: defaults)
         store.markOnboardingSeen()

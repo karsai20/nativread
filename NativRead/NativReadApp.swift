@@ -31,8 +31,6 @@ struct NativReadApp: App {
     private var appDelegate
     @State private var library: LibraryStore
     @State private var settingsStore: SettingsStore
-    @State private var statsStore: StatsStore
-    @State private var vocabularyStore: VocabularyStore
     @State private var translationStore: TranslationStore
     @State private var translationAuthStore: TranslationAuthStore
     @State private var localizationStore: LocalizationStore
@@ -55,14 +53,12 @@ struct NativReadApp: App {
         AppDelegate.lockPortrait = settings.isOrientationLocked
         _settingsStore = State(initialValue: settings)
 
-        _statsStore = State(initialValue: StatsStore())
-
-        let vocabulary = VocabularyStore()
-        Self.applyVocabularyArguments(to: vocabulary)
-        _vocabularyStore = State(initialValue: vocabulary)
-
         _translationStore = State(initialValue: TranslationStore())
-        _translationAuthStore = State(initialValue: TranslationAuthStore())
+        _translationAuthStore = State(
+            initialValue: TranslationAuthStore(
+                initialSessionToken: Self.translationSessionTokenArgument
+            )
+        )
 
         // Build LocalizationStore after the reset hook so the persisted app
         // language can be overridden for tests without touching user defaults.
@@ -76,8 +72,6 @@ struct NativReadApp: App {
             RootView(initialShowLaunch: Self.shouldShowLaunch(settingsStore))
                 .environment(library)
                 .environment(settingsStore)
-                .environment(statsStore)
-                .environment(vocabularyStore)
                 .environment(translationStore)
                 .environment(translationAuthStore)
                 .environment(localizationStore)
@@ -94,8 +88,8 @@ struct NativReadApp: App {
         }
     }
 
-    /// Decides whether the first-launch splash appears. Shown only the first
-    /// time (until `hasSeenOnboarding`), overridable for tests via
+    /// Decides whether the first-launch onboarding appears. Shown only the
+    /// first time (until `hasSeenOnboarding`), overridable for tests via
     /// `-forceOnboarding` (always show) / `-skipOnboarding` (never show).
     private static func shouldShowLaunch(_ settings: SettingsStore) -> Bool {
         let arguments = ProcessInfo.processInfo.arguments
@@ -108,6 +102,13 @@ struct NativReadApp: App {
     /// imports the bundled sample EPUB so tests start deterministic.
     private static func applyLaunchArguments(to store: LibraryStore) {
         let arguments = ProcessInfo.processInfo.arguments
+        let showcaseLanguage = arguments.firstIndex(
+            of: "-seedShowcaseState"
+        ).flatMap { index in
+            arguments.indices.contains(index + 1)
+                ? arguments[index + 1]
+                : nil
+        }
         if arguments.contains("-resetLibrary") {
             for book in store.books { store.delete(book) }
         }
@@ -123,8 +124,19 @@ struct NativReadApp: App {
         if arguments.contains("-seedAliceBooks"), store.books.isEmpty {
             for name in [
                 "alice-wonderland-en",
-                "alice-csodaorszagban-hu",
-                "alice-wunderland-de"
+                "alice-csodaorszagban-hu"
+            ] {
+                if let url = Bundle.main.url(
+                    forResource: name, withExtension: "epub"
+                ) {
+                    _ = try? store.importBook(from: url)
+                }
+            }
+        }
+        if arguments.contains("-seedShowcaseBooks"), store.books.isEmpty {
+            for name in [
+                "alice-wonderland-standard-en",
+                "pal-utcai-fiuk-gutenberg-hu"
             ] {
                 if let url = Bundle.main.url(
                     forResource: name, withExtension: "epub"
@@ -138,7 +150,9 @@ struct NativReadApp: App {
         // and screenshotted by UI tests.
         if arguments.contains("-seedSamplePDF"),
            !store.books.contains(where: { $0.format == .pdf }),
-           let url = SampleDocuments.makePDF() {
+           let url = SampleDocuments.makePDF(
+               languageCode: showcaseLanguage
+           ) {
             _ = try? store.importBook(from: url)
         }
         if arguments.contains("-seedSampleText"),
@@ -154,26 +168,61 @@ struct NativReadApp: App {
             )
             store.flushPendingSave()
         }
-    }
 
-    /// UI-test hooks for the saved vocabulary: `-resetVocabulary` empties
-    /// the list, `-seedSampleVocabulary` adds one deterministic entry so
-    /// the My Vocabulary sheet and export can be exercised without driving
-    /// the (hard-to-automate) WKWebView selection → Define → Save flow.
-    @MainActor
-    private static func applyVocabularyArguments(to store: VocabularyStore) {
-        let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("-resetVocabulary") {
-            for entry in store.entries { store.removeEntry(entry.id) }
-        }
-        if arguments.contains("-seedSampleVocabulary") {
-            store.addEntry(VocabularyEntry(
-                word: "lantern",
-                definition: "",
-                contextSentence: "She raised the lantern to the dark "
-                    + "doorway.",
-                dictionarySource: VocabularyEntry.appleDictionarySource
-            ))
+        // Deterministic, book-native state for the complete bilingual
+        // screenshot run. It puts each showcase book inside its first real
+        // chapter and supplies one bookmark + annotated highlight so every
+        // reader collection has meaningful content.
+        if let language = showcaseLanguage {
+            let isHungarian = language == "hu"
+            let titleFragment = isHungarian ? "Pál-utcai" : "Alice"
+            guard let book = store.books.first(where: {
+                $0.title.localizedCaseInsensitiveContains(titleFragment)
+            }) else { return }
+
+            let spineIndex = min(
+                isHungarian ? 3 : 5,
+                max(0, book.spineWeights.count - 1)
+            )
+            let chapterTitle = isHungarian
+                ? "I. fejezet"
+                : "Chapter I · Down the Rabbit-Hole"
+            let snippet = isHungarian
+                ? "Háromnegyed egykor a tanteremben minden komolyságnak vége szakadt."
+                : "Alice was beginning to get very tired of sitting by her sister."
+            let note = isHungarian
+                ? "A történet emlékezetes nyitánya."
+                : "The beginning of Alice’s extraordinary journey."
+
+            store.updateProgress(
+                bookID: book.id,
+                spineIndex: spineIndex,
+                pageFraction: 0.28
+            )
+            if book.bookmarks.isEmpty {
+                store.addBookmark(
+                    bookID: book.id,
+                    bookmark: Bookmark(
+                        spineIndex: spineIndex,
+                        pageFraction: 0.28,
+                        chapterTitle: chapterTitle,
+                        snippet: snippet
+                    )
+                )
+            }
+            if book.highlights.isEmpty {
+                store.addHighlight(
+                    bookID: book.id,
+                    highlight: Highlight(
+                        spineIndex: spineIndex,
+                        text: snippet,
+                        occurrence: 0,
+                        chapterTitle: chapterTitle,
+                        note: note
+                    )
+                )
+            }
+            store.flushPendingSave()
         }
     }
 
@@ -223,6 +272,19 @@ struct NativReadApp: App {
         store.overrideTranslationBackendURLWithoutPersisting(
             arguments[flagIndex + 1]
         )
+    }
+
+    /// UI-test-only session injection. The token is kept in memory and never
+    /// written to Keychain, so automated account screens cannot affect a real
+    /// Sign in with Apple session.
+    private static var translationSessionTokenArgument: String? {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flagIndex = arguments.firstIndex(
+            of: "-translationSessionToken"
+        ), arguments.indices.contains(flagIndex + 1) else {
+            return nil
+        }
+        return arguments[flagIndex + 1]
     }
 
     /// `-forceLanguage <code>` (en/es/de/hu) pins the app language for UI

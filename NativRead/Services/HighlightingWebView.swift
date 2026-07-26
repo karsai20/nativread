@@ -1,42 +1,31 @@
 import UIKit
 import WebKit
 
-/// WKWebView that adds a "Highlight" action to the native text
-/// selection menu, alongside the system Copy / Look Up / Translate.
-/// The system items already cover dictionary lookup and Apple's
-/// on-device translation, so only highlighting needs custom code.
+/// WKWebView that adds a "Highlight" action to the native text-selection
+/// menu. System actions — including Apple's Look Up dictionary — remain
+/// untouched and are supplied by WebKit.
 final class HighlightingWebView: WKWebView {
 
     /// Invoked when the user picks Highlight for the current selection.
     var onHighlightSelection: (() -> Void)?
 
-    /// Invoked when the user picks Define for the current selection.
-    var onDefineSelection: (() -> Void)?
-
     override func buildMenu(with builder: UIMenuBuilder) {
-        var actions: [UIAction] = []
+        // Let WebKit install Copy / Look Up / Translate first, then append
+        // the reader-specific action without risking a later super call
+        // rebuilding the root menu over our insertion.
+        super.buildMenu(with: builder)
         if onHighlightSelection != nil {
-            actions.append(UIAction(
-                title: "Highlight",
-                image: UIImage(systemName: "highlighter")
-            ) { [weak self] _ in
-                self?.onHighlightSelection?()
-            })
-        }
-        if onDefineSelection != nil {
-            actions.append(UIAction(
-                title: "Define",
-                image: UIImage(systemName: "character.book.closed")
-            ) { [weak self] _ in
-                self?.onDefineSelection?()
-            })
-        }
-        if !actions.isEmpty {
             builder.insertChild(
-                UIMenu(options: .displayInline, children: actions),
+                UIMenu(options: .displayInline, children: [
+                    UIAction(
+                        title: "Highlight",
+                        image: UIImage(systemName: "highlighter")
+                    ) { [weak self] _ in
+                        self?.onHighlightSelection?()
+                    }
+                ]),
                 atStartOfMenu: .root
             )
         }
-        super.buildMenu(with: builder)
     }
 }

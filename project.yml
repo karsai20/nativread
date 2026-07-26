@@ -46,6 +46,8 @@ targets:
           UIColorName: "LaunchBackground"
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         # Translator backend runs on the user's own LAN over http. Scope ATS to
@@ -56,6 +58,12 @@ targets:
           NSAllowsLocalNetworking: true
         NSLocalNetworkUsageDescription: NativRead connects to your private translator backend on your local network.
         NativReadDefaultTranslationBackendURL: ""
+        # Must match the production backend and the published Privacy Policy.
+        # A provider change also requires bumping TranslationPrivacy's consent.
+        NativReadAIProviderName: "Google Gemini API"
+        # Populate with the final public HTTPS policy before App Store upload.
+        # The same complete policy is always readable inside the app.
+        NativReadPrivacyPolicyURL: "https://nativread.com/privacy/"
         UIAppFonts:
           - CrimsonPro-VariableFont_wght.ttf
           - CormorantGaramond-VariableFont_wght.ttf

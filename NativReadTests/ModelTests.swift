@@ -208,6 +208,34 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(css.contains("text-align: left"))
     }
 
+    func testReaderStyleClearsLandscapeSafeAreas() {
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(),
+            pageWidth: 874,
+            pageHeight: 402,
+            safeAreaLeft: 59,
+            safeAreaRight: 21
+        )
+
+        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 71.0px"))
+        XCTAssertTrue(css.contains("column-width: 739.0px"))
+        XCTAssertTrue(css.contains("column-gap: 135.0px"))
+        XCTAssertTrue(css.contains("max-height: 294.0px"))
+    }
+
+    func testReaderStyleKeepsHardwareSafeLandscapeMarginsWhenInsetsLag() {
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(),
+            pageWidth: 874,
+            pageHeight: 402,
+            safeAreaLeft: 0,
+            safeAreaRight: 0
+        )
+
+        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 64.0px"))
+        XCTAssertTrue(css.contains("column-width: 746.0px"))
+    }
+
     func testReaderStyleNeutralizesPublisherMediaSizing() {
         // Real EPUBs (e.g. calibre) pin images to fixed pt sizes that
         // break column pagination; our reset must force them to fit one

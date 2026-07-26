@@ -15,12 +15,7 @@ final class ReaderViewModel {
     let bookID: UUID
     private let library: LibraryStore
     private let settingsStore: SettingsStore
-    private let statsStore: StatsStore
     let controller: ReaderController
-
-    /// Timestamp the current reading session began; nil while no session
-    /// is active. Set on `open()`, consumed on `persistProgressNow()`.
-    private var sessionStart: Date?
 
     private(set) var parsed: ParsedEPUB?
     private(set) var spineIndex = 0
@@ -30,15 +25,6 @@ final class ReaderViewModel {
     var activeSheet: ReaderSheet?
     var loadError: String?
 
-    /// The word/phrase the Define sheet should look up; nil while closed.
-    /// Setting it (from the selection menu) presents the sheet.
-    var defineWord: String?
-
-    /// The sentence the current Define target was read in, captured from
-    /// the selection when Define was invoked; nil when none could be
-    /// derived. Carried into the saved vocabulary entry as context.
-    private(set) var defineContext: String?
-
     /// True from the moment a chapter starts loading until the engine
     /// reports the page is painted (`onChapterReady`). Drives the reader
     /// skeleton veil so the blank WKWebView frame is never exposed.
@@ -46,6 +32,10 @@ final class ReaderViewModel {
 
     /// Guards against a missed ready signal leaving the veil stuck on.
     private var loadingSafetyTask: Task<Void, Never>?
+    /// Rotation can report a few intermediate sizes. Debounce those so one
+    /// physical turn produces one relayout/reload, not a cascade.
+    private var viewportUpdateTask: Task<Void, Never>?
+    private var viewportSafeAreaInsets = UIEdgeInsets.zero
     var searchQuery = ""
     private(set) var searchResults: [SearchResult] = []
 
@@ -66,6 +56,7 @@ final class ReaderViewModel {
     /// Tracks the device appearance for system theme mode; fed by the
     /// view layer because only SwiftUI sees colour scheme changes.
     private(set) var systemDark = false
+    private var reduceMotion = false
 
     /// The resolved colours every reader surface should draw with.
     var palette: ReaderPalette { settings.palette(systemDark: systemDark) }
@@ -74,14 +65,12 @@ final class ReaderViewModel {
         book: Book,
         library: LibraryStore,
         settingsStore: SettingsStore,
-        statsStore: StatsStore,
         pageSize: CGSize,
         initialSystemDark: Bool = false
     ) {
         self.bookID = book.id
         self.library = library
         self.settingsStore = settingsStore
-        self.statsStore = statsStore
         // Seed the appearance before building the initial CSS/palette so the
         // very first painted frame already matches the device (no light→dark
         // flash when a book opens in dark mode).
@@ -111,9 +100,6 @@ final class ReaderViewModel {
         controller.onHighlightRequested = { [weak self] in
             self?.highlightCurrentSelection()
         }
-        controller.onDefineRequested = { [weak self] in
-            self?.defineCurrentSelection()
-        }
         controller.onChapterReady = { [weak self] in
             self?.finishChapterLoading()
             self?.applyStoredHighlights()
@@ -127,17 +113,11 @@ final class ReaderViewModel {
         }
     }
 
-    /// Persists any coalesced reading progress right away and records the
-    /// elapsed reading time. Call when the reader closes so neither the
-    /// last scroll position nor the session's time is lost. The
-    /// `StatsStore` ignores non-positive durations and clamps absurd ones
-    /// (e.g. an app left open overnight).
+    /// Persists any coalesced reading progress right away when the reader
+    /// closes.
     func persistProgressNow() {
+        viewportUpdateTask?.cancel()
         library.flushPendingSave()
-        if let start = sessionStart {
-            statsStore.record(seconds: Date().timeIntervalSince(start))
-            sessionStart = nil
-        }
     }
 
     private func handleTap(zone: String) {
@@ -156,7 +136,6 @@ final class ReaderViewModel {
     // MARK: - Session
 
     func open() {
-        sessionStart = .now
         do {
             let parsed = try library.parsedEPUB(
                 for: library.book(id: bookID)!
@@ -169,6 +148,43 @@ final class ReaderViewModel {
             )
         } catch {
             loadError = error.localizedDescription
+        }
+    }
+
+    /// Rebuilds the fixed-width pagination engine for the actual laid-out
+    /// viewport, preserving the reader's chapter-relative position.
+    func viewportDidChange(to viewport: ReaderViewport) {
+        let size = viewport.size
+        guard size.width > 0, size.height > 0 else { return }
+        let insetsChanged = abs(
+            viewport.safeAreaInsets.left - viewportSafeAreaInsets.left
+        ) > 0.5 || abs(
+            viewport.safeAreaInsets.right - viewportSafeAreaInsets.right
+        ) > 0.5
+        guard insetsChanged
+                || abs(size.width - controller.pageSize.width) > 0.5
+                || abs(size.height - controller.pageSize.height) > 0.5
+        else { return }
+
+        viewportSafeAreaInsets = viewport.safeAreaInsets
+        viewportUpdateTask?.cancel()
+        viewportUpdateTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(140))
+            guard !Task.isCancelled, let self else { return }
+            let fraction = self.currentPageFraction
+            self.controller.prepareViewport(
+                pageSize: size,
+                css: ReaderStyle.css(
+                    settings: self.settings,
+                    pageWidth: size.width,
+                    pageHeight: size.height,
+                    safeAreaLeft: viewport.safeAreaInsets.left,
+                    safeAreaRight: viewport.safeAreaInsets.right,
+                    systemDark: self.systemDark
+                )
+            )
+            guard self.parsed != nil else { return }
+            self.loadChapter(at: self.spineIndex, fraction: fraction)
         }
     }
 
@@ -460,64 +476,6 @@ final class ReaderViewModel {
         }
     }
 
-    // MARK: - Define
-
-    /// Reads the current selection and, if it is a sensible lookup target,
-    /// presents the Define sheet for it. A define is meant for a word or a
-    /// short phrase: blank selections are ignored, but anything else is
-    /// passed through as-is — the dictionary simply returns nothing for a
-    /// phrase it doesn't carry.
-    func defineCurrentSelection() {
-        // Capture the surrounding sentence first, while the selection is
-        // still live (the lookup itself never mutates it). A failure to
-        // derive context degrades gracefully to nil — never blocks Define.
-        controller.selectionSentence { [weak self] sentence in
-            guard let self else { return }
-            let trimmed = sentence.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-            self.controller.selectedText { [weak self] text in
-                guard let self,
-                      let word = Self.defineTarget(from: text) else { return }
-                // Only keep context that actually contains the word; a
-                // mismatched fragment is worse than no context.
-                self.defineContext = trimmed.isEmpty
-                    || !trimmed.lowercased().contains(word.lowercased())
-                    ? nil : trimmed
-                self.defineWord = word
-            }
-        }
-    }
-
-    /// Saves the Define sheet's current word into the global vocabulary,
-    /// stamped with the captured context, chapter and book. Deduped by
-    /// the store, so re-saving the same word is a no-op.
-    func saveToVocabulary(
-        definition: String, dictionarySource: String,
-        into store: VocabularyStore
-    ) {
-        guard let word = defineWord else { return }
-        store.addEntry(VocabularyEntry(
-            word: word,
-            definition: definition,
-            contextSentence: defineContext,
-            dictionarySource: dictionarySource,
-            bookID: bookID,
-            chapterTitle: currentChapterTitle
-        ))
-    }
-
-    /// Normalises a raw selection into a dictionary lookup target, or nil
-    /// when the selection is unusable. Trims surrounding whitespace and
-    /// collapses inner runs; rejects empty selections. Pure for testing.
-    static func defineTarget(from raw: String) -> String? {
-        let collapsed = raw
-            .components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-        return collapsed.isEmpty ? nil : collapsed
-    }
-
     func goTo(highlight: Highlight) {
         activeSheet = nil
         loadChapter(
@@ -597,17 +555,25 @@ final class ReaderViewModel {
         reapplyStyle()
     }
 
+    func setReduceMotion(_ enabled: Bool) {
+        guard reduceMotion != enabled else { return }
+        reduceMotion = enabled
+        reapplyStyle()
+    }
+
     private func reapplyStyle() {
         controller.applySettings(
             css: ReaderStyle.css(
                 settings: settings,
                 pageWidth: controller.pageSize.width,
                 pageHeight: controller.pageSize.height,
+                safeAreaLeft: viewportSafeAreaInsets.left,
+                safeAreaRight: viewportSafeAreaInsets.right,
                 systemDark: systemDark
             ),
             backgroundColor: UIColor(palette.background),
             flow: settings.pageFlow,
-            transition: settings.pageTransition
+            transition: reduceMotion ? .instant : settings.pageTransition
         )
     }
 }

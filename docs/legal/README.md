@@ -16,17 +16,22 @@ input. Research basis: `../legal-posture.md` (authoritative posture) +
 | `in-app-legal-copy.md` | Attestation, AI disclosure, colophon, refusal/restore copy (HU+EN) | T23, T16, T25, eng D4/D11 |
 | `takedown-policy.en.md` | Rightsholder complaint handling | legal SHOULD-FIX, §8 abuse posture |
 
-## Placeholders to fill before publishing (grep for `[[`)
+## Placeholders to fill before App Store submission (grep for `[[`)
 
 - `[[OPERATOR_NAME]]` — the legal operator (sole developer name or company if
   one is formed before launch)
 - `[[OPERATOR_ADDRESS]]`, `[[CONTACT_EMAIL]]`, `[[SUPPORT_EMAIL]]`
-- `[[AI_PROVIDER]]` + `[[AI_PROVIDER_DPA_URL]]` — fixed by T15 provider
-  selection (default candidate: Google/Gemini)
 - `[[HOSTING_PROVIDER]]` + region — fixed by backend deploy choice
 - `[[ERROR_MONITOR]]` — fixed by T19 (Sentry-class, backend-only)
-- `[[POLICY_URL]]`, `[[TERMS_URL]]` — the website/hosted URLs
+- `[[TERMS_URL]]` — the hosted Terms URL, if a separate web copy is published
 - `[[EFFECTIVE_DATE]]`
+
+The AI provider is now fixed as the paid Google Gemini API and the privacy
+policy URL is `https://nativread.com/privacy/`. The Cloudflare
+Pages workflow and web document live in
+`.github/workflows/cloudflare-pages.yml` and
+`docs/public/privacy/index.html`. The `nativread-legal` Pages project and its
+least-privilege GitHub secrets must exist before App Store submission.
 
 ## Rules for editing
 

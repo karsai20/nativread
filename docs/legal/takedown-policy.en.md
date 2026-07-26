@@ -1,55 +1,67 @@
-# NativBook Rightsholder Complaint (Takedown) Policy
+# NativRead Rightsholder Notice Policy
 
-**DRAFT — pending legal review. Not yet published.**
-Effective date: [[EFFECTIVE_DATE]] · Version 0.1
+**DRAFT — pending legal review and operator details.**
+Effective 22 July 2026 · Version 1.0
 
-NativBook translates books that users declare they lawfully own, for their
-personal use only. Nothing is published or shared through our service, and we
-do not store books beyond the translation itself (see the Privacy Policy).
-Still, if you are a rightsholder and believe our service is being misused
-with respect to your work, we want to hear from you and we will act.
+NativRead does not publish a searchable catalogue or provide user-to-user
+sharing. Even so, a rightsholder who believes the translation service is being
+misused can send a sufficiently detailed notice and receive a reasoned review.
 
-## How to reach us
+## 1. How to reach us
 
-Email **[[CONTACT_EMAIL]]** with subject "Rights complaint", including:
+Email **[[CONTACT_EMAIL]]** with the subject **“Rights notice”** and include:
 
-1. Your name and on whose behalf you act (rightsholder or authorized agent).
-2. Identification of the work concerned (title, author, edition if known).
-3. What you believe is happening and why it exceeds personal use.
-4. A statement of good-faith belief and that the information is accurate.
-5. Contact details for our reply.
+1. your name, contact details, and whether you act as the rightsholder or an
+   authorised representative;
+2. enough information to identify the protected work;
+3. a clear description of the suspected misuse and any information reasonably
+   available to identify the relevant processing;
+4. the basis of your rights and a statement that the notice is accurate and
+   made in good faith; and
+5. your requested action.
 
-## What we do
+Please do not send identity documents or unnecessary personal data unless we
+specifically and lawfully request them.
 
-- **Acknowledge within 3 business days.**
-- Investigate: because of our per-user isolation and no-retention design we
-  cannot see book contents, but we can verify service metadata (e.g. whether
-  a specific file fingerprint was processed).
-- **Act where a complaint is credible:** we can block a specific work
-  fingerprint from future processing and/or disable the account involved in
-  the misuse, at the latest within 10 business days of substantiation.
-- Reply with the outcome. Where the complaint shows our user broke the
-  ownership terms, that is also a Terms of Service violation and handled as
-  such.
+## 2. Review and proportionate action
 
-## What we cannot do
+We acknowledge receipt and review complete notices without undue delay. We may
+request missing information, preserve only the records required for the review,
+and temporarily restrict processing where justified. A substantiated notice may
+result in a work fingerprint being blocked, an affected translation job being
+stopped, or an account being restricted or terminated for repeated or serious
+breach.
 
-We cannot retrieve or hand over book files (they are deleted on delivery),
-and we do not disclose user identities except where the law requires it
-through the proper legal channels.
+We may reject notices that are incomplete, abusive, demonstrably unfounded, or
+seek disclosure that we cannot lawfully provide. Where appropriate, we inform
+the affected user and give them a reasonable opportunity to respond, unless
+doing so would conflict with law, safety, fraud prevention, or a binding order.
 
-## Repeat misuse
+## 3. Privacy and retention
 
-Accounts credibly involved in repeated misuse are terminated.
+Delivered book files are designed to be deleted promptly. A normal 24-hour
+expiry and a 30-day storage safety rule limit abnormal remnants. We therefore
+may not hold the book file when a notice arrives. We do not disclose user
+identity or private content except where lawfully required through the proper
+process.
+
+Notice correspondence and the minimum supporting records are retained only as
+long as reasonably needed to resolve the matter, establish or defend legal
+claims, prevent repeated abuse, or meet a legal obligation.
+
+## 4. Repeat misuse
+
+Accounts credibly involved in repeated or serious infringement may be
+restricted or terminated in accordance with the Terms of Use.
 
 ---
 
-### HU összefoglaló (a website-ra a teljes szöveg mellé)
+## Magyar összefoglaló
 
-Ha jogtulajdonosként úgy látod, hogy a művedet a NativBookon keresztül
-visszaélésszerűen használják, írj a [[CONTACT_EMAIL]] címre („Jogi panasz"
-tárggyal): 3 munkanapon belül visszajelzünk, megalapozott panasz esetén
-legkésőbb 10 munkanapon belül intézkedünk (az érintett mű lenyomatának
-tiltása és/vagy a fiók letiltása). Könyvfájlt kiadni nem tudunk — a
-kézbesítés után törlődnek; felhasználói adatot csak jogszabályban előírt
-módon adunk ki.
+Jogtulajdonosi bejelentést a **[[CONTACT_EMAIL]]** címre, „Rights notice”
+tárggyal küldhetsz. Add meg a kapcsolattartási adataidat, a jogosulti
+minőségedet, a mű azonosításához és a kifogásolt feldolgozás megtalálásához
+szükséges információt, a jogalapodat és a kért intézkedést. A hiánytalan
+bejelentést indokolatlan késedelem nélkül, arányosan vizsgáljuk ki. Ismétlődő
+vagy súlyos jogsértésnél a fiók korlátozható vagy megszüntethető. Felhasználói
+adatot és privát tartalmat csak megfelelő jogalappal adunk ki.

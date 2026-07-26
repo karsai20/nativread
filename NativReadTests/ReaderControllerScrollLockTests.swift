@@ -67,4 +67,16 @@ final class ReaderControllerScrollLockTests: XCTestCase {
         )
         XCTAssertTrue(controller.webView.scrollView.isScrollEnabled)
     }
+
+    func testViewportPreparationReplacesPortraitGeometry() {
+        let controller = makeController(flow: .paged, transition: .slide)
+        let landscape = CGSize(width: 852, height: 393)
+
+        controller.prepareViewport(
+            pageSize: landscape,
+            css: "body { width: 852px; height: 393px; }"
+        )
+
+        XCTAssertEqual(controller.pageSize, landscape)
+    }
 }

@@ -36,3 +36,7 @@ GoogleService-Info.plist
 
 # graphify skill output (regenerable, not source)
 graphify-out/
+
+# Regenerable product-tour screenshots (52MB) — see docs/screenshots/showcase/README.md
+docs/screenshots/showcase/*
+!docs/screenshots/showcase/README.md

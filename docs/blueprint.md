@@ -1,4 +1,4 @@
-# NativBook launch blueprint — GTM, compliance, features, GitHub, backend security
+# NativRead launch blueprint — GTM, compliance, features, GitHub, backend security
 
 Status: REVIEWED 2026-07-07 (/plan-ceo-review, SELECTIVE EXPANSION — see the
 GSTACK REVIEW REPORT at the end; scope decisions persisted in
@@ -10,9 +10,9 @@ Consolidates and extends:
 [`../TODOS.md`](../TODOS.md) (deferred work). Where those docs decide something,
 this doc points at them instead of restating.
 
-**Branding:** the product's public name is **NativBook** (decided 2026-07-07,
-gated on the name-clearance check in §3). The repo/app internally remains
-NativRead until the P3 rename sweep (TODOS). Older docs say Quire.
+**Branding:** the product, app, website and current documentation use the
+**NativRead** name consistently. Historical implementation identifiers are not
+user-facing and may be migrated separately when compatibility allows.
 
 ---
 
@@ -24,7 +24,7 @@ literary quality — and read them in a calm, beautiful reader.*
 **The competitive truth (corrected 2026-07-07):** AI EPUB translation is a
 crowded category — BookTranslator.ai, Immersive Translate, eBook Translator
 (iOS), Belin Doc, O.Translator, open-source pipelines. Their existence
-**validates demand**. None of them combines what NativBook is: **validated
+**validates demand**. None of them combines what NativRead is: **validated
 literary quality per language** (a quality pipeline gates every launch
 language — generic tools ship raw MT), **an integrated calm reader** (no
 upload-download-sideload loop), **a 50+ persona UX** (people who will never
@@ -35,7 +35,7 @@ capability. Track the tool landscape in `docs/competitors/` (add a
 translator-tools file; refresh at each major release).
 
 **The objection to answer everywhere ("why not a free web tool?"):**
-1. Quality: web tools ship raw machine output; NativBook ships only languages
+1. Quality: web tools ship raw machine output; NativRead ships only languages
    that pass a literary quality bar — see the public quality-proof page (§3).
 2. Comfort: no export/import juggling — the book appears in your library,
    readable, with your typography, progress, and highlights.
@@ -44,7 +44,7 @@ translator-tools file; refresh at each major release).
 
 **Primary persona (the wedge):** 50+ Hungarian reader. **Launch hook:**
 *continue the book series you love in your own language* — Hungarian
-publishers abandon series mid-way; NativBook finishes them for you (of the
+publishers abandon series mid-way; NativRead finishes them for you (of the
 books you own).
 
 **Buyer insight:** the buyer is often the reader's **adult child** buying for
@@ -54,9 +54,9 @@ a parent. Channel consequence: market on the children's channels too
 (legal-posture principle 2); the child buys on the parent's device or shares
 their family know-how, not files.
 
-**Secondary personas:** language learners (bilingual aligned reading is the
-Phase 2 learner story — market it only as *coming*, never as a launch
-feature) and "just readers" (free tier; the rating base and referral pool).
+**Secondary persona:** "just readers" using the free on-device reader. Language
+learning, saved vocabulary, inline glosses, and custom dictionaries are outside
+the product direction; selected text retains Apple's native Look Up action.
 
 **Anti-positioning (legal #2 — never say):** anything implying users can
 *find, get, or unlock* books. Copy is always "translate books you already
@@ -72,7 +72,8 @@ sources** (App Store 5.2). Counsel agenda covers how far guidance may go.
 Decided (CEO D4, translator-plan.md) — restated for the GTM view:
 
 - **Free forever:** the reader itself (import EPUB/PDF/TXT/AZW3, themes,
-  typography, Define, highlights). The free reader is the acquisition engine.
+  typography, native Apple Look Up, highlights). The free reader is the
+  acquisition engine.
 - **Free trial:** first content chapter of any book, AI-translated, once per
   book per user.
 - **Paid:** per-book consumable IAP, length-tiered ladder $2.99–$11.99
@@ -115,12 +116,12 @@ Build per translator-plan.md T1–T25. Nothing public.
 
 | Gate | Source | Status |
 |---|---|---|
-| **NativBook name clearance** — App Store search + EUIPO/WIPO/USPTO knock-out + domain check, BEFORE any public asset | CEO review Q2 | open — do this week |
+| **NativRead name clearance** — App Store search + EUIPO/WIPO/USPTO knock-out + domain check, BEFORE any public asset | CEO review Q2 | open — do this week |
 | EU AI Act Art 50(2) machine-readable EPUB marker **+ robustness spec**: marker survives re-export/Send-to-Kindle where technically feasible; automated validation test; EPUB is the only translated output format (previews are in-app renders of it) | legal #9 / T25 | ✅ done 2026-07-09 (E1+E2, spec in §5) |
 | Visible "AI-translated" label | T25 iOS half | ✅ done 2026-07-06 |
 | Ownership attestation in-flow | legal #1 / T23 | open |
-| Privacy labels + provider disclosure + policy/ToS URLs | legal #4, #7 / T16 | drafts done 2026-07-07 (`docs/legal/`, HU+EN); placeholders pend T15/host choices |
-| Account + data deletion & export | legal #5 / T9 | backend done 2026-07-10 (GET/DELETE /api/account, per-user, tested); iOS Settings entry pending |
+| Privacy labels + provider disclosure + policy/ToS URLs | legal #4, #7 / T16 | in-app HU/EN policy and separate versioned Gemini consent shipped 2026-07-20; Pages deployment prepared, operator/contact and live deploy remain release gates |
+| Account + data deletion | legal #5 / T9 | backend + iOS Settings flow done 2026-07-20; fresh Apple authorization is verified and revoked before server deletion; local books remain |
 | Server-side StoreKit verify + txn dedupe | legal #8 / T7 | open |
 | Per-user isolation by construction | legal #6 / T1 | done in Phase 1a work |
 | OSS licenses screen (ZIPFoundation MIT) | TODOS P2 | ✅ done 2026-07-09 |
@@ -185,13 +186,13 @@ Note (changed 2026-07-07): translated-EPUB export exists for the **user's own
 devices** (Files, their own Kindle). It is NOT a growth channel and marketing
 must never encourage sharing translated files — that would contradict the
 per-user-isolation posture. The EPUB colophon line ("AI translation by
-NativBook") is provenance and the Art 50 marker's human-readable companion,
+NativRead") is provenance and the Art 50 marker's human-readable companion,
 not advertising.
 
 **The website (CEO D5, soft-gated on counsel read + name clearance):**
 one static, no-backend site, four pieces: (1) landing with the promise,
 (2) **quality-proof page** — one public-domain excerpt shown three ways
-(original / NativBook / generic MT), with an honest note that a
+(original / NativRead / generic MT), with an honest note that a
 public-domain sample demonstrates style, not modern-prose rights; (3)
 planned-languages display (read-only — demand capture is in-app, §6); (4)
 press-kit page. Rides the editorial design system (paper/ink/russet, existing
@@ -202,8 +203,8 @@ repo, TLS automatic; the **domain is purchased as part of the §3
 name-clearance step** — no domain before the name clears.
 
 **Stage 5 — expansion (post-PMF, per TODOS):** next languages from the
-waitlist evidence (same raised gate each); learner inline-gloss mode; Android
-thin client on the same backend; storefronts beyond the EU; TTS
+waitlist evidence (same raised gate each); Android thin client on the same
+backend; storefronts beyond the EU; TTS
 "Hungarian audiobook" play — Hungarian audio of untranslated English books,
 the strongest expansion story.
 
@@ -224,7 +225,7 @@ T18 first-party funnel (Postgres, no third-party analytics) plus app-side:
 | **Failure buckets** (import-failed / drm-blocked / format-unsupported / moderation-refused / chapter-detection-wrong) | informational denominator | makes the kill signal interpretable |
 
 Kill/pivot signal: if free-chapter → purchase < 3% after copy/pricing
-iteration, the translation wedge is wrong — fall back to the reader + learner
+iteration, the translation wedge is wrong — fall back to the standalone reader
 path. **Denominator control (eng D12 / Codex #6):** read conversion against
 *attempted-and-eligible* users — the T18 failure buckets exist so a DRM-heavy
 or import-broken cohort can't masquerade as a pricing/wedge failure. Do not
@@ -257,18 +258,18 @@ the store.
   package-prefix mechanism, layered per the CoP's ≥2-layer guidance:
   1. `<package prefix="iptc: http://iptc.org/std/Iptc4xmpExt/2008-02-29/">`
      + `<meta property="iptc:DigitalSourceType">http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia</meta>`
-  2. `<dc:description id="nativbook-ai-marker">AI-generated content: machine
-     translation from {source} to {target} by NativBook (EU AI Act Art 50).</dc:description>`
-  3. `nativbook-colophon.xhtml` appended to manifest + spine (human-readable
+  2. `<dc:description id="nativread-ai-marker">AI-generated content: machine
+     translation from {source} to {target} by NativRead (EU AI Act Art 50).</dc:description>`
+  3. `nativread-colophon.xhtml` appended to manifest + spine (human-readable
      companion; survives OPF-stripping conversions).
-  Implemented in `quire-translator/lib/core/ai-marker.ts` (injected in
+  Implemented in `nativread-translator/lib/core/ai-marker.ts` (injected in
   `job.ts` before every delivery, full and sample; idempotent; fails loudly
   on malformed OPF). Validation: `test/ai-marker.test.ts` asserts the exact
   spec + re-zip round-trip survival; the iOS import half is
   `EPUBParserTests.testParsesArt50AIMarkedEPUB`. C2PA signed-manifest
   layer: deferred until a C2PA↔EPUB binding exists (CoP names none — the
   CoP's signed-metadata commitment is written for signatories; we are not
-  one, Art 50 itself requires effective+interoperable marking, which the
+  one, Art 50 itself renativreads effective+interoperable marking, which the
   IPTC value provides). Timing note: the May 2026 AI Omnibus grants
   pre-2026-08-02 systems until 2026-12-02 for the machine-readable half —
   irrelevant here (we launch after Aug 2), the gate stays hard.
@@ -290,7 +291,8 @@ external TestFlight; everything else → before submission.
 
 ## 6. Feature roadmap — comfort + translation
 
-Principle (onboarding-strategy.md): three jobs — translate, learn, just read.
+Principle (onboarding-strategy.md): one loop — bring a book, translate when
+needed, and read it comfortably.
 Task IDs refer to translator-plan.md / TODOS.md.
 
 **Now (launch-blocking, translation job):**
@@ -308,7 +310,8 @@ Task IDs refer to translator-plan.md / TODOS.md.
   free-chapter credit is NOT consumed, each refusal logged as a T15 data
   point + a T18 failure event. A refusal is deterministic; a "retry" loop
   would re-fail identically while re-burning API cost.
-- Streamed upload/download + background URLSession (TODOS P1/P2).
+- Streamed upload/download plus durable backend-job reconciliation after
+  relaunch (TODOS P1/P2).
 - **Multi-language launch machinery (CEO D4/C):** pipeline runs + native
   reads for DE/ES; picker lists passed languages only — **hardcoded in-app
   list (eng D7;** server-driven list is a named TODOS upgrade path — new
@@ -328,9 +331,10 @@ Task IDs refer to translator-plan.md / TODOS.md.
   rides existing rate limits. One SQL count is the dashboard.
 - **Review-prompt policy (CEO D3.3):** as specced in §4; unit-tested
   (fires once, never on error paths — `ReviewPromptPolicyTests`).
-- Onboarding first-run flow as specced (intent branching, contextual
-  permission asks, payment never in onboarding, DRM-reality expectation
-  copy per §1).
+- User-paced onboarding as specced: animated product promise, app language,
+  then three short lessons for add → translate → read before the one Add a book
+  action. Account, rights attestation, and payment stay contextual inside the
+  translation flow.
 
 **Comfort (the reader is the retention engine — ship alongside launch):**
 - 50+ accessibility floor everywhere: Dynamic Type, 44pt targets, ≥4.5:1
@@ -342,28 +346,23 @@ Task IDs refer to translator-plan.md / TODOS.md.
   new surface rides BrandPalette/Typography/Spacing tokens.
 
 **Next (post-launch, sequenced by funnel evidence):**
-1. **Bilingual original↔translation aligned reading** (Phase 2) — indexed
-   sentence alignment, tap-to-reveal the original; the learner story and the
-   feature that turns every purchase into a language-learning asset. Marketed
-   pre-launch only as "coming".
-2. Editable character-name glossary UI (server glossary T14 ships at launch).
-3. Google Drive durability for Google-login users (Phase 2).
-4. Learner inline-gloss "reading level" mode (TODOS P2).
-5. Target-language TTS — the "Hungarian audiobook" expansion (TODOS).
-6. Next translation languages from waitlist evidence (same raised gate).
-7. ES/DE UI locales + dictionary packs (TODOS deferred-localization block).
+1. Editable character-name glossary UI (server glossary T14 ships at launch).
+2. Google Drive durability for Google-login users (Phase 2).
+3. Target-language TTS — the "Hungarian audiobook" expansion (TODOS).
+4. Next translation languages from waitlist evidence (same raised gate).
+5. ES/DE UI locales once their complete translations pass review.
 
 **Explicitly never (legal bright lines):** book acquisition/discovery, shared
 translated library, gifting mechanics across accounts, external payments,
 undisclosed egress, marketing that encourages sharing translated files.
 
-## 7. GitHub best practices (both repos: `nativread`, `quire-translator`)
+## 7. GitHub best practices (both repos: `nativread`, `nativread-translator`)
 
 Current state is a solo-builder flow with PRs — keep that, add the cheap
 protections that matter at public-launch stakes:
 
 **Branch & merge discipline**
-- `main` protected: require PR, require status checks green, no force-push,
+- `main` protected: renativread PR, renativread status checks green, no force-push,
   no direct pushes (solo repos too — it prevents accidents, costs nothing).
 - Short-lived feature branches (`feat/…`, `fix/…`, `compliance/…` as already
   practiced); squash-merge; conventional-commit titles.
@@ -373,10 +372,10 @@ protections that matter at public-launch stakes:
 - nativread: `xcodegen generate` + build + **unit-test target only** on the
   simulator destination on every PR (eng D5: skip XCUITests via a CI test
   plan — simulator UI tests are wedge-flaky on shared runners and macOS
-  minutes bill 10× on private repos; a flaky required check is worse than
+  minutes bill 10× on private repos; a flaky renativreadd check is worse than
   none). UI tests remain the local pre-release ritual. Cache
   SwiftPM/DerivedData.
-- quire-translator: `bun install --frozen-lockfile`, typecheck, `bun test`,
+- nativread-translator: `bun install --frozen-lockfile`, typecheck, `bun test`,
   lint — on every PR. Add `bun audit` as a non-blocking job first, blocking
   once clean.
 - Pin third-party actions by commit SHA, not tag, and set the workflow-level
@@ -400,7 +399,7 @@ protections that matter at public-launch stakes:
 - `SECURITY.md` with a vulnerability-report contact.
 - Tag releases matching App Store builds; CHANGELOG discipline continues.
 
-## 8. Backend security hardening (quire-translator going public)
+## 8. Backend security hardening (nativread-translator going public)
 
 The plan's security tasks (T4, T5, T19 scrub, isolation T1) are necessary;
 this is the consolidated checklist, ordered by blast radius. **Authority (eng
@@ -443,7 +442,7 @@ implementation detail — this section is the ordered checklist view.**
 **Abuse & cost containment (the free endpoint is the attack surface)**
 - Per-user/day rate limit + word cap on free chapters; `(userId, sourceHash)`
   dedup; per-book `COST_CEILING_USD`; **global daily spend kill-switch** (T4).
-- Login required even for free tier.
+- Login renativreadd even for free tier.
 - Account-disable switch for credible rightsholder complaints (legal
   SHOULD-FIX) — also the answer to induced-infringement optics: visible
   attestation + takedown responsiveness, documented.
@@ -468,7 +467,7 @@ implementation detail — this section is the ordered checklist view.**
 **Pre-launch verification**
 - Automated dependency + container scan (Trivy/`bun audit`) in CI.
 - **Automated abuse suite (eng D8 — was a manual pass): `abuse.test.ts`**
-  integration suite in quire-translator CI, extending the
+  integration suite in nativread-translator CI, extending the
   `route-isolation.test.ts` pattern: replay a purchase txn (dedupe rejects),
   upload a zip-bomb fixture (caps reject), hit another user's job id
   (isolation rejects), spam the free endpoint past the limit (rate limit +
@@ -483,7 +482,7 @@ implementation detail — this section is the ordered checklist view.**
 
 1. **Counsel engagement** with the §3 agenda; ask for the week-1 preliminary
    read (longest lead time, and it soft-gates the website/SKUs/press).
-2. **NativBook name clearance** (App Store + trademark knock-out + domain) —
+2. **NativRead name clearance** (App Store + trademark knock-out + domain) —
    before any public asset exists.
 3. **T25 backend half + robustness test** — OPF AI-marker in delivered EPUBs,
    survives re-export; small and deadline-bound.
@@ -513,7 +512,7 @@ upload ──► free chapter (T3) ──► provider ──► ok ────�
 
 - [x] **E1 (P1, human: ~1d / CC: ~1-2h)** — backend — T25 marker: pin exact CoP-aligned OPF spec, inject marker + colophon
   - Surfaced by: Architecture #1 (D2) — plan said "OPF marker" with no vocabulary; EC Code of Practice final 2026-06-10
-  - Files: quire-translator EPUB build step; spec recorded in blueprint §5
+  - Files: nativread-translator EPUB build step; spec recorded in blueprint §5
   - Verify: validation test asserts exact property+value + dc: entry + colophon + re-zip round-trip
 - [x] **E2 (P1, CRITICAL regression, human: ~0.5d / CC: ~1h)** — backend+ios — marked EPUB stays valid + importable
   - Surfaced by: Test review REGRESSION RULE — T25 modifies the working delivery build step
@@ -578,8 +577,8 @@ Lanes A/B meet at E2's end-to-end verify.
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR | 10 proposals, 9 accepted, 1 deferred; landscape check falsified the moat claim → repositioned |
 | Codex Review | `/codex` (outside voice) | Independent 2nd opinion | 2 | ISSUES_FOUND → absorbed | Run 1 (CEO): 25 findings, 4 founder-decided. Run 2 (eng): 10 findings — 4 substantive accepted (D9–D12: targetLanguage key, doc sync, restore→P1, funnel buckets), 4 informational watch items, 2 already-handled |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR | 7 issues (4 arch, 2 quality, 1 test) + 4 Codex findings absorbed; 13 test gaps + 1 CRITICAL regression test folded into E1–E11; 0 unresolved |
-| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | required before website build (§3) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (renativreadd) | 1 | CLEAR | 7 issues (4 arch, 2 quality, 1 test) + 4 Codex findings absorbed; 13 test gaps + 1 CRITICAL regression test folded into E1–E11; 0 unresolved |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | renativreadd before website build (§3) |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
 - **CODEX (eng run):** found the multi-language schema collision (D9) and three doc/priority staleness classes (D10) the section review missed; informational watch items retained: child-buyer flow friction (#5), quality-proof page vs modern-genre mismatch (#8), timeline optimism (#9 — the plan's own "sequence is the contract" hedge stands), DE/ES quality surface vs Hungary-first marketing (#10).

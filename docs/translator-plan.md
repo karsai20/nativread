@@ -11,6 +11,13 @@ applies 2026-08-02) folded in 2026-07-06 as MUST-FIX #9 → task T25.
 > free-chapter moderation-refusal branch on T3, re-upload entitlement restore
 > promoted to P1, T18 failure-bucket events, T13/T14 relabeled P1. On conflict,
 > `blueprint.md` + this sync note win over older text below.
+>
+> **Product sync 2026-07-20:** learner inline glosses, custom dictionaries,
+> saved vocabulary, and reading statistics are no longer roadmap items. The
+> translator is the product wedge; the reader stays quiet and uses Apple's
+> native Look Up. Translation processing is already server-side and durable:
+> once a backend job ID exists, the app reconnects on relaunch/foreground and
+> downloads the finished EPUB. Upload before job creation remains foreground.
 
 ## CEO review decisions (2026-06-30, SELECTIVE EXPANSION)
 
@@ -24,7 +31,8 @@ These override the matching items below; see the CEO plan in
 - **D3.1 — Hungarian-only at launch.** **[SUPERSEDED 2026-07-07 by CEO D4/C:
   multi-language at launch with a raised per-language gate (full novel run +
   native-speaker read + dated go/no-go) — see blueprint.md §3.]**
-- **D3.2 — Learner inline-gloss mode → deferred to TODOS** (strong Phase 2 bet).
+- **D3.2 — Learner inline-gloss mode. [SUPERSEDED 2026-07-20: removed from the
+  roadmap.]**
 - **D3.3 — Keep iCloud/CloudKit durability (T13) in the launch MVP** (P2→P1) for the
   clean "book lives in the user's own cloud" legal-locker story.
 - **D4 — Pricing: value-anchored length ladder** (replaces "3 tiers"). 5-6
@@ -67,7 +75,7 @@ These override the matching items below; see the CEO plan in
   cloud: **iCloud (CloudKit private DB)** for Apple users now; **Google Drive**
   (`drive.file`) for Google users in Phase 2. This is both the cleanest legal
   posture and avoids re-running the API on reinstall.
-- **Reuse-first thin client:** the `quire-translator` Next.js server is already a
+- **Reuse-first thin client:** the `nativread-translator` Next.js server is already a
   job server (`upload / translate / status / result / job{pause,resume,cancel}`,
   per-chunk resume, `cost.ts` accounting, a `Translator` interface with
   `providers/{deepseek,fake}`). We **extend** it; we do not rebuild. The iOS app
@@ -79,7 +87,7 @@ These override the matching items below; see the CEO plan in
 ## Architecture
 
 ```
-iOS (thin client; Android/Kotlin later, same backend)   Backend (quire-translator, extended)
+iOS (thin client; Android/Kotlin later, same backend)   Backend (nativread-translator, extended)
 ──────────────────────────────────────────             ──────────────────────────────────────
 Sign in with Apple / Google ──id token──►  verify provider token → stable userId, session
 pick own EPUB → ownership attestation
@@ -95,7 +103,7 @@ sync to USER's cloud (iCloud/CloudKit)
                                             long-term server state = METADATA ONLY (no book content)
 ```
 
-## Backend work (extend quire-translator)
+## Backend work (extend nativread-translator)
 
 1. **Identity — Apple + Google.** Verify each provider's id token server-side
    (Apple: signature vs Apple keys, `aud`=bundle id, `iss`, expiry; Google: OAuth
@@ -130,7 +138,7 @@ sync to USER's cloud (iCloud/CloudKit)
      ID, lost file) stays the T17 P3 support path.
    - **Free-chapter abuse bounds:** real-first-content-chapter only +
      `(userId, sourceHash)` dedup + per-account/day rate limit + word-count cap +
-     login required.
+     login renativreadd.
 4. **Quota + cost ceiling + GLOBAL kill-switch (outside-voice #9).** Keep
    `COST_CEILING_USD` per book; add per-user/day limits **and a global daily
    spend kill-switch** — per-user caps don't bound aggregate spend across many
@@ -251,15 +259,15 @@ sync to USER's cloud (iCloud/CloudKit)
 
 ## What already exists (reuse, don't rebuild)
 
-- `quire-translator` core: `epub`, `chunker`, `markup`, `glossary`, `translator`
+- `nativread-translator` core: `epub`, `chunker`, `markup`, `glossary`, `translator`
   (with `Translator` interface + `providers/{deepseek,fake}`), `job` (per-chunk
   resume), `cost.ts` (token accounting), quality pipeline. Framework-agnostic.
-- `quire-translator` server: `upload/translate/status/result/job{pause,resume,
+- `nativread-translator` server: `upload/translate/status/result/job{pause,resume,
   cancel}` routes, in-memory job registry, Dockerfile.
 - NativRead iOS: `LibraryStore.importBook(from:)`, WKWebView reader, library/UI.
-- Gaps the plan adds (not in quire-translator): auth, per-user isolation,
+- Gaps the plan adds (not in nativread-translator): auth, per-user isolation,
   StoreKit/entitlements, ephemeral+user-cloud storage, PaaS durability, public
-  hardening. quire-translator's file/in-memory model is household-LAN; it does
+  hardening. nativread-translator's file/in-memory model is household-LAN; it does
   NOT transfer to public PaaS unchanged (see Arch review finding #3).
 
 ## UI / Design spec (from /plan-design-review, 2026-06-30)
@@ -311,7 +319,7 @@ Auto-import       | "Adding to library"| —                       | storage-ful
 Every error is user-visible with a recovery path; **paid-but-undelivered** surfaces an
 explicit "we're retrying / you'll be refunded" message, never a silent failure.
 
-### Accessibility floor (50+ persona — required, not deferred)
+### Accessibility floor (50+ persona — renativreadd, not deferred)
 
 Dynamic Type on all translator chrome; 44pt minimum targets; VoiceOver labels on every
 control (esp. the attestation checkbox and buy buttons); contrast ≥ 4.5:1 on body. The
@@ -381,7 +389,7 @@ Lanes A, B, C touch `lib/` / `app/api/` (same repo, coordinate); D is the iOS re
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR | SELECTIVE_EXP: 5 proposals, 3 accepted (compressed MVP, kept iCloud, funnel+Sentry), 2 deferred (multi-lang, learner mode); pricing resolved |
 | Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | CLEAR | Run 1: 5 findings + 12 outside-voice, dispositioned. Run 2 (post-CEO scope): 3 findings on new scope, all folded — Sentry scrub (T19a), tier determinism (T20a), funnel bounding (T18a) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (renativreadd) | 2 | CLEAR | Run 1: 5 findings + 12 outside-voice, dispositioned. Run 2 (post-CEO scope): 3 findings on new scope, all folded — Sentry scrub (T19a), tier determinism (T20a), funnel bounding (T18a) |
 | Design Review | `/plan-design-review` | UI/UX gaps | 1 | CLEAR | score 3/10 → 9/10; 3 decisions (progress leave-and-notify, 3-entry purchase, per-book attestation) + full UI/design spec added |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 

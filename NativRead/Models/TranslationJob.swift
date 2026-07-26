@@ -1,6 +1,23 @@
 import Foundation
 import NaturalLanguage
 
+enum TranslationTerms {
+    /// Change this whenever the accepted terms change materially. Existing
+    /// translations keep working, but a new upload asks for acceptance again.
+    static let currentVersion = "2026-07-22"
+    static let rightsAttestationVersion = "2026-07-22"
+
+    static let appleStandardEULAURL = URL(
+        string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+    )!
+}
+
+struct TranslationTermsAcceptance: Equatable {
+    let id: UUID
+    let acceptedAt: Date
+    let localeIdentifier: String
+}
+
 enum DetectedBookLanguage: Equatable {
     case language(code: String, name: String, confidence: Double)
     case unknown
@@ -145,6 +162,10 @@ struct TranslationJob: Codable, Equatable, Identifiable {
     var targetLanguage: TranslationTargetLanguage
     var phase: TranslationJobPhase
     var attestedAt: Date?
+    var acceptedTermsVersion: String?
+    var termsAcceptanceID: UUID?
+    var termsAcceptanceLocale: String?
+    var acceptedAIProcessingVersion: String?
     var estimatedPages: Int
     var priceTier: TranslationPriceTier
     var backendJobID: String?
@@ -158,6 +179,8 @@ struct TranslationJob: Codable, Equatable, Identifiable {
 
     private enum CodingKeys: String, CodingKey {
         case bookID, bookTitle, targetLanguage, phase, attestedAt
+        case acceptedTermsVersion, termsAcceptanceID, termsAcceptanceLocale
+        case acceptedAIProcessingVersion
         case estimatedPages, priceTier, backendJobID, activeRequestKind
         case previewCompletedAt, fullCompletedAt, translatedChunks
         case totalChunks, errorMessage, updatedAt
@@ -177,6 +200,18 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         ) ?? .hu
         phase = try c.decode(TranslationJobPhase.self, forKey: .phase)
         attestedAt = try c.decodeIfPresent(Date.self, forKey: .attestedAt)
+        acceptedTermsVersion = try c.decodeIfPresent(
+            String.self, forKey: .acceptedTermsVersion
+        )
+        termsAcceptanceID = try c.decodeIfPresent(
+            UUID.self, forKey: .termsAcceptanceID
+        )
+        termsAcceptanceLocale = try c.decodeIfPresent(
+            String.self, forKey: .termsAcceptanceLocale
+        )
+        acceptedAIProcessingVersion = try c.decodeIfPresent(
+            String.self, forKey: .acceptedAIProcessingVersion
+        )
         estimatedPages = try c.decode(Int.self, forKey: .estimatedPages)
         priceTier = try c.decode(
             TranslationPriceTier.self, forKey: .priceTier
@@ -209,6 +244,10 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         targetLanguage: TranslationTargetLanguage = .hu,
         phase: TranslationJobPhase = .draft,
         attestedAt: Date? = nil,
+        acceptedTermsVersion: String? = nil,
+        termsAcceptanceID: UUID? = nil,
+        termsAcceptanceLocale: String? = nil,
+        acceptedAIProcessingVersion: String? = nil,
         estimatedPages: Int,
         priceTier: TranslationPriceTier,
         backendJobID: String? = nil,
@@ -225,6 +264,10 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         self.targetLanguage = targetLanguage
         self.phase = phase
         self.attestedAt = attestedAt
+        self.acceptedTermsVersion = acceptedTermsVersion
+        self.termsAcceptanceID = termsAcceptanceID
+        self.termsAcceptanceLocale = termsAcceptanceLocale
+        self.acceptedAIProcessingVersion = acceptedAIProcessingVersion
         self.estimatedPages = estimatedPages
         self.priceTier = priceTier
         self.backendJobID = backendJobID

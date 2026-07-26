@@ -8,12 +8,18 @@ final class ReaderJourneyUITests: XCTestCase {
 
     override func setUp() {
         continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
         app = XCUIApplication()
         app.launchArguments = [
             "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding"
         ]
         app.launch()
+    }
+
+    override func tearDown() {
+        XCUIDevice.shared.orientation = .portrait
+        super.tearDown()
     }
 
     private func openSampleBook() {
@@ -60,6 +66,23 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["E. M. Voss"].exists)
     }
 
+    func testEmptyShelfHasOneImportAction() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-skipOnboarding"
+        ]
+        app.launch()
+
+        XCTAssertTrue(
+            app.buttons["library.import.empty"].waitForExistence(timeout: 10)
+        )
+        XCTAssertFalse(
+            app.buttons["library.import"].exists,
+            "the persistent bottom bar must stay hidden on an empty shelf"
+        )
+        XCTAssertFalse(app.buttons["library.translate"].exists)
+    }
+
     func testPageTurnAdvancesAndPersistsProgress() {
         openSampleBook()
         let initial = pageLabelValue
@@ -83,6 +106,53 @@ final class ReaderJourneyUITests: XCTestCase {
         let restored = NSPredicate(format: "label == %@", afterTurn)
         expectation(for: restored, evaluatedWith: label)
         waitForExpectations(timeout: 8)
+    }
+
+    func testLandscapeRelayoutKeepsPageReadableAndSwipeable() {
+        // Xcode 26 can acknowledge an in-app XCUIDevice rotation while the
+        // simulator window remains portrait. Launching from the requested
+        // orientation makes the test assert the real landscape geometry.
+        app.terminate()
+        XCUIDevice.shared.orientation = .landscapeLeft
+        app.launch()
+
+        let window = app.windows.firstMatch
+        let isLandscape = NSPredicate { object, _ in
+            guard let element = object as? XCUIElement else { return false }
+            return element.frame.width > element.frame.height
+        }
+        expectation(for: isLandscape, evaluatedWith: window)
+        waitForExpectations(timeout: 10)
+        openSampleBook()
+
+        let position = app.buttons["reader.position"]
+        XCTAssertTrue(position.waitForExistence(timeout: 10))
+        let text = app.webViews.staticTexts.element(boundBy: 2)
+        XCTAssertTrue(
+            text.waitForExistence(timeout: 10),
+            "chapter text should be repaginated and visible in landscape"
+        )
+        // The viewport update is intentionally debounced while rotation
+        // settles; wait for the new CSS rather than sampling the portrait
+        // frame that can remain visible for the first animation frame.
+        let clearsSensorHousing = NSPredicate { object, _ in
+            guard let element = object as? XCUIElement else { return false }
+            return element.frame.minX > 55
+        }
+        expectation(for: clearsSensorHousing, evaluatedWith: text)
+        waitForExpectations(timeout: 10)
+        XCTAssertGreaterThan(
+            text.frame.minX, 55,
+            "chapter text must clear the landscape sensor housing"
+        )
+
+        let pagesLeft = app.staticTexts["reader.chapterPagesLeft"]
+        XCTAssertTrue(pagesLeft.waitForExistence(timeout: 4))
+        let landscapeLabel = pagesLeft.label
+        app.webViews.firstMatch.swipeLeft(velocity: .fast)
+        let changed = NSPredicate(format: "label != %@", landscapeLabel)
+        expectation(for: changed, evaluatedWith: pagesLeft)
+        waitForExpectations(timeout: 10)
     }
 
     func testPositionNavigatorUsesAnAccessibleSlider() {
@@ -300,92 +370,20 @@ final class ReaderJourneyUITests: XCTestCase {
         )
     }
 
-    func testVocabularyEmptyStateOpensFromLibrary() {
-        app.terminate()
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
-            "-resetVocabulary", "-skipOnboarding"
-        ]
-        app.launch()
+    func testNativeLookUpRemainsAvailable() {
+        openSampleBook()
 
-        let button = app.buttons["library.vocabulary"]
-        XCTAssertTrue(button.waitForExistence(timeout: 10))
-        button.tap()
+        let text = app.webViews.staticTexts.element(boundBy: 2)
+        XCTAssertTrue(text.waitForExistence(timeout: 8))
+        text.press(forDuration: 1.2)
 
         XCTAssertTrue(
-            app.otherElements["vocabulary.sheet"]
-                .waitForExistence(timeout: 6)
-            || app.staticTexts["No saved words yet"]
-                .waitForExistence(timeout: 6),
-            "vocabulary sheet should present"
-        )
-        XCTAssertTrue(
-            app.staticTexts["No saved words yet"].exists,
-            "empty vocabulary should show the empty state"
+            app.menuItems["Look Up"].waitForExistence(timeout: 6),
+            "selection menu should preserve Apple's native Look Up action"
         )
     }
 
-    func testVocabularySeededEntryAndExportMenu() {
-        app.terminate()
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
-            "-resetVocabulary", "-seedSampleVocabulary", "-skipOnboarding"
-        ]
-        app.launch()
-
-        let button = app.buttons["library.vocabulary"]
-        XCTAssertTrue(button.waitForExistence(timeout: 10))
-        button.tap()
-
-        // The seeded word appears in the list.
-        XCTAssertTrue(
-            app.staticTexts["lantern"].waitForExistence(timeout: 6),
-            "seeded vocabulary word should be listed"
-        )
-
-        // The export menu is present and offers the three formats.
-        let export = app.buttons["vocabulary.export"]
-        XCTAssertTrue(export.waitForExistence(timeout: 6))
-        export.tap()
-        XCTAssertTrue(
-            app.buttons["CSV (Plain)"].waitForExistence(timeout: 6)
-        )
-        XCTAssertTrue(app.buttons["CSV (Cloze)"].exists)
-        XCTAssertTrue(app.buttons["Markdown"].exists)
-        // The native Anki deck export is offered alongside CSV/Markdown.
-        XCTAssertTrue(app.buttons["vocabulary.export.anki"].exists)
-
-        let shot = XCTAttachment(screenshot: app.screenshot())
-        shot.name = "vocabulary-export-menu"
-        shot.lifetime = .keepAlways
-        add(shot)
-    }
-
-    func testVocabularyKeepsSavedWordWithoutBundledDictionaryGloss() {
-        app.terminate()
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-resetLanguage",
-            "-seedSampleBook", "-resetVocabulary", "-seedSampleVocabulary",
-            "-forceLanguage", "hu",
-            "-skipOnboarding"
-        ]
-        app.launch()
-
-        let button = app.buttons["library.vocabulary"]
-        XCTAssertTrue(button.waitForExistence(timeout: 10))
-        button.tap()
-
-        XCTAssertTrue(
-            app.staticTexts["lantern"].waitForExistence(timeout: 6),
-            "seeded vocabulary word should be listed"
-        )
-        XCTAssertTrue(
-            app.staticTexts["Apple Dictionary"].waitForExistence(timeout: 6),
-            "saved vocabulary should record the native dictionary source"
-        )
-    }
-
-    func testTranslateSheetRequiresRightsAndAppleLoginBeforeFreeChapter() {
+    func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
         let button = app.buttons["library.translate"]
         XCTAssertTrue(button.waitForExistence(timeout: 10))
         button.tap()
@@ -403,9 +401,11 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
         XCTAssertFalse(freeChapter.isEnabled)
 
-        let attestation = app.buttons["translation.attestation"]
-        XCTAssertTrue(attestation.waitForExistence(timeout: 6))
-        attestation.tap()
+        let termsAcceptance = app.buttons["translation.termsAcceptance"]
+        XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
+        XCTAssertTrue(app.buttons["translation.terms.link"].exists)
+        XCTAssertFalse(app.buttons["translation.signInWithApple"].exists)
+        termsAcceptance.tap()
         XCTAssertFalse(freeChapter.isEnabled)
         XCTAssertTrue(
             app.buttons["translation.signInWithApple"]
@@ -431,9 +431,9 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(pickerBook.waitForExistence(timeout: 6))
         pickerBook.tap()
 
-        let attestation = app.buttons["translation.attestation"]
-        XCTAssertTrue(attestation.waitForExistence(timeout: 6))
-        attestation.tap()
+        let termsAcceptance = app.buttons["translation.termsAcceptance"]
+        XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
+        termsAcceptance.tap()
 
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(
@@ -441,6 +441,11 @@ final class ReaderJourneyUITests: XCTestCase {
             "a loopback backend should expose the debug-only test account"
         )
         localAccount.tap()
+
+        let fullBookDisclosure =
+            app.buttons["translation.fullBookDisclosure"]
+        XCTAssertTrue(fullBookDisclosure.waitForExistence(timeout: 6))
+        fullBookDisclosure.tap()
 
         let quote = app.buttons["translation.calculateQuote"]
         for _ in 0..<4 where !quote.exists {
@@ -464,11 +469,64 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         fullBook.tap()
 
+        let allowAI = app.buttons["translation.aiConsent.allow"]
+        XCTAssertTrue(
+            allowAI.waitForExistence(timeout: 6),
+            "translation must request explicit AI processing permission"
+        )
+        XCTAssertTrue(app.buttons["translation.aiConsent.privacy"].exists)
+        allowAI.tap()
+
         XCTAssertTrue(
             app.staticTexts[
                 "Full Hungarian translation was added as a separate library book."
             ].waitForExistence(timeout: 30),
             "the fake backend result should be consumed and imported by the app"
+        )
+    }
+
+    func testHungarianAIPermissionCanBeDeclinedBeforeUpload() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipOnboarding", "-forceLanguage", "hu",
+            "-translationBackendURL", "http://127.0.0.1:48218"
+        ]
+        app.launch()
+
+        XCTAssertTrue(
+            app.buttons["library.translate"].waitForExistence(timeout: 10)
+        )
+        app.buttons["library.translate"].tap()
+        app.buttons["translation.picker.The Lantern of Aldebaran"].tap()
+
+        let terms = app.buttons["translation.termsAcceptance"]
+        XCTAssertTrue(terms.waitForExistence(timeout: 6))
+        terms.tap()
+
+        let localAccount = app.buttons["translation.localTestAccount"]
+        XCTAssertTrue(localAccount.waitForExistence(timeout: 6))
+        localAccount.tap()
+
+        let freeChapter = app.buttons["translation.freeChapter"]
+        XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
+        XCTAssertTrue(freeChapter.isEnabled)
+        freeChapter.tap()
+
+        XCTAssertTrue(
+            app.buttons["translation.aiConsent.allow"]
+                .waitForExistence(timeout: 6)
+        )
+        XCTAssertTrue(app.staticTexts["Mielőtt fordítunk"].exists)
+        XCTAssertTrue(
+            app.buttons["AI-fordítás engedélyezése"].exists
+        )
+
+        app.buttons["translation.aiConsent.cancel"].tap()
+        XCTAssertTrue(
+            app.otherElements["translation.sheet"]
+                .waitForExistence(timeout: 6),
+            "declining AI processing must keep the offline app usable"
         )
     }
 
@@ -485,4 +543,5 @@ final class ReaderJourneyUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(entry.waitForExistence(timeout: 6))
     }
+
 }

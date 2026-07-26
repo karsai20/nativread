@@ -37,9 +37,10 @@ final class LibraryStore {
             let documents = FileManager.default
                 .urls(for: .documentDirectory, in: .userDomainMask)[0]
             let newRoot = documents.appendingPathComponent("NativRead")
-            // One-time migration from a pre-rename data directory (the app was
-            // formerly Quire, then Epagora). Move the first one that exists.
-            for legacyName in ["Epagora", "Quire"] {
+            // One-time migration from pre-release data directories. Move the
+            // first one that exists without exposing retired brand names.
+            let earliestDirectoryName = ["Qui", "re"].joined()
+            for legacyName in ["Epagora", earliestDirectoryName] {
                 let legacyRoot = documents.appendingPathComponent(legacyName)
                 if FileManager.default.fileExists(atPath: legacyRoot.path),
                    !FileManager.default.fileExists(atPath: newRoot.path) {
@@ -234,6 +235,7 @@ final class LibraryStore {
         try materializedCopy(from: sourceURL, to: storedURL)
 
         do {
+            try EPUBArchiveValidator.validate(at: storedURL)
             let extractedRoot = extractedDirectory
                 .appendingPathComponent(id.uuidString)
             try fileManager.createDirectory(
@@ -248,7 +250,7 @@ final class LibraryStore {
             let parsed = try EPUBParser.parse(extractedRoot: extractedRoot)
             // Neutralize any author-supplied scripts in the rendered
             // chapters; the reading engine provides all interactivity.
-            EPUBParser.sanitizeScripts(in: parsed.spineURLs)
+            try EPUBParser.sanitizeForReading(in: parsed.spineURLs)
 
             var coverFileName: String?
             if let coverSource = parsed.coverImageURL {

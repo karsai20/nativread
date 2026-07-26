@@ -5,27 +5,39 @@ import UIKit
 /// `library.json`) is exercised. Written to the temp directory.
 enum SampleDocuments {
 
-    static func makePDF() -> URL? {
+    static func makePDF(languageCode: String? = nil) -> URL? {
+        let isHungarian = languageCode == "hu"
+        let title = isHungarian ? "Minta PDF" : "Sample PDF"
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
-            kCGPDFContextTitle as String: "Sample PDF",
+            kCGPDFContextTitle as String: title,
             kCGPDFContextAuthor as String: "NativRead"
         ]
         let bounds = CGRect(x: 0, y: 0, width: 612, height: 792)
         let renderer = UIGraphicsPDFRenderer(bounds: bounds, format: format)
         let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Sample PDF.pdf")
-        let body = String(
-            repeating: "This is sample PDF body text used to verify fixed-"
+            .appendingPathComponent("\(title).pdf")
+        let sentence = isHungarian
+            ? "Ez a minta PDF törzsszövege, amellyel a rögzített "
+                + "oldalelrendezést, a színeket megőrző éjszakai módot, "
+                + "a keresést és a natív szövegkijelölést ellenőrizzük. "
+            : "This is sample PDF body text used to verify fixed-"
                 + "layout paging, the hue-preserving night invert, search "
-                + "and tap-to-define. ",
+                + "and native text selection. "
+        let body = String(
+            repeating: sentence,
             count: 14
         ) as NSString
         do {
             try renderer.writePDF(to: url) { context in
                 for page in 1...3 {
                     context.beginPage()
-                    ("Chapter \(page)" as NSString).draw(
+                    let chapterTitle = (
+                        isHungarian
+                            ? "\(page). fejezet"
+                            : "Chapter \(page)"
+                    ) as NSString
+                    chapterTitle.draw(
                         at: CGPoint(x: 60, y: 80),
                         withAttributes: [.font: UIFont.boldSystemFont(ofSize: 30)]
                     )
@@ -56,7 +68,7 @@ enum SampleDocuments {
         because it is wrapped into a synthesized chapter.
 
         This is a second paragraph. Selecting a word such as lantern offers \
-        Define, just like an EPUB.
+        the native iOS text menu, just like an EPUB.
         """
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("Sample Text.txt")

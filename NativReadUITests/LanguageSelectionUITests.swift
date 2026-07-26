@@ -1,98 +1,251 @@
 import XCTest
 
-/// Verifies the language-selection onboarding step: the picker appears after
-/// the splash, options are tappable, and the confirmed language is persisted
-/// so a relaunch goes straight to the library.
-///
-/// Mirrors `OnboardingLaunchUITests` in structure and launch-argument style.
+/// Verifies the language-aware first-run experience. The iPhone language is
+/// suggested automatically, while English and Magyar remain visible directly
+/// on the welcome screen so the user can confirm or change it immediately.
 final class LanguageSelectionUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
     override func setUp() {
         continueAfterFailure = false
+        XCUIDevice.shared.orientation = .portrait
         app = XCUIApplication()
     }
 
-    // MARK: - Picker appearance
+    override func tearDown() {
+        XCUIDevice.shared.orientation = .portrait
+        super.tearDown()
+    }
 
-    /// After the brand splash auto-dismisses, the language picker must appear.
-    func testLanguagePickerAppearsAfterSplash() {
-        app.launchArguments = [
+    private var baseArguments: [String] {
+        [
             "-resetLibrary", "-resetSettings", "-resetLanguage",
             "-forceOnboarding", "-seedSampleBook"
         ]
-        app.launch()
+    }
 
-        // The continue button anchors all four language rows.
+    private func launchOnboarding(extraArguments: [String] = []) {
+        app.launchArguments = baseArguments + extraArguments
+        app.launch()
+    }
+
+    private func openTour(language: String? = nil) {
+        if let language {
+            let languageButton = app.buttons[
+                "onboarding.welcome.language.\(language)"
+            ]
+            XCTAssertTrue(languageButton.waitForExistence(timeout: 10))
+            languageButton.tap()
+        }
+
+        let start = app.buttons["onboarding.welcome.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 10))
+        start.tap()
         XCTAssertTrue(
-            app.buttons["onboarding.language.continue"]
-                .waitForExistence(timeout: 15),
-            "language picker continue button should appear after the splash"
+            app.buttons["onboarding.tour.next"].waitForExistence(timeout: 8)
         )
     }
 
-    // MARK: - Language rows are present
+    private func completeTour() {
+        let next = app.buttons["onboarding.tour.next"]
+        XCTAssertTrue(next.waitForExistence(timeout: 8))
+        next.tap()
 
-    func testAllFourLanguageRowsAreVisible() {
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-resetLanguage",
-            "-forceOnboarding", "-seedSampleBook"
-        ]
-        app.launch()
+        let progress = app.staticTexts["onboarding.tour.progress"]
+        expectation(
+            for: NSPredicate(format: "label CONTAINS '2'"),
+            evaluatedWith: progress
+        )
+        waitForExpectations(timeout: 4)
+        next.tap()
+
+        let finish = app.buttons["onboarding.tour.finish"]
+        XCTAssertTrue(finish.waitForExistence(timeout: 5))
+        finish.tap()
+    }
+
+    private func keepScreenshot(_ name: String) {
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    func testLanguageChoiceIsEmbeddedInWelcome() {
+        launchOnboarding(extraArguments: ["-forceLanguage", "en"])
 
         XCTAssertTrue(
-            app.buttons["onboarding.language.continue"]
-                .waitForExistence(timeout: 15)
+            app.staticTexts["onboarding.welcome.title"]
+                .waitForExistence(timeout: 10)
+        )
+        XCTAssertTrue(
+            app.buttons["onboarding.welcome.language.en"].exists
+        )
+        XCTAssertTrue(
+            app.buttons["onboarding.welcome.language.hu"].exists
+        )
+        XCTAssertFalse(
+            app.buttons["onboarding.language.continue"].exists,
+            "there must be no separate language screen"
         )
 
-        // Only the fully-translated, dictionary-backed languages are offered.
+        app.buttons["onboarding.welcome.language.hu"].tap()
+        let start = app.buttons["onboarding.welcome.start"]
+        expectation(
+            for: NSPredicate(format: "label == %@", "Mutasd, hogyan működik"),
+            evaluatedWith: start
+        )
+        waitForExpectations(timeout: 5)
+    }
+
+    func testDeviceLanguageStartsWelcomeInHungarian() {
+        launchOnboarding(extraArguments: [
+            "-AppleLanguages", "(hu)",
+            "-AppleLocale", "hu_HU"
+        ])
+
+        let title = app.staticTexts["onboarding.welcome.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertEqual(
+            title.label,
+            "A könyveid, mostantól a saját nyelveden."
+        )
+        XCTAssertEqual(
+            app.buttons["onboarding.welcome.start"].label,
+            "Mutasd, hogyan működik"
+        )
+        XCTAssertTrue(
+            app.buttons["onboarding.welcome.language.hu"].exists
+        )
+    }
+
+    func testOnlyFullyLocalizedLanguagesAreOffered() {
+        launchOnboarding()
+
         for code in ["en", "hu"] {
             XCTAssertTrue(
-                app.otherElements["onboarding.language.\(code)"].exists
-                || app.staticTexts["onboarding.language.\(code)"].exists,
-                "language row for '\(code)' must be visible"
+                app.buttons["onboarding.welcome.language.\(code)"]
+                    .waitForExistence(timeout: 10),
+                "language choice for '\(code)' must be visible"
             )
         }
-        // es/de are withheld from the picker until fully translated.
         for code in ["es", "de"] {
             XCTAssertFalse(
-                app.otherElements["onboarding.language.\(code)"].exists
-                || app.staticTexts["onboarding.language.\(code)"].exists,
-                "language row for '\(code)' must NOT be offered yet"
+                app.buttons["onboarding.welcome.language.\(code)"].exists,
+                "incomplete language '\(code)' must not be offered"
             )
         }
     }
 
-    // MARK: - Selecting a language and confirming
+    func testWalkthroughExplainsTheThreeCoreSteps() {
+        launchOnboarding(extraArguments: ["-forceLanguage", "en"])
+        openTour(language: "en")
 
-    /// Tap Magyar (hu) and confirm — the library should appear and the splash
-    /// wordmark must be gone.
-    func testSelectMagyarAndContinue() {
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-resetLanguage",
-            "-forceOnboarding", "-seedSampleBook"
-        ]
-        app.launch()
+        let title = app.staticTexts["onboarding.tour.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 8))
+        XCTAssertEqual(title.label, "Choose a book from your iPhone")
+        keepScreenshot("onboarding-01-add-book")
 
+        app.buttons["onboarding.tour.next"].tap()
+        expectation(
+            for: NSPredicate(
+                format: "label == %@",
+                "Let NativRead bring it into your language"
+            ),
+            evaluatedWith: title
+        )
+        waitForExpectations(timeout: 5)
+        keepScreenshot("onboarding-02-translate")
+
+        app.buttons["onboarding.tour.next"].tap()
+        expectation(
+            for: NSPredicate(
+                format: "label == %@",
+                "Read in comfort, at your own pace"
+            ),
+            evaluatedWith: title
+        )
+        waitForExpectations(timeout: 5)
+        keepScreenshot("onboarding-03-read")
         XCTAssertTrue(
-            app.buttons["onboarding.language.continue"]
-                .waitForExistence(timeout: 15)
+            app.buttons["onboarding.tour.finish"].waitForExistence(timeout: 4)
+        )
+    }
+
+    func testTourBackReturnsToLanguageAwareWelcome() {
+        launchOnboarding(extraArguments: ["-forceLanguage", "en"])
+        openTour(language: "hu")
+
+        app.buttons["onboarding.tour.back"].tap()
+
+        let title = app.staticTexts["onboarding.welcome.title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 8))
+        XCTAssertEqual(
+            title.label,
+            "A könyveid, mostantól a saját nyelveden."
+        )
+        XCTAssertTrue(
+            app.buttons["onboarding.welcome.language.hu"].exists
+        )
+    }
+
+    func testOnboardingRemainsUsableInLandscape() {
+        launchOnboarding()
+        XCUIDevice.shared.orientation = .landscapeLeft
+
+        XCTAssertGreaterThan(app.frame.width, app.frame.height)
+        XCTAssertTrue(
+            app.buttons["onboarding.welcome.language.hu"]
+                .waitForExistence(timeout: 10)
         )
 
-        // Tap the Magyar row.
-        let huRow = app.otherElements["onboarding.language.hu"]
-        if huRow.exists {
-            huRow.tap()
-        }
+        let start = app.buttons["onboarding.welcome.start"]
+        XCTAssertTrue(start.isHittable)
+        start.tap()
 
-        // Tap Continue.
-        app.buttons["onboarding.language.continue"].tap()
+        let next = app.buttons["onboarding.tour.next"]
+        XCTAssertTrue(next.waitForExistence(timeout: 8))
+        let title = app.staticTexts["onboarding.tour.title"]
+        XCTAssertTrue(title.exists)
+        XCTAssertGreaterThan(
+            title.frame.minX,
+            app.frame.midX,
+            "landscape should place the explanation beside the illustration"
+        )
+        XCTAssertTrue(next.isHittable)
+    }
 
-        // Splash wordmark must be gone; library must appear.
+    func testOnboardingRemainsUsableWithAccessibilityText() {
+        launchOnboarding(extraArguments: [
+            "-UIPreferredContentSizeCategoryName",
+            "UICTContentSizeCategoryAccessibilityXXL"
+        ])
+
+        let hungarian = app.buttons["onboarding.welcome.language.hu"]
+        XCTAssertTrue(hungarian.waitForExistence(timeout: 10))
+        XCTAssertTrue(hungarian.isHittable)
+        keepScreenshot("onboarding-accessibility-welcome")
+        hungarian.tap()
+
+        let start = app.buttons["onboarding.welcome.start"]
+        XCTAssertTrue(start.isHittable)
+        start.tap()
+
+        let next = app.buttons["onboarding.tour.next"]
+        XCTAssertTrue(next.waitForExistence(timeout: 8))
+        XCTAssertTrue(next.isHittable)
+        keepScreenshot("onboarding-accessibility-text")
+    }
+
+    func testSelectMagyarAndContinue() {
+        launchOnboarding(extraArguments: ["-forceLanguage", "en"])
+        openTour(language: "hu")
+        completeTour()
+
         XCTAssertFalse(
             app.staticTexts["onboarding.wordmark"].exists,
-            "splash wordmark must not be visible after language confirmation"
+            "welcome must be gone after onboarding completes"
         )
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
@@ -101,85 +254,48 @@ final class LanguageSelectionUITests: XCTestCase {
         )
     }
 
-    // MARK: - Persistence — relaunch skips picker
+    func testRelaunchWithoutForceSkipsOnboarding() {
+        launchOnboarding()
+        openTour()
+        completeTour()
 
-    /// After confirming a language selection the onboarding flag is set.
-    /// A subsequent launch (without -forceOnboarding) must skip both the
-    /// splash and the language picker and go straight to the library.
-    func testRelaunchwithoutForceSkipsPicker() {
-        // First launch: complete onboarding.
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-resetLanguage",
-            "-forceOnboarding", "-seedSampleBook"
-        ]
-        app.launch()
-
-        XCTAssertTrue(
-            app.buttons["onboarding.language.continue"]
-                .waitForExistence(timeout: 15)
-        )
-        app.buttons["onboarding.language.continue"].tap()
-
-        // Wait for library to appear.
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10)
         )
-        expectation(
-            for: NSPredicate(format: "hittable == false"),
-            evaluatedWith: app.buttons["onboarding.language.continue"]
-        )
-        waitForExpectations(timeout: 2)
         app.terminate()
 
-        // Second launch: no force flags — must skip onboarding entirely.
         app.launchArguments = ["-seedSampleBook"]
         app.launch()
 
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
-                .waitForExistence(timeout: 10),
-            "library should appear directly on relaunch — no onboarding"
+                .waitForExistence(timeout: 10)
         )
+        XCTAssertFalse(app.staticTexts["onboarding.wordmark"].exists)
         XCTAssertFalse(
-            app.staticTexts["onboarding.wordmark"].exists,
-            "splash wordmark must not appear on relaunch"
-        )
-        XCTAssertFalse(
-            app.buttons["onboarding.language.continue"].isHittable,
-            "language picker must not be interactable on relaunch"
+            app.buttons["onboarding.welcome.language.hu"].exists
         )
     }
 
-    // MARK: - forceLanguage hook
-
-    /// `-forceLanguage hu` must wire the Hungarian locale without persisting.
-    /// This doesn't exercise the picker UI but validates the launch hook used
-    /// by future screenshot-automation runs.
     func testForceLanguageHookDoesNotPersist() {
         app.launchArguments = [
             "-resetLibrary", "-skipOnboarding", "-resetLanguage",
-            "-forceLanguage", "hu",
-            "-seedSampleBook"
+            "-forceLanguage", "hu", "-seedSampleBook"
         ]
         app.launch()
 
-        // Library must appear (onboarding is skipped).
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10)
         )
         app.terminate()
 
-        // Second launch with no forceLanguage — should revert to system default.
         app.launchArguments = ["-skipOnboarding", "-seedSampleBook"]
         app.launch()
-
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10)
         )
-        // We can't assert on the exact locale here without inspecting strings,
-        // but the app must not crash and must reach the library.
     }
 }

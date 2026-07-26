@@ -1,92 +1,102 @@
-# NativBook Adatkezelési Tájékoztató
+# NativRead Adatkezelési Tájékoztató
 
-**VÁZLAT — jogi átvizsgálásra vár. Még nem publikált.**
-Hatályos: [[EFFECTIVE_DATE]] · 0.1 verzió
+**VÁZLAT — jogi átvizsgálásra vár.**
+Hatályos: 2026. július 22. · 1.2 verzió
 
-A NativBook egy e-könyv-olvasó, választható AI-fordítási szolgáltatással. Ez a
-tájékoztató elmagyarázza, milyen adatot kezelünk, miért, meddig, és milyen
-jogaid vannak. Röviden: **az olvasó teljes egészében a készülékeden működik; a
-fordítószolgáltatás csak addig ér a könyvedhez, amíg a fordítás tart; nálunk
-metaadat marad, könyv soha.**
+Az olvasás alapból magánügy. A könyveid a készülékeden maradnak, hacsak
+tudatosan nem indítasz AI-fordítást. Ez a tájékoztató elmagyarázza, milyen
+adatot kezelünk, miért, meddig és milyen döntéseid vannak.
 
 ## 1. Ki az adatkezelő
 
-Adatkezelő: **[[OPERATOR_NAME]]**, [[OPERATOR_ADDRESS]].
-Kapcsolat: [[CONTACT_EMAIL]].
+Az adatkezelő: **[[OPERATOR_NAME]]**, [[OPERATOR_ADDRESS]].
+Kapcsolat: [[CONTACT_EMAIL]]. Az aktuális támogatási adatok a NativRead
+App Store-termékoldalán is elérhetők.
 
-## 2. Amit az app NEM gyűjt
+## 2. Privát, offline olvasás
 
-- Maga az olvasó (importálás, olvasás, kiemelések, szótár, beállítások)
-  **offline** működik. Az importált könyveid nem hagyják el a készüléked,
-  hacsak nem indítasz fordítást.
-- **Nincs analitikai vagy hirdetési SDK** az appban. Semmilyen külső követő
-  nem fut benne.
-- Személyes adatot hirdetési célra soha nem adunk el és nem osztunk meg.
+- Az importálás, az olvasás, a kiemelések, az Apple Look Up és az olvasási
+  beállítások helyben működnek.
+- A NativRead nem tartalmaz hirdetési vagy analitikai SDK-t, nem értékesít
+  személyes adatot.
+- A könyv csak akkor hagyja el a készülékedet, amikor AI-fordítást indítasz.
 
-## 3. Mit kezelünk, ha a fordítószolgáltatást használod
+## 3. A fordításhoz kezelt adatok
 
 | Adat | Cél | Megőrzés |
 |---|---|---|
-| Bejelentkezési azonosító (Apple vagy Google token → belső felhasználó-azonosító) | fiók, vásárlások, visszaélés-megelőzés | a fiók törléséig |
-| A feltöltött könyvfájl | a fordítás elvégzése | **a fordítás elkészültekor törlődik** |
-| A lefordított könyv | kézbesítés a készülékedre | **kézbesítéskor törlődik** (max. 14 napig őrizzük, ha a készüléked nem elérhető; abszolút plafon 30 nap) |
-| Vásárlási adatok (Apple tranzakció-azonosító, könyv-ujjlenyomat, célnyelv, ársáv) | a megvásárolt szolgáltatás biztosítása és helyreállítása | a fiók törléséig |
-| Szolgáltatási események (pl. „fordítás elindult/meghiúsult", hibakategória, nyelvi várólista-jelölés) | a szolgáltatás működtetése, hibajavítás | gördülő ablakban törölve; csak metaadat, könyvszöveg soha |
+| Az Apple-lel történő bejelentkezés állandó fiókazonosítója | fiókhitelesítés, jogosultságok, visszaélés-megelőzés | a fiók törléséig |
+| A feltöltött EPUB és választott célnyelv | a fordítás elkészítése | sikeres kézbesítéskor törlődik; megszakadt feldolgozásnál legfeljebb 30 nap |
+| A lefordított könyv | kézbesítés a készülékedre | kézbesítéskor törlődik; megszakadt kézbesítésnél legfeljebb 30 nap |
+| A könyv technikai ujjlenyomata, fordítási állapot, vásárlási és jogosultsági adatok | hozzáférés-helyreállítás, kézbesítés, visszaélés-megelőzés, szolgáltatásüzemeltetés | a fiók törléséig, illetve ameddig jogszabály előírja |
+| Álneves fiókazonosító, könyvujjlenyomat, elfogadásazonosító, kliens- és szerveridőpont, nyelv, módszer, nyilatkozat- és feltételverzió, archivált feltétel URL | az aktív Felhasználási Feltétel-elfogadás bizonyítása | a fiók törléséig, illetve jogi igény esetén a szükséges ideig |
 
-A „könyv-ujjlenyomat" a fájl technikai lenyomata — arra való, hogy ugyanazt a
-könyvet felismerjük (pl. vásárlás-helyreállításnál) anélkül, hogy magát a
-könyvet tárolnánk.
+A NativRead nem kéri el az Apple-től a nevedet vagy az e-mail-címedet. A
+könyv technikai ujjlenyomata segít felismerni ugyanazt a fájlt anélkül, hogy
+magát a könyvet tartósan tárolnánk.
 
-## 4. Adatfeldolgozóink
+## 4. AI- és egyéb szolgáltatók
 
-- **Apple** — bejelentkezés és alkalmazáson belüli vásárlás (saját adatvédelmi
-  feltételeik szerint).
-- **[[AI_PROVIDER]]** — a gépi fordítást végzi. A könyv szövege
-  adatfeldolgozási megállapodás alapján kerül hozzá; **a modelljeik tanítására
-  nem használják**, a feldolgozás EU/US régióban történik
-  ([[AI_PROVIDER_DPA_URL]]).
-- **[[HOSTING_PROVIDER]]** — a szerverünket futtatja (régió: EU).
-- **[[ERROR_MONITOR]]** — szerveroldali hibafigyelés. A hibajelentések
-  szűrtek: könyvszöveget nem tartalmaznak, személyed csak hashelt
-  azonosítóként jelenik meg.
+Külön engedélyed után a könyv szövegét a **Google Gemini API**, egy külső
+AI-szolgáltatás kapja meg a fordítás elkészítéséhez. A fizetős API a kéréseket
+és válaszokat nem használja Google-termékek vagy modellek fejlesztésére. A
+Google visszaélés-felismerés és kötelező jogi adatszolgáltatás céljából
+korlátozott ideig megőrizheti őket. Részletek: [Google Gemini API
+feltételek](https://ai.google.dev/gemini-api/terms).
 
-Mindegyikkel adatfeldolgozási megállapodásunk van. Ha a lista változik, a
-változás előtt frissítjük ezt a tájékoztatót.
+Az Apple a saját feltételei szerint kezeli a bejelentkezési és alkalmazáson
+belüli vásárlási adatokat. A NativRead tárhely- és futtatási szolgáltatója a
+**Cloudflare**. A könyvfájlok R2-tárhelye, a D1-metaadatbázis és a
+fordítókonténerek EU-joghatósághoz kötöttek; a titkosított kérés Cloudflare
+globális peremhálózatán haladhat át. A Cloudflare és az AI-szolgáltató
+kizárólag a szolgáltatás biztosításához dolgozhatja fel az adatokat, legalább
+az itt leírt védelemmel.
 
-## 5. Nemzetközi adattovábbítás
+## 5. Jogalapok
 
-Ahol a feldolgozás az EGT-n kívül történik (pl. [[AI_PROVIDER]] US-régió), azt
-az EU–US Data Privacy Framework és/vagy általános szerződési feltételek (SCC)
-fedik.
+- Szerződés teljesítése: fiók, fordítás, vásárlás és kézbesítés.
+- Hozzájárulás: a könyv szövegének külső AI-szolgáltatóhoz továbbítása. Ezt
+  elutasíthatod; az offline olvasót továbbra is használhatod.
+- Jogos érdek: visszaélés-megelőzés és a szolgáltatás megbízható működtetése.
+- Jogi kötelezettség: a kötelező adózási és számviteli nyilvántartások.
 
-## 6. Jogalapok (GDPR)
+## 6. Megőrzés és fióktörlés
 
-- Szerződés teljesítése (6. cikk (1) b)): fiók, fordítás, vásárlás,
-  kézbesítés.
-- Jogos érdek (6. cikk (1) f)): visszaélés-megelőzés, sebességkorlátozás,
-  működés-megbízhatósági figyelés.
-- Jogi kötelezettség (6. cikk (1) c)): a vásárlások számviteli bizonylatai.
+A forrás- és a lefordított szerverpéldány a sikeres kézbesítés után törlődik.
+A normál automatikus lejárat 24 óra; külön tárhelyi biztonsági szabály
+biztosítja, hogy rendellenes megszakadás után se maradjon objektum 30 napnál
+tovább.
+
+A fordítási fiókot a **Beállítások → Fiók → Fiók törlése** útvonalon
+törölheted. Az Apple-fiók újbóli megerősítése után visszavonjuk az Apple-lel
+történő bejelentkezést, és végleg eltávolítjuk a szerveroldali fiókot, a
+fordítási feladatokat, a jogosultságokat és a kapcsolódó adatokat, amelyeket
+jogszabály alapján nem kell megőriznünk. A helyi könyvtáradban lévő könyveket
+a fióktörlés nem távolítja el. A törlés után a korábbi vásárlások
+helyreállíthatósága megszűnik.
 
 ## 7. Jogaid
 
-Az appban: **Beállítások → Fiók** alatt **exportálhatod az adataidat** és
-**törölheted a fiókodat** — a törlés azonnal eltávolítja a fiókod, a
-jogosultsági metaadatokat és minden tárolt fájlt. Emellett megilletnek a GDPR
-szerinti jogok (hozzáférés, helyesbítés, törlés, korlátozás, hordozhatóság,
-tiltakozás) — írj a [[CONTACT_EMAIL]] címre. Panaszt a NAIH-nál tehetsz
-(naih.hu).
+Az AI-feldolgozást elutasíthatod, és az offline olvasót ettől továbbra is
+használhatod. A jövőbeli AI-feldolgozási engedélyeket a **Beállítások →
+Adatvédelmi beállítások → AI-engedélyek törlése** útvonalon vonhatod vissza.
+Ez a már a kérésedre elkezdett vagy befejezett feldolgozást nem teszi
+semmissé; egy későbbi fordítás előtt az app újra engedélyt kér.
 
-## 8. AI-átláthatóság (EU AI-rendelet)
+Az alkalmazandó jogtól függően kérhetsz hozzáférést, helyesbítést, törlést,
+korlátozást és adathordozhatóságot, illetve tiltakozhatsz az adatkezelés ellen
+a [[CONTACT_EMAIL]] címen. Panaszt a lakóhelyed szerinti felügyeleti
+hatóságnál tehetsz; Magyarországon ez a NAIH.
 
-A fordításokat mesterséges intelligencia készíti. A lefordított könyveket az
-app láthatóan jelöli, és a fájl géppel olvasható jelölést is hordoz, ahogy azt
-az EU AI-rendelet 50. cikke előírja.
+## 8. Biztonság és életkor
 
-## 9. Gyermekek
+A munkamenet az iOS Kulcskarikában tárolódik, a fordítási kérések
+hitelesített kapcsolaton mennek. A fordítószolgáltatás felnőtteknek szól, és
+tudatosan nem hoz létre fordítási fiókot 18 év alattiaknak.
 
-A NativBook nem 16 év alattiaknak szól, tudatosan nem kezeljük az adataikat.
+## 9. Változások
 
-## 10. Változások
-
-A módosításokat a [[POLICY_URL]] címen tesszük közzé új hatálydátummal;
-lényeges változásról az appban is szólunk.
+Az AI-adatkezelés lényeges változásához új engedélyt kérünk az appban. A
+hatálybalépési dátumot és a verziót minden lényeges módosításkor frissítjük.
+A közzétett változat címe:
+https://nativread.com/privacy/.

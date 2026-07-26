@@ -1,7 +1,7 @@
 # TODOS
 
 Deferred work, captured so vague intentions don't get lost.
-Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/projects/karsai20-quire/).
+Source: /plan-ceo-review 2026-06-22 (see design doc + CEO plan in ~/.gstack/projects/karsai20-nativread/).
 
 ## Legal & compliance (EU AI Act + licensing)
 
@@ -13,13 +13,15 @@ posture live in `docs/legal-posture.md`; these are the buildable gaps.
   via the OPF prefix mechanism + `dc:description` marker + colophon spine page
   into every delivered EPUB (full and sample), idempotent, fails loudly.
   Pinned spec recorded in `docs/blueprint.md` §5; validation in
-  `quire-translator/test/ai-marker.test.ts`; iOS import regression in
+  `nativread-translator/test/ai-marker.test.ts`; iOS import regression in
   `EPUBParserTests.testParsesArt50AIMarkedEPUB`.
 - [x] **Explicit "AI-translated" user-facing label.** DONE 2026-07-06 —
   imported translations now read "(AI Hungarian preview)" / "(AI Hungarian
   translation)" and the library badge is "AI · HU"; marks *AI*, not just
   language (EU AI Act Art 50 visible-transparency floor). The pre-translation
-  disclosure copy (legal MUST-FIX #4 / plan T16) is still separate.
+  disclosure is now a separate, versioned permission shown before third-party
+  AI processing; the backend also rejects missing, stale, or provider-
+  mismatched permission. **Completed:** 2026-07-20.
   v3.2.1 follow-up: translation-sheet copy also says "AI", and titles of
   variants imported before the labels are migrated on load.
 - [x] **OSS acknowledgements screen.** DONE 2026-07-09 — Settings → About
@@ -33,25 +35,18 @@ posture live in `docs/legal-posture.md`; these are the buildable gaps.
 
 Source: /ship 2026-07-12 adversarial review (Codex) on feat/reader-polish.
 
-- [ ] **Paged-mode relayout on viewport size change.** The paged engine bakes
-  the page width (`PW`) and CSS column geometry at chapter open from a fixed
-  `pageSize`; a viewport resize mid-chapter would desync native paging from
-  the engine's page math (skipped pages, wrong progress). Moot today: the app
-  is portrait-locked and iPhone-only (`TARGETED_DEVICE_FAMILY: 1`), so no
-  rotation/Split View path exists. **Hard gate before iPad or rotation
-  support.** **Priority:** P3 (P1 the moment iPad/rotation is planned).
+- [x] **Paged-mode relayout on viewport size change.** The WKWebView container
+  now reports its real laid-out bounds; rotation rebuilds the fixed-width
+  engine/CSS and reloads the current chapter at the same fractional position.
+  Portrait plus both landscape orientations are declared in the app manifest,
+  and the existing portrait-lock control remains available. **Completed:**
+  2026-07-20.
 
 ## Branding
 
-- [ ] **Internal repo/docs rename sweep NativRead→NativBook.** The public name
-  is NativBook (CEO review 2026-07-07); D5 renames all PUBLIC surfaces (store,
-  website, colophon, copy). This item is the internal half: repo name,
-  project.yml/targets, docs, CLAUDE.md files. The last rename (Quire→NativRead)
-  was 47 refs across 44 files, one focused pass. **Why:** triple identity
-  (NativBook public / NativRead code / Quire in old docs) confuses every future
-  session. **Depends on:** NativBook name clearance passing (blueprint §3 gate)
-  and open branches landing first (the sweep churns every branch).
-  **Effort:** M human / S with CC. **Priority:** P3.
+- [x] **Use NativRead consistently in current product copy and documentation.**
+  The app, active website, Cloudflare URLs and current project map now use the
+  same public name. **Completed:** 2026-07-22.
 
 ## Format support — MOBI/AZW3
 
@@ -70,11 +65,13 @@ Source: /ship 2026-07-12 adversarial review (Codex) on feat/reader-polish.
   `session.upload(for:fromFile:)` with a streamed multipart temp file and
   `session.download(for:)` to disk; add a size ceiling on download/unzip
   (decompression-bomb guard). **Priority:** P2 (P1 before wide distribution).
-- [ ] **Background URLSession for the translate pipeline.** The whole flow runs
-  in a foreground `Task` from the sheet; app suspension kills it mid-request.
-  Use a background `URLSession` (or reconcile-on-relaunch via the persisted
-  `backendJobID` + `status()`), which also fixes the "interrupted job" story
-  beyond the current fail-on-reload. **Priority:** P2.
+- [x] **Reconnect to durable backend translation jobs after relaunch.** Once
+  upload/start returns a backend job ID, the app now preserves that ID and the
+  request kind across termination. On launch/foreground it polls `status()`,
+  downloads a completed result, and imports it automatically. Only an upload
+  that ended before receiving a backend ID remains retry-only. A background
+  URLSession is unnecessary for the long translation itself because that work
+  runs on the backend. **Completed:** 2026-07-20.
 - [ ] **Server-authoritative entitlements.** Payment/ownership are client-side
   only right now (the MVP calls the full path directly; identity is a UUID
   header over cleartext). When IAP lands, the backend must verify the receipt
@@ -97,9 +94,6 @@ Source: /ship 2026-07-12 adversarial review (Codex) on feat/reader-polish.
   4,000 chars; a huge chapter can freeze the UI when the sheet opens. Move
   the read into a background task and cap bytes-read, not decoded chars.
   Found by Codex adversarial 2026-07-09. **P2.**
-- [ ] **`UIReferenceLibraryViewController` Manage-Dictionaries probe is fragile.**
-  `DefineView.dictionaryManagementTerm` relies on undocumented behavior; keep it
-  on a per-iOS-release QA checklist. **P3.**
 - [ ] **Multipart filename hardening.** `multipartBody` interpolates the file
   name into the `Content-Disposition` header unescaped. Safe today (only
   `<UUID>.epub` is ever sent) but escape/hardcode it before any caller passes a
@@ -111,7 +105,7 @@ Source: /ship 2026-07-12 adversarial review (Codex) on feat/reader-polish.
   Hungarian voice (`AVSpeechSynthesizer`) reads the *translated* book aloud.
   This is the strategically right audio direction (not a generic MP3/m4b
   player, which is a different product with no translation synergy): the chain
-  English text → Hungarian translation → Hungarian audio runs on Quire's own
+  English text → Hungarian translation → Hungarian audio runs on NativRead's own
   translation engine, so it delivers a Hungarian audio version of an
   untranslated English book that no competitor can. Strong delight for the 50+
   persona who prefers listening. **Sequencing:** post-launch, once the core
@@ -131,12 +125,12 @@ Source: /ship 2026-07-12 adversarial review (Codex) on feat/reader-polish.
 
 Source: /plan-design-review 2026-06-28.
 
-- [ ] **Deep accessibility pass.** Beyond the Phase 0 floor (Dynamic Type for
-  chrome + 44pt targets + contrast audit): VoiceOver reading-order/rotor for the
-  reader page, reduce-transparency support, and a full a11y audit across surfaces.
-  **Why:** the named reference reader is 50+; the basics ship in Phase 0 but the
-  thorough pass (especially VoiceOver over the WKWebView page) is its own focused
-  effort. **Depends on:** Phase 0 a11y floor landing first.
+- [ ] **Device VoiceOver rotor verification.** The 2026-07-20 pass moved app
+  typography onto Dynamic Type roles, raised key controls to 44pt, added
+  Reduce Motion/Reduce Transparency handling, escape actions, and stateful
+  bookmark/rotation labels. The remaining non-automatable launch check is a
+  real-device VoiceOver reading-order/rotor pass over WKWebView and PDFKit text.
+  **Priority:** P1 before public launch because the primary persona is 50+.
 
 ## Deferred from /plan-ceo-review 2026-06-30 (translator)
 
@@ -150,22 +144,10 @@ Source: /plan-design-review 2026-06-28.
   everyone. **Where to start:** the `Translator` interface already makes target
   language a config change; gate each on the quality pipeline; pick candidates
   from the in-app waitlist counts. **Effort:** M per language. **Priority:** P2.
-- [ ] **Inline-gloss "reading-level" learner mode.** Original text with
-  per-sentence tap-to-reveal translation — a middle mode between all-English and
-  fully-translated, aimed at language learners (a larger market than non-readers).
-  **Why deferred:** a whole second reading surface would bloat a pre-revenue MVP;
-  revisit once the core translate-and-read loop proves it sells. **Effort:** L.
-  **Priority:** P2. (Promoted from honorable-mention below.)
-
 ## Undecided / honorable mentions (pull in when ready)
 
 - [ ] Editable character-name glossary for translation (keep names consistent
   across chapters; user-facing list).
-- [ ] "Reading level" inline-gloss mode — original text with per-sentence
-  tap-to-reveal translation, instead of full translation. Middle mode between
-  all-English and all-Hungarian; ties the learner and non-reader audiences.
-- [ ] Student study-pack export — annotations + saved vocab as a formatted
-  study sheet / PDF (builds on existing export).
 
 ## Deferred engineering debt
 
@@ -199,19 +181,13 @@ common import paths are covered; these are edge-case robustness for TXT.
   MB) can spike memory or hang. **Fix:** cap or chunk imported text above a few MB
   (`TextImporter.swift:19`). Needs a threshold decision. **Priority:** P2.
 
-## Known code TODOs (pre-existing)
-
-- [ ] Bundle an EN→ES StarDict dictionary (OFL/CC-licensed) — `DictionaryProvider.swift:28`
-- [ ] Bundle an EN→DE StarDict dictionary (OFL/CC-licensed) — `DictionaryProvider.swift:32`
-
 ## Deferred localization (from /review 2026-06-28)
 
 - [ ] **Re-enable Spanish & German in the picker.** `AppLanguage.pickable` was
   cut to `[.en, .hu]` because `Localizable.xcstrings` only had es/de at 5/105
   keys — picking them left ~95% of the app in the English fallback. The `.es`/
   `.de` enum cases and `bundled(for:)` plumbing are still wired. To ship them:
-  (1) translate the String Catalog to 105/105 for es and de, (2) bundle the
-  EN→ES / EN→DE dictionaries (the two TODOs above), (3) add `.es, .de` back to
+  (1) translate the String Catalog completely for es and de, (2) add `.es, .de` back to
   `pickable` and update `LocalizationStoreTests.testPickableIsFullyTranslatedLanguagesOnly`
   + `LanguageSelectionUITests`.
 
@@ -228,7 +204,6 @@ common import paths are covered; these are edge-case robustness for TXT.
   Verified end-to-end against a real DRM-free fixture (Alice/Tenniel). Native
   converter, no C dep, no LGPL. **Completed:** translator-mvp branch (2026-07-06).
 - [x] **GPL dictionary blocker resolved by removal.** Bundled FreeDict/StarDict
-  data deleted; Define uses Apple's built-in `UIReferenceLibraryViewController`.
-  No GPL code or data ships in the binary. (Supersedes the licensing risk flagged
-  2026-06-29; the EN→ES/EN→DE bundling TODOs above remain for the picker work.)
-  **Completed:** translator-mvp branch (2026-07-06).
+  data and the custom Define/Vocabulary feature were deleted. Word lookup now
+  stays inside Apple's native Look Up action, so no GPL dictionary ships.
+  **Completed:** 2026-07-20.

@@ -68,9 +68,10 @@ final class TranslationStoreTests: XCTestCase {
         }
     }
 
-    func testInterruptedJobLoadsAsFailed() throws {
-        // A job persisted mid-flight (app killed) must reload as failed, not
-        // resurrect as active behind a permanent spinner.
+    func testBackendJobSurvivesRelaunchForRecovery() throws {
+        // Translation runs on the backend. Once its ID and request kind were
+        // persisted, terminating iOS must keep it recoverable rather than
+        // falsely reporting that the translation itself was interrupted.
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(
@@ -80,7 +81,8 @@ final class TranslationStoreTests: XCTestCase {
 
         var job = TranslationJob(
             bookID: UUID(), bookTitle: "B", phase: .translating,
-            estimatedPages: 1, priceTier: .under100
+            estimatedPages: 1, priceTier: .under100,
+            backendJobID: "backend-123"
         )
         job.activeRequestKind = .full
         try JSONEncoder().encode([job]).write(
@@ -88,8 +90,115 @@ final class TranslationStoreTests: XCTestCase {
         )
 
         let reloaded = TranslationStore(rootDirectory: root)
+        XCTAssertEqual(reloaded.jobs.first?.phase, .translating)
+        XCTAssertEqual(reloaded.jobs.first?.activeRequestKind, .full)
+        XCTAssertEqual(
+            reloaded.takePendingRecoveryJobs().first?.backendJobID,
+            "backend-123"
+        )
+        XCTAssertTrue(reloaded.takePendingRecoveryJobs().isEmpty)
+    }
+
+    func testUploadWithoutBackendIdentityStillFailsOnRelaunch() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: root, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let job = TranslationJob(
+            bookID: UUID(), bookTitle: "B", phase: .uploading,
+            estimatedPages: 1, priceTier: .under100,
+            activeRequestKind: .preview
+        )
+        try JSONEncoder().encode([job]).write(
+            to: root.appendingPathComponent("translation-jobs.json")
+        )
+
+        let reloaded = TranslationStore(rootDirectory: root)
         XCTAssertEqual(reloaded.jobs.first?.phase, .failed)
         XCTAssertNil(reloaded.jobs.first?.activeRequestKind)
+    }
+
+    func testRelaunchRecoveryDownloadsAndImportsFinishedPreview() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(
+            at: root, withIntermediateDirectories: true
+        )
+        defer {
+            StubURLProtocol.responder = nil
+            try? FileManager.default.removeItem(at: root)
+        }
+
+        let sourceTree = root.appendingPathComponent("source-tree")
+        try EPUBFixtures.writeEPUB3(
+            to: sourceTree, title: "Source", author: "Author"
+        )
+        let sourceEPUB = root.appendingPathComponent("source.epub")
+        try EPUBFixtures.zipEPUB(directory: sourceTree, to: sourceEPUB)
+
+        let translatedTree = root.appendingPathComponent("translated-tree")
+        try EPUBFixtures.writeEPUB3(
+            to: translatedTree, title: "Fordítás", author: "Author"
+        )
+        let translatedEPUB = root.appendingPathComponent("translated.epub")
+        try EPUBFixtures.zipEPUB(
+            directory: translatedTree, to: translatedEPUB
+        )
+        let translatedData = try Data(contentsOf: translatedEPUB)
+
+        let library = LibraryStore(
+            rootDirectory: root.appendingPathComponent("library")
+        )
+        let book = try library.importBook(from: sourceEPUB)
+        let jobRoot = root.appendingPathComponent("jobs")
+        let initialStore = TranslationStore(rootDirectory: jobRoot)
+        initialStore.recordTermsAcceptance(for: book)
+        initialStore.markBackendTranslationStarted(
+            for: book, backendJobID: "job-1", kind: .preview
+        )
+        let relaunchedStore = TranslationStore(rootDirectory: jobRoot)
+
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [StubURLProtocol.self]
+        let client = TranslationBackendClient(
+            baseURL: URL(string: "http://backend.test")!,
+            userID: "user-1",
+            session: URLSession(configuration: config)
+        )
+        StubURLProtocol.responder = { request in
+            if request.url?.path == "/api/status" {
+                return (
+                    200,
+                    Data(#"{"id":"job-1","status":"done","title":"Fordítás"}"#.utf8)
+                )
+            }
+            if request.url?.path == "/api/result" {
+                return (200, translatedData)
+            }
+            return (404, Data(#"{"error":"missing"}"#.utf8))
+        }
+
+        await TranslationRecovery.reconcilePendingJobs(
+            translations: relaunchedStore,
+            library: library,
+            settings: SettingsStore(
+                defaults: UserDefaults(suiteName: UUID().uuidString)!,
+                defaultTranslationBackendURLString: "http://backend.test"
+            ),
+            auth: TranslationAuthStore(),
+            clientOverride: client
+        )
+
+        XCTAssertEqual(library.books.count, 2)
+        XCTAssertEqual(
+            library.books.first(where: { $0.id != book.id })?.variant,
+            .translationPreview
+        )
+        XCTAssertEqual(relaunchedStore.job(for: book).phase, .finished)
+        XCTAssertNotNil(relaunchedStore.job(for: book).previewCompletedAt)
     }
 
     func testUnknownPersistedPhaseDecodesAsFailed() throws {
@@ -116,7 +225,7 @@ final class TranslationStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.jobs.first?.phase, .failed)
     }
 
-    func testAttestationPersistsForBook() throws {
+    func testTermsAcceptancePersistsForBookAndVersion() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -129,12 +238,113 @@ final class TranslationStoreTests: XCTestCase {
         )
 
         let store = TranslationStore(rootDirectory: root)
-        store.recordAttestation(for: book)
+        store.recordTermsAcceptance(for: book, localeIdentifier: "hu-HU")
 
         let reloaded = TranslationStore(rootDirectory: root)
         let job = reloaded.job(for: book)
         XCTAssertEqual(job.phase, .attested)
         XCTAssertNotNil(job.attestedAt)
+        XCTAssertEqual(
+            job.acceptedTermsVersion,
+            TranslationTerms.currentVersion
+        )
+        XCTAssertNotNil(job.termsAcceptanceID)
+        XCTAssertEqual(job.termsAcceptanceLocale, "hu-HU")
+        XCTAssertEqual(
+            reloaded.currentTermsAcceptance(for: book)?.id,
+            job.termsAcceptanceID
+        )
+    }
+
+    func testTermsCheckboxCanBeClearedBeforeTranslation() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let book = Book(
+            title: "Book",
+            author: "A",
+            fileName: "book.epub",
+            spineWeights: [1_800]
+        )
+        let store = TranslationStore(rootDirectory: root)
+        store.recordTermsAcceptance(for: book, localeIdentifier: "en-US")
+
+        store.clearTermsAcceptance(for: book)
+
+        XCTAssertNil(store.currentTermsAcceptance(for: book))
+        XCTAssertNil(store.job(for: book).attestedAt)
+        XCTAssertEqual(store.job(for: book).phase, .draft)
+    }
+
+    func testAIProcessingConsentPersistsForBookAndVersion() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let book = Book(
+            title: "Book",
+            author: "A",
+            fileName: "book.epub",
+            spineWeights: [1_800]
+        )
+
+        let store = TranslationStore(rootDirectory: root)
+        store.recordAIProcessingConsent(for: book)
+
+        let reloaded = TranslationStore(rootDirectory: root)
+        XCTAssertEqual(
+            reloaded.job(for: book).acceptedAIProcessingVersion,
+            TranslationPrivacy.currentAIConsentVersion
+        )
+    }
+
+    func testAIProcessingConsentCanBeWithdrawnForFutureRequests() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let firstBook = Book(
+            title: "First",
+            author: "A",
+            fileName: "first.epub",
+            spineWeights: [1_800]
+        )
+        let secondBook = Book(
+            title: "Second",
+            author: "B",
+            fileName: "second.epub",
+            spineWeights: [1_800]
+        )
+        let store = TranslationStore(rootDirectory: root)
+        store.recordAIProcessingConsent(for: firstBook)
+        store.recordAIProcessingConsent(for: secondBook)
+
+        store.clearAIProcessingConsents()
+
+        let reloaded = TranslationStore(rootDirectory: root)
+        XCTAssertNil(reloaded.job(for: firstBook).acceptedAIProcessingVersion)
+        XCTAssertNil(reloaded.job(for: secondBook).acceptedAIProcessingVersion)
+    }
+
+    func testClearAccountDataRemovesPersistedTranslationJobs() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let book = Book(
+            title: "Book",
+            author: "A",
+            fileName: "book.epub",
+            spineWeights: [1_800]
+        )
+        let store = TranslationStore(rootDirectory: root)
+        store.recordTermsAcceptance(for: book)
+        store.recordAIProcessingConsent(for: book)
+
+        store.clearAccountData()
+
+        XCTAssertTrue(store.jobs.isEmpty)
+        XCTAssertTrue(TranslationStore(rootDirectory: root).jobs.isEmpty)
     }
 
     func testTargetLanguagePersistsForBook() throws {
@@ -183,13 +393,13 @@ final class TranslationStoreTests: XCTestCase {
         XCTAssertEqual(live.activeRequestKind, .full)
         XCTAssertNil(live.errorMessage)
 
-        // Reloading an in-flight job from disk means the app died mid-request;
-        // it is failed (not resurrected active), keeping the id for reference.
+        // Reloading reconnects to the durable backend job instead of treating
+        // app termination as a translation failure.
         var reloaded = TranslationStore(rootDirectory: root).job(for: book)
-        XCTAssertEqual(reloaded.phase, .failed)
+        XCTAssertEqual(reloaded.phase, .translating)
         XCTAssertEqual(reloaded.backendJobID, "job-123")
-        XCTAssertNil(reloaded.activeRequestKind)
-        XCTAssertNotNil(reloaded.errorMessage)
+        XCTAssertEqual(reloaded.activeRequestKind, .full)
+        XCTAssertNil(reloaded.errorMessage)
 
         store.markBackendFailed(for: book, message: "Backend failed.")
         reloaded = TranslationStore(rootDirectory: root).job(for: book)

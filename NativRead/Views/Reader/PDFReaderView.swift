@@ -2,27 +2,26 @@ import SwiftUI
 import PDFKit
 
 /// Full-screen PDF reading surface. Same chrome language as `ReaderView`
-/// — melt-away top/bottom bars, shared scrubber, page label, bookmark —
+/// — melt-away top/bottom bars, page position, page label, bookmark —
 /// over a fixed-layout PDFKit page instead of the reflowable web view.
 struct PDFReaderView: View {
     @State private var viewModel: PDFReaderViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(VocabularyStore.self) private var vocabulary
-    @Environment(LocalizationStore.self) private var localizationStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency)
+    private var reduceTransparency
 
     init(
         book: Book,
         library: LibraryStore,
         settingsStore: SettingsStore,
-        statsStore: StatsStore,
         initialSystemDark: Bool
     ) {
         _viewModel = State(initialValue: PDFReaderViewModel(
             book: book,
             library: library,
             settingsStore: settingsStore,
-            statsStore: statsStore,
             initialSystemDark: initialSystemDark
         ))
     }
@@ -57,28 +56,15 @@ struct PDFReaderView: View {
             switch sheet {
             case .contents:
                 PDFContentsSheet(viewModel: viewModel)
+            case .position:
+                PDFReadingPositionSheet(viewModel: viewModel)
             case .search:
                 PDFSearchSheet(viewModel: viewModel)
             case .appearance:
                 PDFAppearanceSheet(viewModel: viewModel)
             }
         }
-        .sheet(item: defineItem) { item in
-            DefineView(
-                word: item.word,
-                palette: palette,
-                defineLanguage: localizationStore.defineLanguage,
-                context: viewModel.defineContext,
-                onSave: { definition, source in
-                    viewModel.saveToVocabulary(
-                        definition: definition,
-                        dictionarySource: source,
-                        into: vocabulary
-                    )
-                },
-                isAlreadySaved: vocabulary.contains(word: item.word)
-            )
-        }
+        .accessibilityAction(.escape) { dismiss() }
     }
 
     @ViewBuilder
@@ -90,8 +76,7 @@ struct PDFReaderView: View {
                 isNight: viewModel.isNight,
                 backgroundColor: UIColor(palette.background),
                 onPageChange: { viewModel.setPage($0) },
-                onTapZone: { viewModel.handleTap(zone: $0) },
-                onDefine: { viewModel.define(selection: $0) }
+                onTapZone: { viewModel.handleTap(zone: $0) }
             )
             .ignoresSafeArea()
 
@@ -104,13 +89,6 @@ struct PDFReaderView: View {
                     .ignoresSafeArea()
             }
         }
-    }
-
-    private var defineItem: Binding<DefineItemPDF?> {
-        Binding(
-            get: { viewModel.defineWord.map(DefineItemPDF.init) },
-            set: { viewModel.defineWord = $0?.word }
-        )
     }
 
     // MARK: - Chrome
@@ -127,7 +105,10 @@ struct PDFReaderView: View {
                 )
             }
         }
-        .animation(.easeOut(duration: 0.22), value: viewModel.isChromeVisible)
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: 0.22),
+            value: viewModel.isChromeVisible
+        )
     }
 
     private var topBar: some View {
@@ -137,6 +118,10 @@ struct PDFReaderView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
+                    .frame(
+                        width: Spacing.minTapTarget,
+                        height: Spacing.minTapTarget
+                    )
             }
             .accessibilityIdentifier("reader.back")
 
@@ -171,14 +156,7 @@ struct PDFReaderView: View {
 
     private var bottomBar: some View {
         VStack(spacing: Spacing.xs) {
-            ScrubberView(
-                fraction: viewModel.bookFraction,
-                accent: palette.accent,
-                track: palette.hairline.opacity(0.6)
-            ) { fraction in
-                viewModel.scrub(toFraction: fraction)
-            }
-            .accessibilityIdentifier("reader.scrubber")
+            passiveProgress
 
             HStack {
                 Button {
@@ -186,16 +164,35 @@ struct PDFReaderView: View {
                 } label: {
                     Image(systemName: "list.bullet")
                         .font(.system(size: 17))
+                        .frame(
+                            width: Spacing.minTapTarget,
+                            height: Spacing.minTapTarget
+                        )
                 }
                 .accessibilityIdentifier("reader.contents")
 
                 Spacer()
 
-                Text(viewModel.pageLabel)
-                    .font(Typography.meta(12))
+                Button {
+                    viewModel.activeSheet = .position
+                } label: {
+                    HStack(spacing: 5) {
+                        Text(viewModel.pageLabel)
+                            .font(Typography.meta(12))
+                            .monospacedDigit()
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 8, weight: .bold))
+                            .accessibilityHidden(true)
+                    }
                     .foregroundStyle(palette.secondaryText)
-                    .monospacedDigit()
-                    .accessibilityIdentifier("reader.pageLabel")
+                    .frame(minHeight: Spacing.minTapTarget)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("reader.position")
+                .accessibilityLabel(
+                    Text("Position in book: \(viewModel.pageLabel)")
+                )
 
                 Spacer()
 
@@ -204,6 +201,10 @@ struct PDFReaderView: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16))
+                        .frame(
+                            width: Spacing.minTapTarget,
+                            height: Spacing.minTapTarget
+                        )
                 }
                 .accessibilityIdentifier("reader.search")
 
@@ -212,6 +213,10 @@ struct PDFReaderView: View {
                 } label: {
                     Image(systemName: "sun.max")
                         .font(.system(size: 16))
+                        .frame(
+                            width: Spacing.minTapTarget,
+                            height: Spacing.minTapTarget
+                        )
                 }
                 .padding(.leading, Spacing.md)
                 .accessibilityIdentifier("reader.appearance")
@@ -225,10 +230,28 @@ struct PDFReaderView: View {
         .background(chromeBackground)
     }
 
+    private var passiveProgress: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(palette.hairline.opacity(0.6))
+                Capsule()
+                    .fill(palette.accent)
+                    .frame(width: max(
+                        0,
+                        proxy.size.width * viewModel.bookFraction
+                    ))
+            }
+        }
+        .frame(height: 3)
+        .accessibilityHidden(true)
+    }
+
     private var chromeBackground: some View {
         palette.background
-            .opacity(0.94)
-            .overlay(palette.surface.opacity(0.5))
+            .opacity(reduceTransparency ? 1 : 0.94)
+            .overlay(
+                palette.surface.opacity(reduceTransparency ? 1 : 0.5)
+            )
             .overlay(alignment: .bottom) {
                 Rectangle().fill(palette.hairline).frame(height: 1)
             }
@@ -255,8 +278,108 @@ struct PDFReaderView: View {
     }
 }
 
-/// Identity wrapper so a PDF Define target can drive `.sheet(item:)`.
-private struct DefineItemPDF: Identifiable {
-    let word: String
-    var id: String { word }
+private struct PDFReadingPositionSheet: View {
+    @Bindable var viewModel: PDFReaderViewModel
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var draftFraction: Double
+    @State private var isEditing = false
+
+    private var palette: ReaderPalette { viewModel.palette }
+
+    init(viewModel: PDFReaderViewModel) {
+        self.viewModel = viewModel
+        _draftFraction = State(initialValue: viewModel.bookFraction)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            HStack {
+                Text("Position in book")
+                    .font(Typography.display(28))
+                Spacer()
+                Button("Done") { dismiss() }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(palette.accent)
+                    .accessibilityIdentifier("reader.position.done")
+            }
+
+            HStack {
+                Text("\(viewModel.page + 1) / \(viewModel.pageCount)")
+                    .monospacedDigit()
+                Spacer()
+                Text("\(displayPercent)%").monospacedDigit()
+            }
+            .font(Typography.meta(13))
+            .foregroundStyle(palette.secondaryText)
+
+            Slider(
+                value: $draftFraction,
+                in: 0...1,
+                onEditingChanged: { editing in
+                    isEditing = editing
+                    if !editing {
+                        viewModel.scrub(toFraction: draftFraction)
+                    }
+                }
+            )
+            .tint(palette.accent)
+            .accessibilityLabel("Position in book")
+            .accessibilityValue("\(displayPercent)%")
+            .accessibilityIdentifier("reader.position.slider")
+
+            HStack(spacing: Spacing.sm) {
+                pageButton(
+                    title: "Previous page",
+                    icon: "chevron.left",
+                    identifier: "reader.position.previousPage",
+                    enabled: viewModel.page > 0
+                ) { movePage(by: -1) }
+                pageButton(
+                    title: "Next page",
+                    icon: "chevron.right",
+                    identifier: "reader.position.nextPage",
+                    enabled: viewModel.page < viewModel.pageCount - 1
+                ) { movePage(by: 1) }
+            }
+        }
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.sm)
+        .padding(.bottom, Spacing.xl)
+        .foregroundStyle(palette.text)
+        .background(palette.background.ignoresSafeArea())
+        .presentationDetents([.height(300), .medium])
+        .presentationDragIndicator(.hidden)
+        .onChange(of: viewModel.bookFraction) { _, newValue in
+            if !isEditing { draftFraction = newValue }
+        }
+    }
+
+    private var displayPercent: Int {
+        Int((draftFraction * 100).rounded())
+    }
+
+    private func movePage(by offset: Int) {
+        viewModel.goToPage(viewModel.page + offset)
+        draftFraction = viewModel.bookFraction
+    }
+
+    private func pageButton(
+        title: LocalizedStringKey,
+        icon: String,
+        identifier: String,
+        enabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(Typography.body(14))
+                .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.bordered)
+        .tint(palette.accent)
+        .disabled(!enabled)
+        .accessibilityIdentifier(identifier)
+    }
 }

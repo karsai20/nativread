@@ -4,10 +4,10 @@ import WebKit
 /// SwiftUI only ever wraps `webView`; all commands go through here.
 @MainActor
 final class ReaderController: NSObject, WKScriptMessageHandler,
-                              UIScrollViewDelegate {
+                              UIScrollViewDelegate, WKNavigationDelegate {
 
     let webView: HighlightingWebView
-    let pageSize: CGSize
+    private(set) var pageSize: CGSize
 
     /// (page, pageCount) after every page change or relayout.
     var onState: ((Int, Int) -> Void)?
@@ -19,11 +19,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     var onHighlightRequested: (() -> Void)? {
         get { webView.onHighlightSelection }
         set { webView.onHighlightSelection = newValue }
-    }
-    /// The user picked Define in the selection menu.
-    var onDefineRequested: (() -> Void)? {
-        get { webView.onDefineSelection }
-        set { webView.onDefineSelection = newValue }
     }
     /// The user pulled past the chapter edge. "forward" (bottom/right
     /// edge) or "backward" (top/left edge). In scroll flow this is a
@@ -51,6 +46,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     private var pendingLocate: (query: String, occurrence: Int)?
     private var chapterAdvancePending = false
     private var navigationGeneration = 0
+    private var readAccessRoot: URL?
 
     init(
         pageSize: CGSize, initialCSS: String, backgroundColor: UIColor,
@@ -93,6 +89,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         super.init()
 
         webView.scrollView.delegate = self
+        webView.navigationDelegate = self
         configuration.userContentController.add(self, name: "lumen")
         installUserScripts()
     }
@@ -117,15 +114,61 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
 
     // MARK: - Commands
 
+    /// Prepares the engine scripts and stylesheet for a changed viewport.
+    /// The view model reloads the current chapter immediately afterwards at
+    /// the same fractional position, so the fixed-width column engine never
+    /// keeps portrait page geometry after a rotation.
+    func prepareViewport(pageSize: CGSize, css: String) {
+        self.pageSize = pageSize
+        settingsCSS = css
+        installUserScripts()
+    }
+
     func loadChapter(
         at url: URL, readAccessRoot: URL,
         fraction: Double = 0, locate: (String, Int)? = nil
     ) {
+        let normalizedRoot = readAccessRoot.standardizedFileURL
+        let normalizedURL = url.standardizedFileURL
+        let rootPrefix = normalizedRoot.path.hasSuffix("/")
+            ? normalizedRoot.path
+            : normalizedRoot.path + "/"
+        guard normalizedURL.path.hasPrefix(rootPrefix) else { return }
+        self.readAccessRoot = normalizedRoot
         navigationGeneration += 1
         pendingFraction = fraction
         pendingLocate = locate.map { (query: $0.0, occurrence: $0.1) }
         webView.alpha = 0
         webView.loadFileURL(url, allowingReadAccessTo: readAccessRoot)
+    }
+
+    /// Book-authored navigation stays inside the current extracted EPUB.
+    /// Remote subresources are additionally denied by the injected CSP.
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+    ) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.cancel)
+            return
+        }
+        if url.scheme == "about" {
+            decisionHandler(.allow)
+            return
+        }
+        guard url.isFileURL, let readAccessRoot else {
+            decisionHandler(.cancel)
+            return
+        }
+        let rootPrefix = readAccessRoot.path.hasSuffix("/")
+            ? readAccessRoot.path
+            : readAccessRoot.path + "/"
+        decisionHandler(
+            url.standardizedFileURL.path.hasPrefix(rootPrefix)
+                ? .allow
+                : .cancel
+        )
     }
 
     func applySettings(
@@ -197,27 +240,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 return
             }
             completion((text: text, occurrence: occurrence))
-        }
-    }
-
-    /// The current selection's plain text, trimmed; empty when nothing
-    /// usable is selected. Used to seed a dictionary Define lookup.
-    func selectedText(completion: @escaping (String) -> Void) {
-        webView.evaluateJavaScript(
-            "window.lumen && window.lumen.selectedText()"
-        ) { result, _ in
-            completion((result as? String) ?? "")
-        }
-    }
-
-    /// The sentence the current selection sits in, for saving a word
-    /// with its reading context; empty when none can be derived. Pure
-    /// DOM read — never affects layout or the rendered page.
-    func selectionSentence(completion: @escaping (String) -> Void) {
-        webView.evaluateJavaScript(
-            "window.lumen && window.lumen.selectionSentence()"
-        ) { result, _ in
-            completion((result as? String) ?? "")
         }
     }
 
