@@ -78,6 +78,70 @@ struct AppSettingsRow<Trailing: View>: View {
     }
 
     private var content: some View {
+        AppSettingsRowLabel(
+            systemImage: systemImage,
+            title: title,
+            value: value,
+            isDestructive: isDestructive,
+            showsChevron: action != nil && !hasTrailingControl,
+            palette: palette,
+            trailing: { trailing }
+        )
+    }
+}
+
+// MARK: - Navigating row
+
+/// The same row, but pushing a destination instead of running a closure.
+struct AppSettingsLink<Destination: View>: View {
+    let systemImage: String?
+    let title: LocalizedStringKey
+    var value: String? = nil
+    var hidesSeparator: Bool = false
+    let palette: BrandPalette
+    @ViewBuilder let destination: Destination
+
+    var body: some View {
+        VStack(spacing: 0) {
+            NavigationLink {
+                destination
+            } label: {
+                AppSettingsRowLabel(
+                    systemImage: systemImage,
+                    title: title,
+                    value: value,
+                    isDestructive: false,
+                    showsChevron: true,
+                    palette: palette,
+                    trailing: { EmptyView() }
+                )
+            }
+            .buttonStyle(RowHighlightButtonStyle(palette: palette))
+
+            if !hidesSeparator {
+                Rectangle()
+                    .fill(palette.hairline)
+                    .frame(height: Spacing.hairlineWidth)
+                    .padding(.leading, Spacing.md)
+            }
+        }
+    }
+}
+
+// MARK: - Shared row body
+
+/// The visual contents of a settings row, shared by the tappable and the
+/// navigating variants so the two can never drift apart.
+struct AppSettingsRowLabel<Trailing: View>: View {
+    let systemImage: String?
+    let title: LocalizedStringKey
+    let value: String?
+    let isDestructive: Bool
+    let showsChevron: Bool
+    let palette: BrandPalette
+    @ViewBuilder let trailing: Trailing
+
+    var body: some View {
         HStack(spacing: Spacing.sm) {
             if let systemImage {
                 Image(systemName: systemImage)
@@ -103,7 +167,7 @@ struct AppSettingsRow<Trailing: View>: View {
                         .lineLimit(1)
                 }
                 trailing
-                if action != nil, !hasTrailingControl {
+                if showsChevron {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(palette.tertiaryText)

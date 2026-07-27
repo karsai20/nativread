@@ -162,49 +162,30 @@ struct SettingsView: View {
 
     private var accountSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("Account")
+            AppSettingsSection("Account", palette: palette) {
+                AppSettingsRow(
+                    systemImage: "person.crop.circle.badge.checkmark",
+                    title: "Signed in with Apple",
+                    palette: palette
+                )
 
-            VStack(spacing: 0) {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "person.crop.circle.badge.checkmark")
-                        .foregroundStyle(palette.accent)
-                    Text("Signed in with Apple")
-                        .font(Typography.control(17))
-                        .foregroundStyle(palette.text)
-                    Spacer()
-                }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.md)
-
-                SettingsRowDivider(palette: palette)
-
-                Button {
-                    showsDeleteAccountConfirmation = true
-                } label: {
-                    HStack(spacing: Spacing.sm) {
-                        if translationAuthStore.isDeletingAccount {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "trash")
-                        }
-                        if translationAuthStore.isDeletingAccount {
-                            Text("Deleting account...")
-                        } else {
-                            Text("Delete Account")
-                        }
-                        Spacer()
+                AppSettingsRow(
+                    systemImage: "trash",
+                    title: translationAuthStore.isDeletingAccount
+                        ? "Deleting account..."
+                        : "Delete Account",
+                    isDestructive: true,
+                    hidesSeparator: true,
+                    action: { showsDeleteAccountConfirmation = true },
+                    palette: palette
+                ) {
+                    if translationAuthStore.isDeletingAccount {
+                        ProgressView()
                     }
-                    .font(Typography.control(17, weight: .semibold))
-                    .foregroundStyle(palette.danger)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
                 .disabled(translationAuthStore.isDeletingAccount)
                 .accessibilityIdentifier("settings.account.delete")
             }
-            .settingsGroupedCard(palette: palette)
 
             if let displayedError = accountActionError
                     ?? translationAuthStore.accountDeletionErrorMessage {
@@ -263,8 +244,13 @@ struct SettingsView: View {
     /// applied instantly on tap (unlike language) so the change is its own
     /// feedback.
     private var appearanceSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("Appearance")
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("Appearance")
+                .font(Typography.control(13, weight: .semibold))
+                .tracking(0.35)
+                .textCase(.uppercase)
+                .foregroundStyle(palette.secondaryText)
+                .padding(.leading, Spacing.md)
 
             HStack(spacing: Spacing.sm) {
                 ForEach(AppAppearance.allCases, id: \.rawValue) { appearance in
@@ -305,35 +291,34 @@ struct SettingsView: View {
     // MARK: - App Language
 
     private var appLanguageSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("App Language")
-
-            VStack(spacing: 0) {
-                ForEach(
-                    Array(AppLanguage.pickable.enumerated()),
-                    id: \.element.rawValue
-                ) { index, language in
-                    if index > 0 { SettingsRowDivider(palette: palette) }
-                    SettingsGroupedRow(
-                        title: language.endonym,
-                        isSelected: selectedAppLanguage == language,
-                        palette: palette
-                    )
-                    // Applied immediately: Settings is a tab now, so there is no
-                    // "close" moment to commit at, and the tab shell re-localises
-                    // its content without losing the selected tab.
-                    .onTapGesture { localizationStore.setLanguage(language) }
-                    .accessibilityIdentifier(
-                        "settings.applang.\(language.rawValue)"
-                    )
-                    .accessibilityLabel(language.endonym)
-                    .accessibilityAddTraits(
-                        selectedAppLanguage == language
-                            ? [.isSelected] : []
-                    )
+        AppSettingsSection("App Language", palette: palette) {
+            ForEach(
+                Array(AppLanguage.pickable.enumerated()),
+                id: \.element.rawValue
+            ) { index, language in
+                let isSelected = selectedAppLanguage == language
+                AppSettingsRow(
+                    systemImage: nil,
+                    title: LocalizedStringKey(language.endonym),
+                    hidesSeparator: index == AppLanguage.pickable.count - 1,
+                    // Applied immediately: Settings is a tab now, so there is
+                    // no "close" moment to commit at, and the shell
+                    // re-localises without losing the selected tab.
+                    action: { localizationStore.setLanguage(language) },
+                    palette: palette
+                ) {
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(palette.accent)
+                    }
                 }
+                .accessibilityIdentifier(
+                    "settings.applang.\(language.rawValue)"
+                )
+                .accessibilityLabel(language.endonym)
+                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
             }
-            .settingsGroupedCard(palette: palette)
         }
     }
 
@@ -384,83 +369,41 @@ struct SettingsView: View {
     }
 
     private var aboutSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("About")
+        AppSettingsSection("About", palette: palette) {
+            AppSettingsRow(
+                systemImage: "info.circle",
+                title: "Version",
+                value: appVersion,
+                palette: palette
+            )
 
-            VStack(spacing: 0) {
-                HStack {
-                    Text("Version")
-                        .font(Typography.control(17))
-                        .foregroundStyle(palette.text)
-                    Spacer()
-                    Text(appVersion)
-                        .font(Typography.control(16))
-                        .foregroundStyle(palette.secondaryText)
-                }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.md)
-
-                SettingsRowDivider(palette: palette)
-
-                NavigationLink {
-                    PrivacyPolicyView()
-                } label: {
-                    HStack {
-                        Text("Privacy Policy")
-                            .font(Typography.control(17))
-                            .foregroundStyle(palette.text)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText)
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityIdentifier("settings.privacy.link")
-
-                SettingsRowDivider(palette: palette)
-
-                NavigationLink {
-                    TermsOfUseView()
-                } label: {
-                    HStack {
-                        Text("Terms of Use")
-                            .font(Typography.control(17))
-                            .foregroundStyle(palette.text)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText)
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityIdentifier("settings.terms.link")
-
-                SettingsRowDivider(palette: palette)
-
-                NavigationLink {
-                    LicensesView()
-                } label: {
-                    HStack {
-                        Text("Licenses")
-                            .font(Typography.control(17))
-                            .foregroundStyle(palette.text)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(palette.secondaryText)
-                    }
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .contentShape(Rectangle())
-                }
-                .accessibilityIdentifier("settings.licenses.link")
+            AppSettingsLink(
+                systemImage: "hand.raised",
+                title: "Privacy Policy",
+                palette: palette
+            ) {
+                PrivacyPolicyView()
             }
-            .settingsGroupedCard(palette: palette)
+            .accessibilityIdentifier("settings.privacy.link")
+
+            AppSettingsLink(
+                systemImage: "doc.text",
+                title: "Terms of Use",
+                palette: palette
+            ) {
+                TermsOfUseView()
+            }
+            .accessibilityIdentifier("settings.terms.link")
+
+            AppSettingsLink(
+                systemImage: "chevron.left.forwardslash.chevron.right",
+                title: "Licenses",
+                hidesSeparator: true,
+                palette: palette
+            ) {
+                LicensesView()
+            }
+            .accessibilityIdentifier("settings.licenses.link")
         }
     }
 
