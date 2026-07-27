@@ -32,6 +32,9 @@ targets:
         MARKETING_VERSION: "3.4.0"
         CURRENT_PROJECT_VERSION: "8"
         INFOPLIST_FILE: NativRead/Info.plist
+        # Sign in with Apple. Without this the entitlements file is inert and
+        # Xcode never requests a profile carrying the capability.
+        CODE_SIGN_ENTITLEMENTS: NativRead/NativRead.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1"
         OTHER_LDFLAGS: "-lz -lsqlite3"
