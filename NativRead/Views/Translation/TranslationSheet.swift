@@ -37,32 +37,40 @@ struct TranslationSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    header
-                    freePreviewCard
-                    languageSection
-                    freeChapterSection
-                    translationDetails
+            VStack(spacing: 0) {
+                // Pinned so "Done" stays reachable however far the sheet
+                // scrolls — the nav bar it replaces behaved the same way.
+                AppSheetHeader(
+                    title: "Translate",
+                    onDone: { dismiss() },
+                    palette: palette
+                )
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.sm)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Spacing.lg) {
+                        header
+                        freePreviewCard
+                        languageSection
+                        freeChapterSection
+                        translationDetails
 #if DEBUG
-                    if hasAcceptedTerms && hasBackendIdentity {
-                        purchaseSection
-                    }
+                        if hasAcceptedTerms && hasBackendIdentity {
+                            purchaseSection
+                        }
 #endif
+                    }
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.lg)
+                    .frame(maxWidth: 620)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(Spacing.lg)
-                .frame(maxWidth: 620)
-                .frame(maxWidth: .infinity)
             }
             .background(palette.background.ignoresSafeArea())
-            .navigationTitle("Translate")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .tint(palette.accent)
-                }
-            }
+            // Hidden on the root only, so pushed destinations (Terms of Use)
+            // keep their own bar and back button.
+            .toolbar(.hidden, for: .navigationBar)
         }
         .presentationDetents([.large])
         .accessibilityIdentifier("translation.sheet")
@@ -116,6 +124,15 @@ struct TranslationSheet: View {
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
             }
+
+            if job.hasFreePreview {
+                Spacer(minLength: Spacing.xs)
+                AppPill(
+                    title: String(localized: "Added", locale: locale),
+                    tone: .accent,
+                    palette: palette
+                )
+            }
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -131,53 +148,100 @@ struct TranslationSheet: View {
 
     private var languageSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            sectionLabel("Translate to")
+            AppSectionLabel(title: "Languages", palette: palette)
 
+            languagePairCard
+
+            // Only worth a control when there is something to choose between;
+            // with one shipped language the pair card already says everything.
             if TranslationTargetLanguage.passed.count > 1 {
-                Picker(
-                    "Translate to",
+                AppSegmentedControl(
+                    options: TranslationTargetLanguage.passed.map { language in
+                        .init(
+                            value: language,
+                            title: LocalizedStringKey(localizedName(for: language))
+                        )
+                    },
                     selection: Binding(
                         get: { job.targetLanguage },
                         set: { translations.setTargetLanguage($0, for: book) }
-                    )
-                ) {
-                    ForEach(TranslationTargetLanguage.passed, id: \.self) { language in
-                        Text(localizedName(for: language)).tag(language)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .disabled(job.isBackendActive)
-                .accessibilityIdentifier("translation.targetLanguage")
-            } else {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(palette.accent)
-                    Text(localizedName(for: job.targetLanguage))
-                        .font(Typography.control(17, weight: .semibold))
-                        .foregroundStyle(palette.text)
-                    Spacer()
-                }
-                .padding(.horizontal, Spacing.md)
-                .frame(minHeight: 52)
-                .background(palette.surface)
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: Spacing.radiusSmall,
-                        style: .continuous
-                    )
+                    ),
+                    palette: palette
                 )
+                .disabled(job.isBackendActive)
+                // The primitive draws no disabled state of its own.
+                .opacity(job.isBackendActive ? 0.45 : 1)
                 .accessibilityIdentifier("translation.targetLanguage")
             }
+        }
+    }
+
+    /// Source on the left, target on the right. The source side is read-only:
+    /// it reports what detection found rather than offering a choice.
+    private var languagePairCard: some View {
+        HStack(spacing: Spacing.xs) {
+            languageFace(
+                label: "From",
+                code: detectedLanguageCode,
+                name: localizedSourceLanguage
+            )
+
+            Image(systemName: "arrow.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(palette.accent)
+                .frame(width: 34, height: 34)
+                .background(palette.surfaceRaised, in: Circle())
+
+            languageFace(
+                label: "To",
+                code: job.targetLanguage.rawValue,
+                name: localizedName(for: job.targetLanguage)
+            )
+        }
+        .padding(Spacing.sm)
+        .frame(maxWidth: .infinity)
+        .background(palette.surface)
+        .clipShape(
+            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
+                .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("translation.languagePair")
+    }
+
+    private func languageFace(
+        label: LocalizedStringKey,
+        code: String,
+        name: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text(label)
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
+                .foregroundStyle(palette.secondaryText)
 
             HStack(spacing: Spacing.xs) {
-                Image(systemName: "text.magnifyingglass")
-                Text("Detected source")
-                Text("·")
-                Text(localizedSourceLanguage)
+                Text(code.uppercased())
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(palette.accent)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        palette.accentSoft,
+                        in: RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    )
+
+                Text(name)
+                    .font(Typography.control(14, weight: .semibold))
+                    .foregroundStyle(palette.text)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .font(Typography.meta())
-            .foregroundStyle(palette.secondaryText)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var termsAcceptanceSection: some View {
@@ -242,7 +306,7 @@ struct TranslationSheet: View {
     private var freeChapterSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             if showsPhaseMessage {
-                phaseMessage
+                progressCard
             }
 
             if !job.isBackendActive && !job.hasFullTranslation {
@@ -256,23 +320,17 @@ struct TranslationSheet: View {
                 }
             }
 
-            Button {
-                beginTranslation(kind: .preview)
-            } label: {
-                Label(freePreviewButtonTitle, systemImage: "sparkles")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 30)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(palette.accent)
-            .disabled(
-                !hasAcceptedTerms
-                    || !hasBackendIdentity
-                    || isRequestingTranslation
-                    || job.isBackendActive
-                    || job.hasFreePreview
-                    || !book.isTranslatableSource
+            AppPrimaryButton(
+                title: freePreviewButtonTitle,
+                systemImage: "sparkles",
+                isEnabled: hasAcceptedTerms
+                    && hasBackendIdentity
+                    && !isRequestingTranslation
+                    && !job.isBackendActive
+                    && !job.hasFreePreview
+                    && book.isTranslatableSource,
+                action: { beginTranslation(kind: .preview) },
+                palette: palette
             )
             .accessibilityIdentifier("translation.freeChapter")
         }
@@ -309,20 +367,32 @@ struct TranslationSheet: View {
             .accessibilityIdentifier("translation.signInWithApple")
 
             if auth.isSigningIn {
-                progressMessage("Signing in securely...")
+                HStack(spacing: Spacing.sm) {
+                    ProgressView()
+                        .tint(palette.accent)
+                    phaseText("Signing in securely...")
+                }
             } else if let errorMessage = auth.errorMessage {
-                Label(errorMessage, systemImage: "exclamationmark.triangle")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
+                Label {
+                    Text(verbatim: errorMessage)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
             }
 
 #if DEBUG
             if isPrivateTestBackend {
-                Button("Use local placeholder account") {
-                    usesLocalTestAccount = true
-                    pricingError = nil
-                }
-                .buttonStyle(.bordered)
+                AppPrimaryButton(
+                    title: "Use local placeholder account",
+                    tone: .secondary,
+                    action: {
+                        usesLocalTestAccount = true
+                        pricingError = nil
+                    },
+                    palette: palette
+                )
                 .accessibilityIdentifier("translation.localTestAccount")
             }
 #endif
@@ -330,28 +400,19 @@ struct TranslationSheet: View {
     }
 
     private var translationDetails: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showsTranslationDetails.toggle()
-                }
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(palette.accent)
-                    Text("How translation works")
-                        .font(Typography.control(16, weight: .medium))
-                        .foregroundStyle(palette.text)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(palette.secondaryText)
-                        .rotationEffect(.degrees(showsTranslationDetails ? 180 : 0))
-                }
-                .frame(minHeight: Spacing.minTapTarget)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+        AppSettingsSection(palette: palette) {
+            AppSettingsRow(
+                systemImage: "info.circle",
+                title: "How translation works",
+                hidesSeparator: !showsTranslationDetails,
+                action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showsTranslationDetails.toggle()
+                    }
+                },
+                palette: palette,
+                trailing: { disclosureChevron(isOpen: showsTranslationDetails) }
+            )
             .accessibilityIdentifier("translation.details")
 
             if showsTranslationDetails {
@@ -359,16 +420,22 @@ struct TranslationSheet: View {
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, Spacing.xs)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.bottom, Spacing.md)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.xs)
-        .background(palette.surface)
-        .clipShape(
-            RoundedRectangle(cornerRadius: Spacing.radiusSmall, style: .continuous)
-        )
+    }
+
+    /// The chevron that marks an expandable row. Rows carrying their own
+    /// trailing control suppress `AppSettingsRow`'s navigation chevron, so
+    /// this one stands in and rotates with the disclosure.
+    private func disclosureChevron(isOpen: Bool) -> some View {
+        Image(systemName: "chevron.down")
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(palette.secondaryText)
+            .rotationEffect(.degrees(isOpen ? 180 : 0))
     }
 
     private var freePreviewButtonTitle: LocalizedStringKey {
@@ -381,6 +448,17 @@ struct TranslationSheet: View {
             return false
         case .uploading, .translating, .importingResult, .finished, .failed:
             return true
+        }
+    }
+
+    /// The two-letter badge on the source side of the pair card. Detection can
+    /// come up empty, and an em dash reads better there than a blank tile.
+    private var detectedLanguageCode: String {
+        switch detectedLanguage {
+        case .language(let code, _, _):
+            return code
+        case .unknown:
+            return "—"
         }
     }
 
@@ -403,91 +481,140 @@ struct TranslationSheet: View {
         return name.capitalized
     }
 
+    /// One card carries the whole run: a headline for where the job stands, a
+    /// determinate track once the backend reports chunk counts, and the
+    /// phase's own sentence underneath.
+    private var progressCard: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    AppSectionLabel(title: "Overall progress", palette: palette)
+
+                    Text(progressHeadline)
+                        .font(Typography.control(21, weight: .bold))
+                        .foregroundStyle(palette.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: Spacing.xs)
+
+                AppPill(
+                    title: job.targetLanguage.rawValue.uppercased(),
+                    tone: .accent,
+                    palette: palette
+                )
+            }
+
+            if let fraction = job.progressFraction {
+                AppProgressTrack(value: fraction, palette: palette)
+            } else if job.isBackendActive {
+                ProgressView()
+                    .progressViewStyle(.linear)
+                    .tint(palette.accent)
+            }
+
+            phaseMessage
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(palette.accentSoft)
+        .clipShape(
+            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
+        )
+    }
+
+    private var progressHeadline: LocalizedStringKey {
+        switch job.phase {
+        case .draft, .attested:
+            return ""
+        case .uploading:
+            return "Uploading"
+        case .translating:
+            return job.errorMessage == nil ? "Translating" : "Reconnecting"
+        case .importingResult:
+            return "Adding to your library"
+        case .finished:
+            return "Ready to read"
+        case .failed:
+            return "Translation stopped"
+        }
+    }
+
     @ViewBuilder
     private var phaseMessage: some View {
         switch job.phase {
         case .draft, .attested:
             EmptyView()
         case .uploading:
-            progressMessage("Uploading EPUB to translator...")
+            phaseText("Uploading EPUB to translator...")
         case .translating:
             if let reconnectMessage = job.errorMessage {
-                Label(reconnectMessage, systemImage: "arrow.clockwise")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
+                phaseText(verbatim: reconnectMessage)
             } else {
-                progressMessage(
-                    job.progressText.map {
+                phaseText(
+                    verbatim: job.progressText.map {
                         "\(job.activeProgressMessage)... \($0)"
                     } ?? "\(job.activeProgressMessage)..."
                 )
             }
         case .importingResult:
-            progressMessage("Importing \(job.activeResultName)...")
+            phaseText("Importing \(job.activeResultName)...")
         case .finished:
             if job.hasFullTranslation {
-                Label("Full \(localizedName(for: job.targetLanguage)) translation was added as a separate library book.", systemImage: "checkmark.circle")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
+                phaseText("Full \(localizedName(for: job.targetLanguage)) translation was added as a separate library book.")
             } else {
-                Label("\(localizedName(for: job.targetLanguage)) preview was added as a separate library book.", systemImage: "checkmark.circle")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
+                phaseText("\(localizedName(for: job.targetLanguage)) preview was added as a separate library book.")
             }
         case .failed:
-            Label(job.errorMessage ?? "Translation failed.", systemImage: "exclamationmark.triangle")
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
+            if let errorMessage = job.errorMessage {
+                phaseText(verbatim: errorMessage)
+            } else {
+                phaseText("Translation failed.")
+            }
         }
     }
 
-    private func progressMessage(_ text: String) -> some View {
-        HStack(spacing: Spacing.sm) {
-            ProgressView()
-                .tint(palette.accent)
-            Text(text)
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
-        }
+    private func phaseText(_ text: LocalizedStringKey) -> some View {
+        phaseTextStyle(Text(text))
+    }
+
+    /// Backend-supplied messages are already in their final form — routing
+    /// them through the catalog would only look for a key that isn't there.
+    private func phaseText(verbatim text: String) -> some View {
+        phaseTextStyle(Text(verbatim: text))
+    }
+
+    private func phaseTextStyle(_ text: Text) -> some View {
+        text
+            .font(Typography.meta())
+            .foregroundStyle(palette.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var purchaseSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showsWholeBookOptions.toggle()
-                }
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "hammer")
-                        .foregroundStyle(palette.accent)
-                    Text("Whole book · developer test")
-                        .font(Typography.control(16, weight: .medium))
-                        .foregroundStyle(palette.text)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(palette.secondaryText)
-                        .rotationEffect(.degrees(showsWholeBookOptions ? 180 : 0))
-                }
-                .frame(minHeight: Spacing.minTapTarget)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+        AppSettingsSection(palette: palette) {
+            AppSettingsRow(
+                systemImage: "hammer",
+                title: "Whole book · developer test",
+                hidesSeparator: !showsWholeBookOptions,
+                action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showsWholeBookOptions.toggle()
+                    }
+                },
+                palette: palette,
+                trailing: { disclosureChevron(isOpen: showsWholeBookOptions) }
+            )
             .accessibilityIdentifier("translation.fullBookDisclosure")
 
             if showsWholeBookOptions {
                 purchaseOptions
-                    .padding(.top, Spacing.md)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.bottom, Spacing.md)
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.xs)
-        .background(palette.surface)
-        .clipShape(
-            RoundedRectangle(cornerRadius: Spacing.radiusSmall, style: .continuous)
-        )
     }
 
     private var purchaseOptions: some View {
@@ -517,63 +644,55 @@ struct TranslationSheet: View {
                 .foregroundStyle(palette.secondaryText)
 
                 if hasEnoughCredits(for: quote) {
-                    Button {
-                        guard let fullQuote else { return }
-                        beginTranslation(
-                            kind: .full, preparedUpload: fullQuote
-                        )
-                    } label: {
-                        Label(fullBookButtonTitle, systemImage: "book.closed")
-                            .font(.system(size: 15, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(palette.accent)
-                    .disabled(isRequestingTranslation || job.isBackendActive)
+                    AppPrimaryButton(
+                        title: fullBookButtonTitle,
+                        systemImage: "book.closed",
+                        isEnabled: !isRequestingTranslation && !job.isBackendActive,
+                        action: {
+                            guard let fullQuote else { return }
+                            beginTranslation(
+                                kind: .full, preparedUpload: fullQuote
+                            )
+                        },
+                        palette: palette
+                    )
                     .accessibilityIdentifier("translation.fullBook")
                 } else if let product = placeholderProduct(for: quote) {
-                    Button {
-                        addPlaceholderCredits(product)
-                    } label: {
-                        Label(
-                            "Add \(product.credits) test credits · $0",
-                            systemImage: "cart.badge.plus"
-                        )
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(palette.accent)
-                    .disabled(isRequestingTranslation)
+                    AppPrimaryButton(
+                        title: "Add \(product.credits) test credits · $0",
+                        systemImage: "cart.badge.plus",
+                        isEnabled: !isRequestingTranslation,
+                        action: { addPlaceholderCredits(product) },
+                        palette: palette
+                    )
                     .accessibilityIdentifier("translation.placeholderPurchase")
                 }
             } else {
-                Button {
-                    prepareFullQuote()
-                } label: {
-                    Label("Calculate exact quote", systemImage: "number")
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(palette.accent)
-                .disabled(
-                    !hasAcceptedTerms
-                        || !hasBackendIdentity
-                        || isRequestingTranslation
-                        || job.isBackendActive
-                        || job.hasFullTranslation
-                        || !book.isTranslatableSource
+                AppPrimaryButton(
+                    title: "Calculate exact quote",
+                    systemImage: "number",
+                    tone: .secondary,
+                    isEnabled: hasAcceptedTerms
+                        && hasBackendIdentity
+                        && !isRequestingTranslation
+                        && !job.isBackendActive
+                        && !job.hasFullTranslation
+                        && book.isTranslatableSource,
+                    action: { prepareFullQuote() },
+                    palette: palette
                 )
                 .accessibilityIdentifier("translation.calculateQuote")
             }
 
             if let pricingError {
-                Label(pricingError, systemImage: "exclamationmark.triangle")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
+                Label {
+                    Text(verbatim: pricingError)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
             }
-
         }
     }
 
@@ -581,18 +700,6 @@ struct TranslationSheet: View {
         job.hasFullTranslation ? "Full translation already added" : "Translate whole book"
     }
 
-    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
-        HStack(spacing: Spacing.sm) {
-            Text(text)
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.secondaryText)
-            Rectangle()
-                .fill(palette.hairline)
-                .frame(height: Spacing.hairlineWidth)
-        }
-    }
 
     private func requestTranslation(
         kind: TranslationRequestKind,
@@ -903,6 +1010,16 @@ private extension TranslationJob {
         case .preview, nil:
             return "preview"
         }
+    }
+
+    /// Only defined once the backend has reported chunk counts; until then the
+    /// card shows an indeterminate bar rather than a fake zero.
+    var progressFraction: Double? {
+        guard let translatedChunks,
+              let totalChunks,
+              totalChunks > 0
+        else { return nil }
+        return Double(translatedChunks) / Double(totalChunks)
     }
 
     var isBackendActive: Bool {

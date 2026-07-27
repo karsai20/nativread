@@ -329,7 +329,7 @@ struct SettingsView: View {
 #if DEBUG
     private var translationBackendSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("Translation Backend")
+            AppSectionLabel(title: "Translation Backend", palette: palette)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 TextField("http://translator.local:48218", text: $backendURL)
@@ -407,22 +407,4 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Section label
-
-    /// Uppercase eyebrow label with a trailing hairline rule — the same
-    /// editorial device used throughout LibraryView.
-    private func sectionLabel(_ text: String) -> some View {
-        HStack(spacing: Spacing.sm) {
-            // LocalizedStringKey so a String argument still routes through the
-            // catalog (Text(String) would render verbatim).
-            Text(LocalizedStringKey(text))
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.secondaryText)
-            Rectangle()
-                .fill(palette.hairline)
-                .frame(height: Spacing.hairlineWidth)
-        }
-    }
 }

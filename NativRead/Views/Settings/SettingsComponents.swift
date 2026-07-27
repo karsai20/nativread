@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Building blocks for the editorial Settings restyle: page-like appearance
-/// tiles, a grouped surface card with hairline row separators, and the choice
-/// row that lives inside it. All colours/fonts/spacing come from the
-/// DesignSystem tokens (`BrandPalette`, `Typography`, `Spacing`).
+/// What the redesign's `AppSettingsSection` / `AppSettingsRow` primitives do
+/// not cover: the page-like appearance tiles and the plain grouped surface the
+/// appearance picker sits on. Everything else that used to live here moved to
+/// `DesignSystem/AppRows.swift`.
 
 // MARK: - Grouped surface card
 
@@ -21,60 +21,6 @@ extension View {
                 RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
                     .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
             )
-    }
-}
-
-/// Inset hairline between two rows in a grouped card — leading inset aligns it
-/// under the row text, the way native grouped lists inset their separators.
-struct SettingsRowDivider: View {
-    let palette: BrandPalette
-
-    var body: some View {
-        Rectangle()
-            .fill(palette.hairline)
-            .frame(height: Spacing.hairlineWidth)
-            .padding(.leading, Spacing.md)
-    }
-}
-
-// MARK: - Choice row (inside a grouped card)
-
-/// A single tappable option in a Settings picker. Unlike the old floating
-/// cards, this row has no border of its own — the enclosing `settingsGroupedCard`
-/// supplies the surface and hairlines. Selected rows warm to a subtle accent
-/// wash with a semibold accent title and trailing checkmark.
-struct SettingsGroupedRow: View {
-    let title: String
-    var subtitle: String? = nil
-    let isSelected: Bool
-    let palette: BrandPalette
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(Typography.control(17, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? palette.accent : palette.text)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(Typography.meta())
-                        .foregroundStyle(palette.secondaryText)
-                }
-            }
-            Spacer()
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(palette.accent)
-            }
-        }
-        .padding(.horizontal, Spacing.md)
-        .padding(.vertical, Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? palette.accent.opacity(0.10) : Color.clear)
-        // Whole row (including the wash and trailing gap) stays tappable.
-        .contentShape(Rectangle())
-        .animation(.easeOut(duration: 0.18), value: isSelected)
     }
 }
 

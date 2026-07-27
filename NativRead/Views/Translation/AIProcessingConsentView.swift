@@ -22,53 +22,76 @@ struct AIProcessingConsentView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
-                    header
+            VStack(spacing: 0) {
+                // No "Done" action: on a consent screen the only ways out are
+                // the two deliberate choices in the action bar.
+                AppSheetHeader(
+                    title: LocalizedStringKey(copy.navigationTitle),
+                    palette: palette
+                )
+                .padding(.horizontal, Spacing.lg)
+                .padding(.bottom, Spacing.sm)
 
-                    VStack(spacing: 0) {
-                        disclosureRow(
-                            icon: "text.document",
-                            title: copy.dataTitle,
-                            detail: copy.dataDetail
-                        )
-                        SettingsRowDivider(palette: palette)
-                        disclosureRow(
-                            icon: "sparkles",
-                            title: copy.providerTitle,
-                            detail: copy.providerDetail
-                        )
-                        SettingsRowDivider(palette: palette)
-                        disclosureRow(
-                            icon: "trash",
-                            title: copy.retentionTitle,
-                            detail: copy.retentionDetail
-                        )
-                    }
-                    .settingsGroupedCard(palette: palette)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Spacing.lg) {
+                        header
 
-                    NavigationLink {
-                        PrivacyPolicyView()
-                    } label: {
-                        Label(copy.privacyLink, systemImage: "hand.raised")
+                        AppSettingsSection(palette: palette) {
+                            disclosureRow(
+                                icon: "text.document",
+                                title: copy.dataTitle,
+                                detail: copy.dataDetail
+                            )
+                            rowSeparator
+                            disclosureRow(
+                                icon: "sparkles",
+                                title: copy.providerTitle,
+                                detail: copy.providerDetail
+                            )
+                            rowSeparator
+                            disclosureRow(
+                                icon: "trash",
+                                title: copy.retentionTitle,
+                                detail: copy.retentionDetail
+                            )
+                        }
+
+                        NavigationLink {
+                            PrivacyPolicyView()
+                        } label: {
+                            Label {
+                                Text(verbatim: copy.privacyLink)
+                            } icon: {
+                                Image(systemName: "hand.raised")
+                            }
                             .font(Typography.control(16, weight: .semibold))
                             .foregroundStyle(palette.accent)
+                        }
+                        .accessibilityIdentifier("translation.aiConsent.privacy")
                     }
-                    .accessibilityIdentifier("translation.aiConsent.privacy")
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.bottom, Spacing.lg)
+                    .frame(maxWidth: 620)
+                    .frame(maxWidth: .infinity)
                 }
-                .padding(Spacing.lg)
-                .frame(maxWidth: 620)
-                .frame(maxWidth: .infinity)
             }
             .background(palette.background.ignoresSafeArea())
             .safeAreaInset(edge: .bottom) {
                 actionBar
             }
-            .navigationTitle(copy.navigationTitle)
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .presentationDetents([.large])
         .accessibilityIdentifier("translation.aiConsent.screen")
+    }
+
+    /// Matches the hairline `AppSettingsRow` draws, so these taller rows sit
+    /// in the same grouped card without looking hand-made.
+    private var rowSeparator: some View {
+        Rectangle()
+            .fill(palette.hairline)
+            .frame(height: Spacing.hairlineWidth)
+            .padding(.leading, Spacing.md)
     }
 
     private var header: some View {
@@ -77,7 +100,10 @@ struct AIProcessingConsentView: View {
                 .font(.system(size: 23, weight: .semibold))
                 .foregroundStyle(palette.accent)
                 .frame(width: 52, height: 52)
-                .background(palette.accent.opacity(0.12), in: Circle())
+                .background(
+                    palette.accentSoft,
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                )
 
             Text(copy.title)
                 .font(Typography.display(31))
@@ -117,24 +143,24 @@ struct AIProcessingConsentView: View {
 
     private var actionBar: some View {
         VStack(spacing: Spacing.sm) {
-            Button {
-                dismiss()
-                onAllow()
-            } label: {
-                Text(copy.allowButton)
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 30)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(palette.accent)
+            AppPrimaryButton(
+                title: LocalizedStringKey(copy.allowButton),
+                systemImage: "sparkles",
+                action: {
+                    dismiss()
+                    onAllow()
+                },
+                palette: palette
+            )
             .accessibilityIdentifier("translation.aiConsent.allow")
 
-            Button(copy.notNowButton) { dismiss() }
-                .font(Typography.control(16, weight: .semibold))
-                .foregroundStyle(palette.secondaryText)
-                .frame(minHeight: Spacing.minTapTarget)
-                .accessibilityIdentifier("translation.aiConsent.cancel")
+            AppPrimaryButton(
+                title: LocalizedStringKey(copy.notNowButton),
+                tone: .secondary,
+                action: { dismiss() },
+                palette: palette
+            )
+            .accessibilityIdentifier("translation.aiConsent.cancel")
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
