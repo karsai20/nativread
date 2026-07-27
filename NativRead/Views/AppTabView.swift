@@ -21,6 +21,7 @@ struct AppTabView: View {
                 .tag(Destination.library)
                 .tabItem {
                     Label("Library", systemImage: "books.vertical.fill")
+                        .accessibilityIdentifier("tab.library")
                 }
 
             TranslateHomeView()
@@ -28,6 +29,7 @@ struct AppTabView: View {
                 .tag(Destination.translate)
                 .tabItem {
                     Label("Translate", systemImage: "character.book.closed.fill")
+                        .accessibilityIdentifier("tab.translate")
                 }
 
             SettingsView()
@@ -35,6 +37,7 @@ struct AppTabView: View {
                 .tag(Destination.settings)
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
+                        .accessibilityIdentifier("tab.settings")
                 }
         }
         .tint(palette.accent)

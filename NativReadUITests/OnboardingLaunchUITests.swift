@@ -21,15 +21,16 @@ final class OnboardingLaunchUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(
-            app.staticTexts["onboarding.wordmark"].waitForExistence(timeout: 6),
-            "the brand wordmark should appear on first launch"
+            app.staticTexts["onboarding.tour.title"]
+                .waitForExistence(timeout: 6),
+            "the welcome step should appear on first launch"
         )
         XCTAssertTrue(
-            app.buttons["onboarding.welcome.start"]
+            app.buttons["onboarding.tour.next"]
                 .waitForExistence(timeout: 4),
             "welcome should wait for an explicit, clearly labelled action"
         )
-        XCTAssertTrue(app.staticTexts["onboarding.welcome.title"].exists)
+        XCTAssertTrue(app.buttons["onboarding.tour.skip"].exists)
     }
 
     func testLaunchSplashSkipped() {
@@ -43,8 +44,8 @@ final class OnboardingLaunchUITests: XCTestCase {
             "library should show directly when onboarding is skipped"
         )
         XCTAssertFalse(
-            app.staticTexts["onboarding.wordmark"].exists,
-            "splash wordmark must not appear when skipped"
+            app.staticTexts["onboarding.tour.title"].exists,
+            "the welcome step must not appear when skipped"
         )
     }
 }

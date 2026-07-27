@@ -146,6 +146,7 @@ struct TranslateHomeView: View {
                         action: { translationBook = book },
                         palette: palette
                     )
+                    .accessibilityIdentifier("translate.ready.\(book.title)")
                 }
             }
         }

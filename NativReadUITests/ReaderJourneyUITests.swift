@@ -76,11 +76,9 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(
             app.buttons["library.import.empty"].waitForExistence(timeout: 10)
         )
-        XCTAssertFalse(
-            app.buttons["library.import"].exists,
-            "the persistent bottom bar must stay hidden on an empty shelf"
-        )
-        XCTAssertFalse(app.buttons["library.translate"].exists)
+        // Translation is its own destination now, so the empty shelf offers
+        // exactly one action and never a second, competing import control.
+        XCTAssertTrue(app.tabBars.buttons["tab.translate"].exists)
     }
 
     func testPageTurnAdvancesAndPersistsProgress() {
@@ -384,15 +382,15 @@ final class ReaderJourneyUITests: XCTestCase {
     }
 
     func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
-        let button = app.buttons["library.translate"]
-        XCTAssertTrue(button.waitForExistence(timeout: 10))
-        button.tap()
+        let tab = app.tabBars.buttons["tab.translate"]
+        XCTAssertTrue(tab.waitForExistence(timeout: 10))
+        tab.tap()
 
-        // Translate opens a book picker first; choose the seeded book.
-        let pickerBook =
-            app.buttons["translation.picker.The Lantern of Aldebaran"]
-        XCTAssertTrue(pickerBook.waitForExistence(timeout: 6))
-        pickerBook.tap()
+        // The Translate destination lists eligible books directly.
+        let readyBook =
+            app.buttons["translate.ready.The Lantern of Aldebaran"]
+        XCTAssertTrue(readyBook.waitForExistence(timeout: 6))
+        readyBook.tap()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 6)
@@ -422,12 +420,12 @@ final class ReaderJourneyUITests: XCTestCase {
         ]
         app.launch()
 
-        let translate = app.buttons["library.translate"]
+        let translate = app.tabBars.buttons["tab.translate"]
         XCTAssertTrue(translate.waitForExistence(timeout: 10))
         translate.tap()
 
         let pickerBook =
-            app.buttons["translation.picker.The Lantern of Aldebaran"]
+            app.buttons["translate.ready.The Lantern of Aldebaran"]
         XCTAssertTrue(pickerBook.waitForExistence(timeout: 6))
         pickerBook.tap()
 
@@ -495,10 +493,10 @@ final class ReaderJourneyUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(
-            app.buttons["library.translate"].waitForExistence(timeout: 10)
+            app.tabBars.buttons["tab.translate"].waitForExistence(timeout: 10)
         )
-        app.buttons["library.translate"].tap()
-        app.buttons["translation.picker.The Lantern of Aldebaran"].tap()
+        app.tabBars.buttons["tab.translate"].tap()
+        app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
 
         let terms = app.buttons["translation.termsAcceptance"]
         XCTAssertTrue(terms.waitForExistence(timeout: 6))

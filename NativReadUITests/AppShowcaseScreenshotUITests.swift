@@ -64,12 +64,12 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         ])
 
         XCTAssertTrue(
-            app.staticTexts["onboarding.welcome.title"]
+            app.staticTexts["onboarding.tour.title"]
                 .waitForExistence(timeout: 25)
         )
         capture(locale, 1, "onboarding-welcome")
 
-        app.buttons["onboarding.welcome.start"].tap()
+        app.buttons["onboarding.tour.next"].tap()
         XCTAssertTrue(
             app.buttons["onboarding.tour.next"].waitForExistence(timeout: 10)
         )
@@ -190,12 +190,12 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         )
 
         XCTAssertTrue(
-            app.buttons["library.translate"].waitForExistence(timeout: 30)
+            app.tabBars.buttons["tab.translate"].waitForExistence(timeout: 30)
         )
-        app.buttons["library.translate"].tap()
+        app.tabBars.buttons["tab.translate"].tap()
 
         let pickerBook =
-            app.buttons["translation.picker.\(locale.primaryTitle)"]
+            app.buttons["translate.ready.\(locale.primaryTitle)"]
         XCTAssertTrue(pickerBook.waitForExistence(timeout: 12))
         capture(locale, 17, "translation-book-picker")
         pickerBook.tap()
@@ -242,11 +242,11 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
             ]
         )
         XCTAssertTrue(
-            app.buttons["library.settings"].waitForExistence(timeout: 30)
+            app.tabBars.buttons["tab.settings"].waitForExistence(timeout: 30)
         )
-        app.buttons["library.settings"].tap()
+        app.tabBars.buttons["tab.settings"].tap()
         XCTAssertTrue(
-            app.buttons["settings.close"].waitForExistence(timeout: 10)
+            app.otherElements["settings.sheet"].waitForExistence(timeout: 10)
         )
         capture(locale, 22, "settings-top")
 
@@ -315,9 +315,10 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(darkAppearance.isHittable)
         darkAppearance.tap()
         capture(locale, 32, "settings-dark")
-        app.buttons["settings.close"].tap()
+        app.tabBars.buttons["tab.library"].tap()
         XCTAssertTrue(
-            app.buttons["library.settings"].waitForExistence(timeout: 8)
+            app.staticTexts["library.grid.heading"]
+                .waitForExistence(timeout: 8)
         )
         capture(locale, 33, "library-dark")
     }

@@ -1,7 +1,7 @@
 import XCTest
 
-/// Sheet-chrome contract: Settings closes with a single X button in its
-/// in-content header.
+/// Settings is a tab destination, not a sheet: it is reached from the tab bar
+/// and its pushed screens (privacy, account deletion) open from there.
 final class SheetChromeUITests: XCTestCase {
 
     private var app: XCUIApplication!
@@ -11,42 +11,50 @@ final class SheetChromeUITests: XCTestCase {
         app = XCUIApplication()
     }
 
-    func testSettingsSheetShowsHeaderCloseButton() {
+    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
+    /// `tabItem`, so tabs are addressed by their (language-forced) label.
+    private func tab(_ label: String) -> XCUIElement {
+        app.tabBars.buttons[label]
+    }
+
+    /// Opens the Settings tab and returns once its content is on screen.
+    private func openSettings() {
+        let settings = tab("Settings")
+        XCTAssertTrue(
+            settings.waitForExistence(timeout: 15),
+            "the tab bar must offer a Settings destination"
+        )
+        settings.tap()
+        XCTAssertTrue(
+            app.otherElements["settings.sheet"].waitForExistence(timeout: 10)
+        )
+    }
+
+    func testSettingsIsReachableFromTheTabBar() {
         app.launchArguments = [
             "-resetLibrary", "-resetSettings", "-skipOnboarding",
-            "-seedSampleBook"
+            "-seedSampleBook", "-forceLanguage", "en"
         ]
         app.launch()
 
-        XCTAssertTrue(
-            app.buttons["library.settings"].waitForExistence(timeout: 15)
-        )
-        app.buttons["library.settings"].tap()
+        openSettings()
 
-        let close = app.buttons["settings.close"]
+        // Returning to the shelf is a tab switch, not a dismissal.
+        tab("Library").tap()
         XCTAssertTrue(
-            close.waitForExistence(timeout: 10),
-            "settings sheet must show the header close (X) button"
-        )
-
-        close.tap()
-        XCTAssertTrue(
-            app.buttons["library.settings"].waitForExistence(timeout: 5),
-            "tapping X must dismiss the settings sheet"
+            app.buttons["library.book.The Lantern of Aldebaran"]
+                .waitForExistence(timeout: 10)
         )
     }
 
     func testSettingsOpensPrivacyPolicy() {
         app.launchArguments = [
             "-resetLibrary", "-resetSettings", "-skipOnboarding",
-            "-seedSampleBook"
+            "-seedSampleBook", "-forceLanguage", "en"
         ]
         app.launch()
 
-        XCTAssertTrue(
-            app.buttons["library.settings"].waitForExistence(timeout: 15)
-        )
-        app.buttons["library.settings"].tap()
+        openSettings()
 
         let privacy = app.buttons["settings.privacy.link"]
         for _ in 0..<4 where !privacy.isHittable {
@@ -62,16 +70,13 @@ final class SheetChromeUITests: XCTestCase {
     func testSignedInAccountCanInitiateDeletionInSettings() {
         app.launchArguments = [
             "-resetLibrary", "-resetSettings", "-skipOnboarding",
-            "-seedSampleBook", "-translationBackendURL",
+            "-seedSampleBook", "-forceLanguage", "en", "-translationBackendURL",
             "https://backend.example", "-translationSessionToken",
             "ui-test-session"
         ]
         app.launch()
 
-        XCTAssertTrue(
-            app.buttons["library.settings"].waitForExistence(timeout: 15)
-        )
-        app.buttons["library.settings"].tap()
+        openSettings()
 
         let delete = app.buttons["settings.account.delete"]
         for _ in 0..<4 where !delete.isHittable {

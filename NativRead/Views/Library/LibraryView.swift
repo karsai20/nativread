@@ -156,6 +156,7 @@ struct LibraryView: View {
                         .tracking(Typography.headingTracking(22))
                         .foregroundStyle(palette.text)
                         .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("library.grid.heading")
 
                     if visibleBooks.isEmpty {
                         Text("No books match your search.")
