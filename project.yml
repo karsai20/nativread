@@ -53,14 +53,16 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
-        # Translator backend runs on the user's own LAN over http. Scope ATS to
-        # local networking only (never NSAllowsArbitraryLoads). The default URL
-        # ships empty: the user must set their backend in Settings, so no
-        # attacker-claimable address is baked into the binary.
+        # Production talks to the Cloudflare Worker over HTTPS, which ATS
+        # allows by default. NSAllowsLocalNetworking stays on only so a DEBUG
+        # build can be pointed at a translator on the developer's own LAN;
+        # never widen this to NSAllowsArbitraryLoads.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSLocalNetworkUsageDescription: NativRead connects to your private translator backend on your local network.
-        NativReadDefaultTranslationBackendURL: ""
+        # The shipped backend. A stored value in Settings still wins, so a
+        # DEBUG build can override it without touching this.
+        NativReadDefaultTranslationBackendURL: "https://nativread-api.karsai777.workers.dev"
         # Must match the production backend and the published Privacy Policy.
         # A provider change also requires bumping TranslationPrivacy's consent.
         NativReadAIProviderName: "Google Gemini API"

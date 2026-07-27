@@ -73,7 +73,7 @@
 	<key>NativReadAIProviderName</key>
 	<string>Google Gemini API</string>
 	<key>NativReadDefaultTranslationBackendURL</key>
-	<string></string>
+	<string>https://nativread-api.karsai777.workers.dev</string>
 	<key>NativReadPrivacyPolicyURL</key>
 	<string>https://nativread.com/privacy/</string>
 	<key>UIAppFonts</key>
