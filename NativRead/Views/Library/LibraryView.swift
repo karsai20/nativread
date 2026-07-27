@@ -16,11 +16,9 @@ struct LibraryView: View {
     @State private var isImporterPresented = false
     @State private var openBook: Book?
     @State private var importError: String?
-    @State private var isSettingsPresented = false
     @State private var isImporting = false
-    @State private var isTranslationPickerPresented = false
-    @State private var pendingTranslationBook: Book?
     @State private var translationBook: Book?
+    @State private var searchText = ""
 
     /// The shelf now carries its own editorial identity rather than morphing
     /// with the reading theme — the library is a place, the reader is the book.
@@ -36,13 +34,24 @@ struct LibraryView: View {
         }
     }
 
+    /// The grid's contents. Search matches title or author, case- and
+    /// diacritic-insensitively so "arvizturo" finds "Árvíztűrő".
+    private var visibleBooks: [Book] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return sortedBooks }
+        return sortedBooks.filter { book in
+            [book.title, book.author].contains {
+                $0.range(
+                    of: query,
+                    options: [.caseInsensitive, .diacriticInsensitive]
+                ) != nil
+            }
+        }
+    }
+
     /// The most recently touched in-progress book, featured as the hero.
     private var nowReadingBook: Book? {
         sortedBooks.first { $0.isStarted && !$0.isFinished }
-    }
-
-    private var translationCandidate: Book? {
-        sortedBooks.first { $0.isTranslatableSource }
     }
 
     var body: some View {
@@ -53,12 +62,6 @@ struct LibraryView: View {
                 emptyState
             } else {
                 shelf
-            }
-
-            if !library.books.isEmpty {
-                bottomActionBar
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.bottom, Spacing.md)
             }
 
             if isImporting {
@@ -110,28 +113,6 @@ struct LibraryView: View {
             TranslationSheet(book: book)
                 .environment(translationStore)
         }
-        .sheet(
-            isPresented: $isTranslationPickerPresented,
-            onDismiss: {
-                if let book = pendingTranslationBook {
-                    pendingTranslationBook = nil
-                    translationBook = book
-                }
-            }
-        ) {
-            TranslationBookPickerSheet(
-                books: sortedBooks.filter(\.isTranslatableSource),
-                coverURL: { library.coverURL(for: $0) },
-                onSelect: { book in
-                    pendingTranslationBook = book
-                    isTranslationPickerPresented = false
-                }
-            )
-        }
-        .sheet(isPresented: $isSettingsPresented) {
-            SettingsView()
-                .environment(localizationStore)
-        }
         .alert(
             "Import failed",
             isPresented: Binding(
@@ -158,31 +139,51 @@ struct LibraryView: View {
 
     private var shelf: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
                 header
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.top, Spacing.md)
-                    .padding(.bottom, Spacing.lg)
+                searchField
 
-                if let book = nowReadingBook {
-                    nowReadingHero(book)
-                        .padding(.horizontal, Spacing.lg)
-                        .padding(.bottom, Spacing.xl)
+                if let book = nowReadingBook, searchText.isEmpty {
+                    VStack(alignment: .leading, spacing: Spacing.sm) {
+                        AppSectionLabel(title: "Continue reading", palette: palette)
+                        nowReadingHero(book)
+                    }
                 }
 
-                sectionLabel("Library")
-                    .padding(.horizontal, Spacing.lg)
-                    .padding(.bottom, Spacing.md)
+                VStack(alignment: .leading, spacing: Spacing.md) {
+                    Text(searchText.isEmpty ? "All books" : "Results")
+                        .font(Typography.heading(22, relativeTo: .title2))
+                        .tracking(Typography.headingTracking(22))
+                        .foregroundStyle(palette.text)
+                        .accessibilityAddTraits(.isHeader)
 
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(), spacing: 22),
-                        GridItem(.flexible(), spacing: 22)
-                    ],
-                    alignment: .leading,
-                    spacing: 30
-                ) {
-                    ForEach(sortedBooks) { book in
+                    if visibleBooks.isEmpty {
+                        Text("No books match your search.")
+                            .font(Typography.control(15))
+                            .foregroundStyle(palette.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, Spacing.lg)
+                    } else {
+                        bookGrid
+                    }
+                }
+            }
+            .padding(.horizontal, Spacing.lg)
+            .padding(.top, Spacing.md)
+            .padding(.bottom, Spacing.xl)
+        }
+    }
+
+    private var bookGrid: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 22),
+                GridItem(.flexible(), spacing: 22)
+            ],
+            alignment: .leading,
+            spacing: 30
+        ) {
+            ForEach(visibleBooks) { book in
                         Button {
                             openBook = book
                         } label: {
@@ -222,29 +223,8 @@ struct LibraryView: View {
                             } label: {
                                 Label("Delete book", systemImage: "trash")
                             }
-                        }
-                    }
                 }
-                .padding(.horizontal, Spacing.lg)
-                .padding(.bottom, 116)
             }
-        }
-    }
-
-    /// A small uppercase, tracked section label with a trailing hairline rule —
-    /// the editorial device that paces the shelf into named regions.
-    private func sectionLabel(_ text: String) -> some View {
-        HStack(spacing: Spacing.sm) {
-            // LocalizedStringKey(text) so a String argument still localizes —
-            // Text(String) would be verbatim and skip the catalog.
-            Text(LocalizedStringKey(text))
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.secondaryText)
-            Rectangle()
-                .fill(palette.hairline)
-                .frame(height: Spacing.hairlineWidth)
         }
     }
 
@@ -257,47 +237,41 @@ struct LibraryView: View {
         Button {
             openBook = book
         } label: {
-            HStack(alignment: .top, spacing: Spacing.md) {
+            HStack(alignment: .center, spacing: Spacing.md) {
                 heroCover(book)
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text("Now Reading")
-                        .font(Typography.eyebrow)
-                        .tracking(Typography.eyebrowTracking)
-                        .textCase(.uppercase)
-                        .foregroundStyle(palette.accent)
+                    AppPill(
+                        title: book.format.rawValue.uppercased(),
+                        tone: .accent,
+                        palette: palette
+                    )
 
                     Text(book.title)
-                        .font(Typography.display(28))
+                        .font(Typography.control(19, weight: .bold))
                         .foregroundStyle(palette.text)
-                        .lineLimit(3)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(book.author)
-                        .font(Typography.meta())
+                        .font(Typography.control(15))
                         .foregroundStyle(palette.secondaryText)
                         .lineLimit(1)
 
-                    Spacer(minLength: Spacing.sm)
-
                     heroProgress(book)
-                    continueAffordance
                         .padding(.top, Spacing.xxs)
                 }
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(palette.tertiaryText)
             }
             .padding(Spacing.md)
             .background(
-                RoundedRectangle(cornerRadius: Spacing.radiusCard)
+                RoundedRectangle(cornerRadius: Spacing.radiusGroup, style: .continuous)
                     .fill(palette.surface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.radiusCard)
-                    .strokeBorder(palette.hairline)
-            )
-            .shadow(
-                color: .black.opacity(palette.shadowOpacity * 0.5),
-                radius: 16, x: 0, y: 8
             )
         }
         .buttonStyle(.plain)
@@ -333,18 +307,6 @@ struct LibraryView: View {
         )
     }
 
-    private var continueAffordance: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "book.fill")
-                .font(.system(size: 11, weight: .semibold))
-            Text("Continue")
-                .font(.system(size: 13, weight: .semibold))
-        }
-        .foregroundStyle(palette.background)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Capsule().fill(palette.accent))
-    }
 
     /// "40% read" → "40% elolvasva", localised via the app-language bundle.
     private func percentReadText(_ fraction: Double) -> String {
@@ -357,100 +319,77 @@ struct LibraryView: View {
 
     private func heroProgress(_ book: Book) -> some View {
         let fraction = book.progress.bookFraction
-        return VStack(alignment: .leading, spacing: Spacing.xxs) {
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(palette.hairline)
-                    Capsule()
-                        .fill(palette.accent)
-                        .frame(width: max(2, proxy.size.width * fraction))
-                }
-            }
-            .frame(height: 3)
+        return HStack(spacing: Spacing.sm) {
+            AppProgressTrack(value: fraction, palette: palette)
 
             Text(percentReadText(fraction))
-                .font(Typography.meta(11))
+                .font(Typography.control(13, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(palette.secondaryText)
+                .fixedSize()
         }
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                // Brand wordmark lives on the launch screen + app icon; the
-                // library leads with the shelf itself. Count interpolated as
-                // a String so the generated key is "%@ book%@ on the shelf"
-                // (matches the catalog); Hungarian renders the count and
-                // ignores the plural suffix.
-                Text(
-                    "\(String(library.books.count)) book\(library.books.count == 1 ? "" : "s") on the shelf"
-                )
-                .font(Typography.title(22))
-                .foregroundStyle(palette.text)
-            }
-            Spacer()
-            settingsButton
-        }
-    }
-
-    private var settingsButton: some View {
-        Button {
-            isSettingsPresented = true
-        } label: {
-            Image(systemName: "gearshape")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(palette.accent)
-                .frame(
-                    width: Spacing.minTapTarget,
-                    height: Spacing.minTapTarget
-                )
-                .background(
-                    Circle().fill(palette.surface)
-                )
-        }
-        .accessibilityIdentifier("library.settings")
-        .accessibilityLabel("Settings")
-    }
-
-    // MARK: - Bottom actions
-
-    private var bottomActionBar: some View {
-        HStack(spacing: Spacing.sm) {
-            bottomAction(
-                title: "Translate",
-                systemImage: "sparkles",
-                accessibilityIdentifier: "library.translate"
-            ) {
-                isTranslationPickerPresented = true
-            }
-            .disabled(translationCandidate == nil)
-
-            bottomAction(
-                title: "Import",
+        AppLargeTitleHeader(
+            title: "Library",
+            subtitle: shelfSubtitle,
+            palette: palette
+        ) {
+            AppIconButton(
                 systemImage: "plus",
-                accessibilityIdentifier: "library.import"
+                label: "Add a book",
+                isSelected: false,
+                palette: palette
             ) {
                 isImporterPresented = true
             }
+            .accessibilityIdentifier("library.import")
             .disabled(isImporting)
         }
-        .padding(Spacing.xs)
-        .background {
-            Capsule()
-                .fill(palette.surface.opacity(
-                    reduceTransparency
-                        ? 1 : (colorScheme == .dark ? 0.94 : 0.97)
-                ))
-                .shadow(
-                    color: .black.opacity(palette.shadowOpacity),
-                    radius: 18, x: 0, y: 8
-                )
+    }
+
+    /// Count interpolated as a String so the generated key stays
+    /// "%@ book%@ · stored on this device"; Hungarian renders the count and
+    /// ignores the plural suffix.
+    private var shelfSubtitle: String {
+        let count = library.books.count
+        let format = localizationStore.localizedString(
+            "%@ book%@ · stored on this device",
+            value: "%@ book%@ · stored on this device"
+        )
+        return String(format: format, String(count), count == 1 ? "" : "s")
+    }
+
+    private var searchField: some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(palette.secondaryText)
+
+            TextField("Search your library", text: $searchText)
+                .font(Typography.control(16))
+                .foregroundStyle(palette.text)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .accessibilityIdentifier("library.search")
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(palette.tertiaryText)
+                }
+                .accessibilityLabel("Clear search")
+            }
         }
-        .overlay {
-            Capsule()
-                .strokeBorder(palette.hairline, lineWidth: 0.8)
-        }
+        .padding(.horizontal, Spacing.md)
+        .frame(minHeight: 50)
+        .background(palette.surface)
+        .clipShape(Capsule(style: .continuous))
+        .overlay(Capsule(style: .continuous).strokeBorder(palette.hairline))
     }
 
     private var translationRecoveryID: String {
@@ -458,24 +397,6 @@ struct LibraryView: View {
         return "\(scenePhase)-\(tokenState)-\(translationStore.recoveryRevision)"
     }
 
-    private func bottomAction(
-        title: LocalizedStringKey,
-        systemImage: String,
-        accessibilityIdentifier: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.system(size: 13, weight: .semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.82)
-                .foregroundStyle(palette.text)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(accessibilityIdentifier)
-    }
 
     // MARK: - Empty state
 
@@ -504,22 +425,21 @@ struct LibraryView: View {
             }
             VStack(spacing: 6) {
                 Text("Your shelf is empty")
-                    .font(Typography.display(28))
+                    .font(Typography.heading(26, relativeTo: .title))
+                    .tracking(Typography.headingTracking(26))
                     .foregroundStyle(palette.text)
                 Text("Add an EPUB, PDF, or text file and start reading.")
-                    .font(Typography.meta(14))
+                    .font(Typography.control(15))
                     .foregroundStyle(palette.secondaryText)
+                    .multilineTextAlignment(.center)
             }
-            Button {
-                isImporterPresented = true
-            } label: {
-                Label("Add a book", systemImage: "plus")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(palette.background)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 12)
-                    .background(Capsule().fill(palette.accent))
-            }
+            AppPrimaryButton(
+                title: "Add a book",
+                systemImage: "plus",
+                action: { isImporterPresented = true },
+                palette: palette
+            )
+            .fixedSize(horizontal: true, vertical: false)
             .disabled(isImporting)
             .accessibilityIdentifier("library.import.empty")
             .padding(.top, 6)

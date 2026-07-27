@@ -39,6 +39,12 @@ enum Spacing {
     static let radiusCard: CGFloat = 14
     /// 18 pt — bottom sheets and modal containers.
     static let radiusSheet: CGFloat = 18
+    /// 17 pt — primary action buttons.
+    static let radiusControl: CGFloat = 17
+    /// 20 pt — grouped setting cards and list containers.
+    static let radiusGroup: CGFloat = 20
+    /// 28 pt — the top corners of a presented modal sheet.
+    static let radiusModal: CGFloat = 28
 
     // MARK: — Touch targets & strokes
 

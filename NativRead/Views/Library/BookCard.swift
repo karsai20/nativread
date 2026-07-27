@@ -27,15 +27,35 @@ struct BookCard: View {
                 .overlay(alignment: .bottom) { progressBar }
                 .overlay(alignment: .topLeading) { variantBadge }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(book.title)
-                    .font(Typography.title(15))
+                    .font(Typography.control(15, weight: .bold))
                     .foregroundStyle(titleColor)
                     .lineLimit(2)
+                    .multilineTextAlignment(.leading)
                 Text(book.author)
-                    .font(Typography.meta(12))
+                    .font(Typography.control(13))
                     .foregroundStyle(captionColor)
                     .lineLimit(1)
+
+                // Format and progress as one quiet meta line, the way the grid
+                // reads in the redesign: identity on the left, state on the right.
+                HStack {
+                    Text(book.format.rawValue.uppercased())
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(0.4)
+                    Spacer(minLength: Spacing.xs)
+                    if book.isStarted {
+                        Text(
+                            book.progress.bookFraction
+                                .formatted(.percent.precision(.fractionLength(0)))
+                        )
+                        .font(.system(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                    }
+                }
+                .foregroundStyle(captionColor)
+                .padding(.top, 1)
             }
         }
     }

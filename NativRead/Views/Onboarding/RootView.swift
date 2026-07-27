@@ -1,35 +1,30 @@
 import SwiftUI
 import StoreKit
 
-/// App root: shows the library and, on first launch, a language-aware welcome
-/// followed by a three-step animated explanation of the core workflow.
+/// App root: shows the tab shell and, on first launch, a four-step animated
+/// explanation of the core workflow. The app language follows the phone, so
+/// onboarding never asks for it.
 struct RootView: View {
     @Environment(SettingsStore.self) private var settingsStore
-    @Environment(LocalizationStore.self) private var localizationStore
     @Environment(LibraryStore.self) private var library
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.requestReview) private var requestReview
 
-    @State private var onboardingStep: OnboardingStep?
-    @State private var movingForward = true
+    @State private var isOnboarding: Bool
 
     init(initialShowLaunch: Bool) {
-        _onboardingStep = State(
-            initialValue: initialShowLaunch ? .welcome : nil
-        )
+        _isOnboarding = State(initialValue: initialShowLaunch)
     }
 
     var body: some View {
         ZStack {
-            LibraryView()
-                .id(localizationStore.appLanguage)
-                .accessibilityHidden(onboardingStep != nil)
-                .allowsHitTesting(onboardingStep == nil)
+            AppTabView()
+                .accessibilityHidden(isOnboarding)
+                .allowsHitTesting(!isOnboarding)
 
-            if let onboardingStep {
-                onboardingView(for: onboardingStep)
-                    .id(onboardingStep)
-                    .transition(stepTransition)
+            if isOnboarding {
+                OnboardingWalkthroughView(onFinished: finishOnboarding)
+                    .transition(.opacity)
                     .zIndex(1)
             }
         }
@@ -37,58 +32,19 @@ struct RootView: View {
             reduceMotion
                 ? nil
                 : .spring(response: 0.50, dampingFraction: 0.90),
-            value: onboardingStep
+            value: isOnboarding
         )
         .onChange(of: library.reviewPromptRequested) { _, requested in
             guard requested else { return }
             library.reviewPromptRequested = false
-            if onboardingStep == nil {
+            if !isOnboarding {
                 requestReview()
             }
         }
     }
 
-    @ViewBuilder
-    private func onboardingView(for step: OnboardingStep) -> some View {
-        switch step {
-        case .welcome:
-            LaunchView(onFinished: languageDidConfirm)
-        case .tour:
-            OnboardingWalkthroughView(
-                onBack: { move(to: .welcome, forward: false) },
-                onFinished: finishOnboarding
-            )
-        }
-    }
-
-    private var stepTransition: AnyTransition {
-        guard !reduceMotion else { return .opacity }
-        return .asymmetric(
-            insertion: .move(edge: movingForward ? .trailing : .leading)
-                .combined(with: .opacity),
-            removal: .move(edge: movingForward ? .leading : .trailing)
-                .combined(with: .opacity)
-        )
-    }
-
-    private func languageDidConfirm(_ language: AppLanguage) {
-        localizationStore.setLanguage(language)
-        move(to: .tour)
-    }
-
     private func finishOnboarding() {
         settingsStore.markOnboardingSeen()
-        movingForward = true
-        onboardingStep = nil
+        isOnboarding = false
     }
-
-    private func move(to step: OnboardingStep, forward: Bool = true) {
-        movingForward = forward
-        onboardingStep = step
-    }
-}
-
-private enum OnboardingStep: Int, Hashable {
-    case welcome
-    case tour
 }

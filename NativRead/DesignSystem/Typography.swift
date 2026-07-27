@@ -49,6 +49,24 @@ enum Typography {
         return .system(style, design: .default, weight: weight)
     }
 
+    /// Chrome headings — large titles, sheet titles, card headlines. Heavy
+    /// system sans with negative tracking: the reading serif stays inside the
+    /// reader, while navigation reads as unmistakably native iOS.
+    /// Pair with `headingTracking(size)`.
+    static func heading(_ size: CGFloat, relativeTo style: Font.TextStyle = .largeTitle) -> Font {
+        .system(size: size, weight: .heavy, design: .default).width(.standard)
+    }
+
+    /// Optical tracking for `heading` — the bigger the type, the tighter it
+    /// sets, matching how the redesign's titles were drawn.
+    static func headingTracking(_ size: CGFloat) -> CGFloat {
+        switch size {
+        case 32...: return -1.1
+        case 22...: return -0.4
+        default:    return -0.2
+        }
+    }
+
     /// Uppercase category label — tight tracking signals "label, not prose".
     /// Apply `.tracking(Typography.eyebrowTracking)` and `.textCase(.uppercase)` alongside this font.
     static var eyebrow: Font {

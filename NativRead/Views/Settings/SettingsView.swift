@@ -12,16 +12,11 @@ struct SettingsView: View {
     @Environment(TranslationAuthStore.self) private var translationAuthStore
     @Environment(TranslationStore.self) private var translationStore
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.dismiss) private var dismiss
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
     }
 
-    // Staged selections — nil means "unchanged from the store". Tapping a row
-    // only stages locally (checkmark moves, app does not switch); the change is
-    // committed on close so the UI never re-localises out from under the user.
-    @State private var pendingAppLanguage: AppLanguage?
     @State private var backendURL: String = ""
     @State private var showsDeleteAccountConfirmation = false
     @State private var showsAccountDeletedConfirmation = false
@@ -31,7 +26,7 @@ struct SettingsView: View {
     @State private var accountActionError: String?
 
     private var selectedAppLanguage: AppLanguage {
-        pendingAppLanguage ?? localizationStore.appLanguage
+        localizationStore.appLanguage
     }
 
     var body: some View {
@@ -39,6 +34,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     header
+                    identityCard
                     appearanceSection
                     appLanguageSection
                     privacyControlsSection
@@ -112,36 +108,54 @@ struct SettingsView: View {
     // MARK: - Privacy controls
 
     private var privacyControlsSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            sectionLabel("Privacy Controls")
-
-            Button {
-                showsAIConsentResetConfirmation = true
-            } label: {
-                HStack(spacing: Spacing.sm) {
-                    Image(systemName: "hand.raised.slash")
-                        .foregroundStyle(palette.accent)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Forget AI Permissions")
-                            .font(Typography.control(17, weight: .semibold))
-                            .foregroundStyle(palette.text)
-                        Text("Ask again before future AI translations")
-                            .font(Typography.meta())
-                            .foregroundStyle(palette.secondaryText)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(palette.secondaryText)
-                }
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.md)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+        AppSettingsSection("Privacy Controls", palette: palette) {
+            AppSettingsRow(
+                systemImage: "hand.raised.slash",
+                title: "Forget AI Permissions",
+                value: String(localized: "Ask again next time"),
+                hidesSeparator: true,
+                action: { showsAIConsentResetConfirmation = true },
+                palette: palette
+            )
             .accessibilityIdentifier("settings.privacy.forgetAIConsent")
-            .settingsGroupedCard(palette: palette)
         }
+    }
+
+    // MARK: - Identity
+
+    /// A short "what this app is holding for you" card, so Settings opens with
+    /// reassurance rather than a wall of switches.
+    private var identityCard: some View {
+        HStack(spacing: Spacing.md) {
+            Image(systemName: "books.vertical.fill")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 52, height: 52)
+                .background(palette.accent)
+                .clipShape(
+                    RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("NativRead")
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
+                    .foregroundStyle(palette.secondaryText)
+                Text("Your library stays close.")
+                    .font(Typography.control(18, weight: .bold))
+                    .foregroundStyle(palette.text)
+                Text("Stored on this device")
+                    .font(Typography.control(14))
+                    .foregroundStyle(palette.secondaryText)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(Spacing.md)
+        .background(palette.surface)
+        .clipShape(
+            RoundedRectangle(cornerRadius: Spacing.radiusGroup, style: .continuous)
+        )
     }
 
     // MARK: - Account
@@ -181,7 +195,7 @@ struct SettingsView: View {
                         Spacer()
                     }
                     .font(Typography.control(17, weight: .semibold))
-                    .foregroundStyle(Color.red)
+                    .foregroundStyle(palette.danger)
                     .padding(.horizontal, Spacing.md)
                     .padding(.vertical, Spacing.md)
                     .contentShape(Rectangle())
@@ -236,42 +250,11 @@ struct SettingsView: View {
     /// with the close button on the same row. Closing still commits staged
     /// language changes — X means "close", not "discard".
     private var header: some View {
-        HStack(alignment: .top) {
-            Text("Settings")
-                .font(Typography.display(34))
-                .foregroundStyle(palette.text)
-            Spacer()
-            Button {
-                applyAndDismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(palette.secondaryText)
-                    .frame(
-                        width: Spacing.minTapTarget,
-                        height: Spacing.minTapTarget
-                    )
-                    .background(Circle().fill(palette.surface))
-            }
-            .accessibilityLabel("Close")
-            .accessibilityIdentifier("settings.close")
-        }
-    }
-
-    // MARK: - Commit
-
-    /// Applies any staged language changes, then dismisses. Tapping rows only
-    /// stages; nothing re-localises until close so the screen never flips
-    /// language mid-edit.
-    private func applyAndDismiss() {
-        if let pendingAppLanguage,
-           pendingAppLanguage != localizationStore.appLanguage {
-            localizationStore.setLanguage(pendingAppLanguage)
-        }
-#if DEBUG
-        settingsStore.setTranslationBackendURL(backendURL)
-#endif
-        dismiss()
+        AppLargeTitleHeader(
+            title: "Settings",
+            subtitle: String(localized: "A reading space tuned to you"),
+            palette: palette
+        )
     }
 
     // MARK: - Appearance
@@ -336,7 +319,10 @@ struct SettingsView: View {
                         isSelected: selectedAppLanguage == language,
                         palette: palette
                     )
-                    .onTapGesture { pendingAppLanguage = language }
+                    // Applied immediately: Settings is a tab now, so there is no
+                    // "close" moment to commit at, and the tab shell re-localises
+                    // its content without losing the selected tab.
+                    .onTapGesture { localizationStore.setLanguage(language) }
                     .accessibilityIdentifier(
                         "settings.applang.\(language.rawValue)"
                     )

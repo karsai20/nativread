@@ -1,17 +1,19 @@
 import SwiftUI
 
-/// Three short, animated lessons that explain the app's complete core loop.
-/// Progress is always explicit and user-controlled; nothing advances on a
-/// timer, which keeps the flow comfortable for older and first-time users.
+/// A welcome and three short, animated lessons that explain the app's complete
+/// core loop. Progress is always explicit and user-controlled; nothing advances
+/// on a timer, which keeps the flow comfortable for older and first-time users.
+///
+/// The app language is not asked for here — it follows the phone, and Settings
+/// can override it later.
 struct OnboardingWalkthroughView: View {
-    var onBack: () -> Void
     var onFinished: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var page: OnboardingTourPage = .addBook
+    @State private var page: OnboardingTourPage = .welcome
     @State private var movingForward = true
 
     private var palette: BrandPalette {
@@ -48,8 +50,10 @@ struct OnboardingWalkthroughView: View {
                     }
                     .id(page)
                     .transition(pageTransition)
+                    // Reserve the real bottom bar (action + back/note + padding)
+                    // so the last copy line never centres itself underneath it.
                     .frame(
-                        minHeight: max(0, proxy.size.height - 128),
+                        minHeight: max(0, proxy.size.height - 176),
                         alignment: .center
                     )
                     .padding(.horizontal, Spacing.lg)
@@ -67,26 +71,37 @@ struct OnboardingWalkthroughView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
     }
 
+    /// A progress rail rather than a step counter: four short bars fill up as
+    /// the reader moves, and Skip stays available but visually secondary.
     private var topBar: some View {
         HStack(spacing: Spacing.md) {
-            Button(action: goBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(palette.text)
-                    .frame(width: 48, height: 48)
-                    .background(Circle().fill(palette.surface))
+            HStack(spacing: 6) {
+                ForEach(OnboardingTourPage.allCases, id: \.rawValue) { item in
+                    Capsule()
+                        .fill(
+                            item.rawValue <= page.rawValue
+                                ? palette.accent
+                                : palette.hairline
+                        )
+                        .frame(width: 22, height: 4)
+                }
             }
-            .accessibilityLabel("Back")
-            .accessibilityIdentifier("onboarding.tour.back")
+            .accessibilityElement()
+            .accessibilityLabel(stepText)
+            .accessibilityIdentifier("onboarding.tour.progress")
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.24),
+                value: page
+            )
 
             Spacer()
 
-            Text(stepText)
+            Button("Skip", action: onFinished)
                 .font(Typography.control(15, weight: .semibold))
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
                 .foregroundStyle(palette.secondaryText)
-                .monospacedDigit()
-                .accessibilityIdentifier("onboarding.tour.progress")
+                .frame(minWidth: 48, minHeight: Spacing.minTapTarget, alignment: .trailing)
+                .accessibilityIdentifier("onboarding.tour.skip")
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.xs)
@@ -96,6 +111,8 @@ struct OnboardingWalkthroughView: View {
     private var illustration: some View {
         TourIllustrationShell(palette: palette) {
             switch page {
+            case .welcome:
+                WelcomeBookScene(palette: palette, isAnimated: !reduceMotion)
             case .addBook:
                 AddBookTourAnimation(
                     palette: palette,
@@ -120,21 +137,22 @@ struct OnboardingWalkthroughView: View {
     private var pageCopy: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             Text(page.eyebrow)
-                .font(Typography.eyebrow)
+                .font(.system(size: Typography.eyebrowSize, weight: .heavy))
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                .tracking(Typography.eyebrowTracking)
+                .tracking(1.05)
                 .textCase(.uppercase)
                 .foregroundStyle(palette.accent)
 
             Text(page.title)
-                .font(Typography.display(36))
+                .font(Typography.heading(titleSize))
                 .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+                .tracking(-1.3)
                 .foregroundStyle(palette.text)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("onboarding.tour.title")
 
             Text(page.body)
-                .font(Typography.body(20))
+                .font(Typography.control(17))
                 .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                 .foregroundStyle(palette.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -151,42 +169,35 @@ struct OnboardingWalkthroughView: View {
     }
 
     private var bottomBar: some View {
-        VStack(spacing: Spacing.md) {
-            HStack(spacing: Spacing.xs) {
-                ForEach(OnboardingTourPage.allCases, id: \.rawValue) { item in
-                    Capsule()
-                        .fill(item == page ? palette.accent : palette.hairline)
-                        .frame(width: item == page ? 28 : 8, height: 8)
-                        .animation(
-                            reduceMotion
-                                ? nil
-                                : .spring(response: 0.34, dampingFraction: 0.80),
-                            value: page
-                        )
-                }
-            }
-            .accessibilityHidden(true)
-
-            Button(action: advance) {
-                HStack(spacing: Spacing.sm) {
-                    Text(nextButtonTitle)
-                    Image(systemName: page == .read ? "books.vertical.fill" : "arrow.right")
-                }
-                .font(Typography.control(18, weight: .semibold))
-                .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-                .foregroundStyle(palette.background)
-                .frame(maxWidth: .infinity, minHeight: 58)
-                .background(palette.accent)
-                .clipShape(RoundedRectangle(
-                    cornerRadius: Spacing.radiusCard,
-                    style: .continuous
-                ))
-            }
+        VStack(spacing: Spacing.sm) {
+            AppPrimaryButton(
+                title: nextButtonTitle,
+                systemImage: page == .read ? "books.vertical.fill" : "arrow.right",
+                action: advance,
+                palette: palette
+            )
+            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
             .accessibilityIdentifier(
                 page == .read
                     ? "onboarding.tour.finish"
                     : "onboarding.tour.next"
             )
+
+            // The first step has nothing to go back to, so the space carries a
+            // reassurance instead of a dead control.
+            if page == .welcome {
+                Text("Your imported books stay on this device.")
+                    .font(Typography.meta(12))
+                    .foregroundStyle(palette.tertiaryText)
+                    .multilineTextAlignment(.center)
+                    .frame(minHeight: 42)
+            } else {
+                Button("Back", action: goBack)
+                    .font(Typography.control(15, weight: .semibold))
+                    .foregroundStyle(palette.secondaryText)
+                    .frame(maxWidth: .infinity, minHeight: 42)
+                    .accessibilityIdentifier("onboarding.tour.back")
+            }
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
@@ -195,7 +206,17 @@ struct OnboardingWalkthroughView: View {
     }
 
     private var nextButtonTitle: LocalizedStringKey {
-        page == .read ? "Open my library" : "Next"
+        switch page {
+        case .welcome: return "Show me how it works"
+        case .read: return "Open my library"
+        default: return "Next"
+        }
+    }
+
+    /// Titles set tighter than the redesign's 37pt on the smallest phones so a
+    /// long Hungarian headline still fits above the fold.
+    private var titleSize: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 28 : 34
     }
 
     private var stepText: String {
@@ -228,10 +249,7 @@ struct OnboardingWalkthroughView: View {
     }
 
     private func goBack() {
-        guard page != .addBook else {
-            onBack()
-            return
-        }
+        guard page != .welcome else { return }
         movingForward = false
         if let previous = OnboardingTourPage(rawValue: page.rawValue - 1) {
             page = previous
@@ -240,12 +258,14 @@ struct OnboardingWalkthroughView: View {
 }
 
 private enum OnboardingTourPage: Int, CaseIterable {
+    case welcome
     case addBook
     case translate
     case read
 
     var eyebrow: LocalizedStringKey {
         switch self {
+        case .welcome: return "Welcome to NativRead"
         case .addBook: return "First, add a book"
         case .translate: return "Then, translate"
         case .read: return "Finally, enjoy reading"
@@ -254,6 +274,7 @@ private enum OnboardingTourPage: Int, CaseIterable {
 
     var title: LocalizedStringKey {
         switch self {
+        case .welcome: return "Your books, in your language."
         case .addBook: return "Choose a book from your iPhone"
         case .translate: return "Let NativRead bring it into your language"
         case .read: return "Read in comfort, at your own pace"
@@ -262,6 +283,8 @@ private enum OnboardingTourPage: Int, CaseIterable {
 
     var body: LocalizedStringKey {
         switch self {
+        case .welcome:
+            return "Bring every book into one calm place, stay in the story, and translate only when you need to."
         case .addBook:
             return "Tap Add a book, then choose the file in the Files app. Your original book is never changed."
         case .translate:
@@ -273,6 +296,7 @@ private enum OnboardingTourPage: Int, CaseIterable {
 
     var reassurance: LocalizedStringKey {
         switch self {
+        case .welcome: return "No complicated setup — we walk you through it"
         case .addBook: return "EPUB, PDF, TXT, and supported DRM-free Kindle files"
         case .translate: return "Your progress is kept even if you leave the app"
         case .read: return "Text size and appearance can be changed at any time"
@@ -281,6 +305,7 @@ private enum OnboardingTourPage: Int, CaseIterable {
 
     var reassuranceIcon: String {
         switch self {
+        case .welcome: return "hand.wave"
         case .addBook: return "doc.badge.plus"
         case .translate: return "checkmark.icloud"
         case .read: return "textformat.size"
