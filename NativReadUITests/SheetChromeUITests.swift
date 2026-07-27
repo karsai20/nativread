@@ -12,14 +12,19 @@ final class SheetChromeUITests: XCTestCase {
     }
 
     /// UIKit's tab bar does not carry the SwiftUI identifier set on a
-    /// `tabItem`, so tabs are addressed by their (language-forced) label.
-    private func tab(_ label: String) -> XCUIElement {
-        app.tabBars.buttons[label]
+    /// `tabItem`, and the labels are localised, so tabs are addressed by their
+    /// fixed position: 0 Library, 1 Translate, 2 Settings.
+    private enum Tab: Int {
+        case library, translate, settings
+    }
+
+    private func tab(_ tab: Tab) -> XCUIElement {
+        app.tabBars.buttons.element(boundBy: tab.rawValue)
     }
 
     /// Opens the Settings tab and returns once its content is on screen.
     private func openSettings() {
-        let settings = tab("Settings")
+        let settings = tab(.settings)
         XCTAssertTrue(
             settings.waitForExistence(timeout: 15),
             "the tab bar must offer a Settings destination"
@@ -40,7 +45,7 @@ final class SheetChromeUITests: XCTestCase {
         openSettings()
 
         // Returning to the shelf is a tab switch, not a dismissal.
-        tab("Library").tap()
+        tab(.library).tap()
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10)

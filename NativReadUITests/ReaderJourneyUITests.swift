@@ -6,6 +6,17 @@ final class ReaderJourneyUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
+    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
+    /// `tabItem`, and the labels are localised, so tabs are addressed by their
+    /// fixed position: 0 Library, 1 Translate, 2 Settings.
+    private enum Tab: Int {
+        case library, translate, settings
+    }
+
+    private func tab(_ tab: Tab) -> XCUIElement {
+        app.tabBars.buttons.element(boundBy: tab.rawValue)
+    }
+
     override func setUp() {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
@@ -78,7 +89,7 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         // Translation is its own destination now, so the empty shelf offers
         // exactly one action and never a second, competing import control.
-        XCTAssertTrue(app.tabBars.buttons["tab.translate"].exists)
+        XCTAssertTrue(tab(.translate).exists)
     }
 
     func testPageTurnAdvancesAndPersistsProgress() {
@@ -382,9 +393,9 @@ final class ReaderJourneyUITests: XCTestCase {
     }
 
     func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
-        let tab = app.tabBars.buttons["tab.translate"]
-        XCTAssertTrue(tab.waitForExistence(timeout: 10))
-        tab.tap()
+        let translateTab = tab(.translate)
+        XCTAssertTrue(translateTab.waitForExistence(timeout: 10))
+        translateTab.tap()
 
         // The Translate destination lists eligible books directly.
         let readyBook =
@@ -420,7 +431,7 @@ final class ReaderJourneyUITests: XCTestCase {
         ]
         app.launch()
 
-        let translate = app.tabBars.buttons["tab.translate"]
+        let translate = tab(.translate)
         XCTAssertTrue(translate.waitForExistence(timeout: 10))
         translate.tap()
 
@@ -493,9 +504,9 @@ final class ReaderJourneyUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(
-            app.tabBars.buttons["tab.translate"].waitForExistence(timeout: 10)
+            tab(.translate).waitForExistence(timeout: 10)
         )
-        app.tabBars.buttons["tab.translate"].tap()
+        tab(.translate).tap()
         app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
 
         let terms = app.buttons["translation.termsAcceptance"]

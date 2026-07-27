@@ -28,6 +28,17 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
+    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
+    /// `tabItem`, and the labels are localised, so tabs are addressed by their
+    /// fixed position: 0 Library, 1 Translate, 2 Settings.
+    private enum Tab: Int {
+        case library, translate, settings
+    }
+
+    private func tab(_ tab: Tab) -> XCUIElement {
+        app.tabBars.buttons.element(boundBy: tab.rawValue)
+    }
+
     override func setUp() {
         continueAfterFailure = false
         XCUIDevice.shared.orientation = .portrait
@@ -190,9 +201,9 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         )
 
         XCTAssertTrue(
-            app.tabBars.buttons["tab.translate"].waitForExistence(timeout: 30)
+            tab(.translate).waitForExistence(timeout: 30)
         )
-        app.tabBars.buttons["tab.translate"].tap()
+        tab(.translate).tap()
 
         let pickerBook =
             app.buttons["translate.ready.\(locale.primaryTitle)"]
@@ -242,9 +253,9 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
             ]
         )
         XCTAssertTrue(
-            app.tabBars.buttons["tab.settings"].waitForExistence(timeout: 30)
+            tab(.settings).waitForExistence(timeout: 30)
         )
-        app.tabBars.buttons["tab.settings"].tap()
+        tab(.settings).tap()
         XCTAssertTrue(
             app.otherElements["settings.sheet"].waitForExistence(timeout: 10)
         )
@@ -315,7 +326,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(darkAppearance.isHittable)
         darkAppearance.tap()
         capture(locale, 32, "settings-dark")
-        app.tabBars.buttons["tab.library"].tap()
+        tab(.library).tap()
         XCTAssertTrue(
             app.staticTexts["library.grid.heading"]
                 .waitForExistence(timeout: 8)
