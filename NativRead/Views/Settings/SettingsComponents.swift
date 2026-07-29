@@ -1,28 +1,8 @@
 import SwiftUI
 
-/// What the redesign's `AppSettingsSection` / `AppSettingsRow` primitives do
-/// not cover: the page-like appearance tiles and the plain grouped surface the
-/// appearance picker sits on. Everything else that used to live here moved to
-/// `DesignSystem/AppRows.swift`.
-
-// MARK: - Grouped surface card
-
-extension View {
-    /// Wraps a stack of rows in one surface with a hairline border, echoing the
-    /// library cards. Clips to the card radius so a selected row's accent
-    /// wash respects the rounded corners instead of bleeding past them.
-    func settingsGroupedCard(palette: BrandPalette) -> some View {
-        self
-            .background(palette.surface)
-            .clipShape(
-                RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-                    .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
-            )
-    }
-}
+/// The one Settings control the redesign's `AppSettingsSection` /
+/// `AppSettingsRow` primitives do not cover: the page-like appearance tiles.
+/// Everything else that used to live here moved to `DesignSystem/AppRows.swift`.
 
 // MARK: - Appearance tile
 

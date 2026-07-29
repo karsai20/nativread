@@ -17,7 +17,6 @@ struct SettingsView: View {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
     }
 
-    @State private var backendURL: String = ""
     @State private var showsDeleteAccountConfirmation = false
     @State private var showsAccountDeletedConfirmation = false
     @State private var showsAccountDeletionAuthorization = false
@@ -41,9 +40,6 @@ struct SettingsView: View {
                     if translationAuthStore.isSignedIn {
                         accountSection
                     }
-#if DEBUG
-                    translationBackendSection
-#endif
                     aboutSection
                 }
                 .padding(Spacing.lg)
@@ -321,40 +317,6 @@ struct SettingsView: View {
             }
         }
     }
-
-    // MARK: - Translation Backend
-
-    /// Debug-only endpoint override. Production builds always use the bundled,
-    /// trusted HTTPS service and never ask readers to configure infrastructure.
-#if DEBUG
-    private var translationBackendSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.md) {
-            AppSectionLabel(title: "Translation Backend", palette: palette)
-
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                TextField("http://translator.local:48218", text: $backendURL)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    .autocorrectionDisabled()
-                    .font(Typography.control(16))
-                    .foregroundStyle(palette.text)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.vertical, Spacing.md)
-                    .settingsGroupedCard(palette: palette)
-                    .accessibilityIdentifier("settings.translationBackendURL")
-
-                Text("The self-hosted translator server this app uploads books to.")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
-            }
-        }
-        .onAppear {
-            if backendURL.isEmpty {
-                backendURL = settingsStore.translationBackendURLString
-            }
-        }
-    }
-#endif
 
     // MARK: - About
 
