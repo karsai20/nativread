@@ -33,6 +33,7 @@ struct NativReadApp: App {
     @State private var settingsStore: SettingsStore
     @State private var translationStore: TranslationStore
     @State private var translationAuthStore: TranslationAuthStore
+    @State private var bookPurchaseStore: BookPurchaseStore
     @State private var localizationStore: LocalizationStore
 
     init() {
@@ -54,11 +55,18 @@ struct NativReadApp: App {
         _settingsStore = State(initialValue: settings)
 
         _translationStore = State(initialValue: TranslationStore())
-        _translationAuthStore = State(
-            initialValue: TranslationAuthStore(
-                initialSessionToken: Self.translationSessionTokenArgument
-            )
+        let auth = TranslationAuthStore(
+            initialSessionToken: Self.translationSessionTokenArgument
         )
+        _translationAuthStore = State(initialValue: auth)
+        _bookPurchaseStore = State(initialValue: BookPurchaseStore { [settings] in
+            guard let backendURL = settings.translationBackendURL,
+                  let sessionToken = auth.sessionToken
+            else { return nil }
+            return TranslationBackendClient(
+                baseURL: backendURL, bearerToken: sessionToken
+            )
+        })
 
         // Build LocalizationStore after the reset hook so the persisted app
         // language can be overridden for tests without touching user defaults.
@@ -74,6 +82,7 @@ struct NativReadApp: App {
                 .environment(settingsStore)
                 .environment(translationStore)
                 .environment(translationAuthStore)
+                .environment(bookPurchaseStore)
                 .environment(localizationStore)
                 // Apply the chosen locale to the entire view tree so SwiftUI
                 // Text nodes use the right String Catalog translation.
@@ -85,6 +94,9 @@ struct NativReadApp: App {
                 .onOpenURL { url in
                     _ = try? library.importBook(from: url)
                 }
+                // A purchase whose confirmation never reached the backend — a
+                // dead network, a kill mid-flight — is replayed from here.
+                .task { bookPurchaseStore.startObservingTransactions() }
         }
     }
 

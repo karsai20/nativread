@@ -122,7 +122,7 @@ Build per translator-plan.md T1–T25. Nothing public.
 | Ownership attestation in-flow | legal #1 / T23 | open |
 | Privacy labels + provider disclosure + policy/ToS URLs | legal #4, #7 / T16 | in-app HU/EN policy and separate versioned Gemini consent shipped 2026-07-20; Pages deployment prepared, operator/contact and live deploy remain release gates |
 | Account + data deletion | legal #5 / T9 | backend + iOS Settings flow done 2026-07-20; fresh Apple authorization is verified and revoked before server deletion; local books remain |
-| Server-side StoreKit verify + txn dedupe | legal #8 / T7 | open |
+| Server-side StoreKit verify + txn dedupe | legal #8 / T7 | code done 2026-07-30: Worker verifies via App Store Server API, binds the receipt to the account with `appAccountToken`, refuses sandbox receipts in production, and dedupes on the `book_purchases` transaction-id primary key. Remaining: ASC products, In-App Purchase key, Paid Apps agreement, sandbox run |
 | Per-user isolation by construction | legal #6 / T1 | done in Phase 1a work |
 | OSS licenses screen (ZIPFoundation MIT) | TODOS P2 | ✅ done 2026-07-09 |
 | **External: counsel preliminary read (week 1) → full sign-off before commercial launch** | legal review condition + CEO C-Q5 | **founder decision 2026-07-07: proceeding WITHOUT counsel for now** — accepted risk; agent-drafted doc pack in `docs/legal/` + research annex prepared so a later counsel review is a cheap read-through, not a from-scratch engagement. Gate stays on the books for the commercial phase. |

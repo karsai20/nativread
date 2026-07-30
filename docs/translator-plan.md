@@ -335,12 +335,12 @@ Synthesized from this review's findings. P1 blocks ship; P2 same branch; P3 foll
 - [ ] **T4 (P1, ~1d / ~3h)** — backend — Global daily spend kill-switch on free endpoint (outside-voice #9)
 - [ ] **T5 (P1, ~1d / ~2h)** — backend — EPUB upload zip hardening: size cap, sandbox, zip-slip, zip-bomb (outside-voice #10)
 - [ ] **T6 (P1, ~2d / ~3h)** — backend — Paid-job robustness: ceiling can't abort paid job; refund/redrive (outside-voice #2)
-- [ ] **T7 (P1, ~2d / ~3h)** — backend — StoreKit verify + entitlement(userId,sourceHash) + txn-id dedupe
+- [x] **T7 (P1, ~2d / ~3h)** — backend — StoreKit verify + entitlement(userId,sourceHash) + txn-id dedupe (2026-07-30; `cloudflare/src/storekit.ts`, `POST /api/purchase`, migration 0004)
 - [ ] **T8 (P1, ~1d / ~2h)** — backend — Ephemeral storage: delete source on done; deliver-then-delete; 30d cap; metadata-only
 - [ ] **T9 (P1, ~1d / ~2h)** — backend — Account + data deletion & export (Apple 5.1.1(v))
 - [ ] **T10 (P1, ~2d / ~3h)** — ios — Apple+Google login; attestation gate; background-URLSession upload
 - [ ] **T11 (P1, ~2d / ~3h)** — ios — Auto-deliver→import; APNs ready; storage-full; responsibility notice (outside-voice #4/#12)
-- [ ] **T12 (P1, ~1d / ~2h)** — ios — Per-book purchase UI (tier+price before buy); free chapter auto-shown
+- [x] **T12 (P1, ~1d / ~2h)** — ios — Per-book purchase UI (tier+price before buy); free chapter auto-shown (2026-07-30; `BookPurchaseStore`, price from StoreKit `displayPrice`)
 - [ ] **T13 (P1, ~2d / ~3h)** — ios — iCloud/CloudKit private-DB durable sync (Apple) *(P2→P1 per CEO D3.3 "launch MVP"; label synced 2026-07-07)*
 - [ ] **T14 (P1, ~1d / ~2h)** — backend — Cross-chunk name/term glossary quality gate, 1b (outside-voice #6) *(P2→P1: 1b IS the launch; label synced 2026-07-07)*
 - [ ] **T15 (P1, ~1-2d / ~half-day)** — backend — Select Western training-excluded provider (default Gemini Flash-class), add adapter, re-validate Hungarian quality + cost A/B (resolves legal #3 + China transfer)
@@ -356,7 +356,7 @@ Synthesized from this review's findings. P1 blocks ship; P2 same branch; P3 foll
 - [ ] **T19 (P1, ~1d / ~1-2h)** — backend — Backend-only Sentry-class error monitoring; alert on paid-but-undelivered; disclose as sub-processor (legal #7). iOS stays SDK-free.
   - Surfaced by: CEO §8 / D6 — paid-but-undelivered is the most damaging failure; needs fast paging
   - **Eng D2 (P1):** explicit scrub — `sendDefaultPii:false`; `beforeSend` strips request bodies (= book text); deny-list env + headers (the AI provider API key); allowlist only safe fields (error type, job id, hashed userId). Test asserts no book text and no key appear in the captured payload. The default config is unsafe and MUST NOT ship.
-- [ ] **T20 (P1, ~0.5d / ~1h)** — backend — Pricing: register 5-6 length-tier StoreKit consumables (D4 ladder); pick tier at upload
+- [ ] **T20 (P1, ~0.5d / ~1h)** — backend — Pricing: register the 6 length-tier StoreKit consumables in App Store Connect. The tier is already picked at upload from source characters (`BOOK_TIERS`, `com.karsai.nativread.book.t1…t6`); only the ASC products, the In-App Purchase key and the Paid Apps agreement remain
   - Surfaced by: CEO §9 / D4 — ladder replaces 3 tiers; continuous pricing barred by IAP
   - **Eng D3:** tier = pure function of the parsed EPUB's word/char count (a STABLE input, not a variable live estimate), computed once at upload and FROZEN per `(userId, sourceHash, targetLanguage)` (key widened by eng D9 2026-07-07). Test: same book → same tier every time; the price shown before purchase (legal #8) IS the SKU charged (Apple 3.1.1).
 - [ ] **T21 (P1, ~1d / ~2h)** — ios — Progress screen, leave-and-notify primary (D3): reassurance copy + chapters-done/est-time + notifications-denied fallback; editorial tokens

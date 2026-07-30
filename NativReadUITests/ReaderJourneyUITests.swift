@@ -422,7 +422,7 @@ final class ReaderJourneyUITests: XCTestCase {
         )
     }
 
-    func testLocalPlaceholderPurchaseTranslatesAndImportsTheBook() {
+    func testLocalBackendTranslatesAndImportsTheWholeBook() {
         app.terminate()
         app.launchArguments = [
             "-resetLibrary", "-resetSettings", "-seedSampleBook",
@@ -464,17 +464,10 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(quote.isEnabled)
         quote.tap()
 
-        let purchase = app.buttons["translation.placeholderPurchase"]
-        XCTAssertTrue(
-            purchase.waitForExistence(timeout: 20),
-            "the exact character quote should offer the smallest test pack"
-        )
-        purchase.tap()
-
         let fullBook = app.buttons["translation.fullBook"]
         XCTAssertTrue(
-            fullBook.waitForExistence(timeout: 10),
-            "the placeholder purchase should make the quoted job affordable"
+            fullBook.waitForExistence(timeout: 20),
+            "a backend that sells nothing should offer the quoted job directly"
         )
         fullBook.tap()
 

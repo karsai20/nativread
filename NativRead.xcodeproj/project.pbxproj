@@ -59,6 +59,7 @@
 		5C01CA1931AF8D098CBA02FF /* OnboardingLaunchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6C7AB5DB7D76129E39F0CBB /* OnboardingLaunchUITests.swift */; };
 		5D399A0226020750D6555C10 /* OnboardingWalkthroughView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1E20E29A88C9E1952D3177 /* OnboardingWalkthroughView.swift */; };
 		5E82A67F9F5095E254320F72 /* LibraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5CB2E6F4600FB25D00FBCF1 /* LibraryStoreTests.swift */; };
+		5FD870D8B0638A678408E0C3 /* BookPurchaseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C90DF03786DD503F6F0D04 /* BookPurchaseStore.swift */; };
 		62F9050F98EBEB912058A8A2 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C7CD7546ABA5930344A94E /* ReaderView.swift */; };
 		6583EFAEE63A1C04470BEF8F /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8665DC3CA08B5847D28DB270 /* PDFImporter.swift */; };
 		66E30837DBFE99D2229B564F /* alice-csodaorszagban-hu.epub in Resources */ = {isa = PBXBuildFile; fileRef = F33A0870F1710ACFA41E5811 /* alice-csodaorszagban-hu.epub */; };
@@ -185,6 +186,7 @@
 		66D69E73702E7A6A47DAC579 /* HighlightingWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightingWebView.swift; sourceTree = "<group>"; };
 		6864F0AF543B427F26EFE3BC /* KF8ConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KF8ConverterTests.swift; sourceTree = "<group>"; };
 		6973A0658B222854210AF6D3 /* PalmDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmDatabase.swift; sourceTree = "<group>"; };
+		69C90DF03786DD503F6F0D04 /* BookPurchaseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookPurchaseStore.swift; sourceTree = "<group>"; };
 		6E606134B7B8F30E367F91A4 /* pal-utcai-fiuk-gutenberg-hu.epub */ = {isa = PBXFileReference; path = "pal-utcai-fiuk-gutenberg-hu.epub"; sourceTree = "<group>"; };
 		743BCB6AC687298A44D6AB41 /* CormorantGaramond-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantGaramond-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		75D03E4D1200C73A83619A03 /* CREDITS.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CREDITS.txt; sourceTree = "<group>"; };
@@ -341,6 +343,7 @@
 		20EAA6E037AFA8E0005A498A /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				69C90DF03786DD503F6F0D04 /* BookPurchaseStore.swift */,
 				B4F528275EF342C818D8CBE5 /* BundleLanguage.swift */,
 				5D69523F5D9CF07E236863CF /* Gunzip.swift */,
 				A80A3FEC46EE3C3E5D16A23C /* HighlightExport.swift */,
@@ -715,6 +718,7 @@
 				53BE124407C14B55550FC3D4 /* AppTabView.swift in Sources */,
 				2FCC253188B79CF962509D48 /* Book.swift in Sources */,
 				CE9C3D5CBFB27125CD7E6981 /* BookCard.swift in Sources */,
+				5FD870D8B0638A678408E0C3 /* BookPurchaseStore.swift in Sources */,
 				4422700A3AECE99C64C2DB14 /* BrandPalette.swift in Sources */,
 				2184774BE3E462659F417DCE /* BundleLanguage.swift in Sources */,
 				927E4BD94F3E2CCAFAAF83D3 /* Color+Hex.swift in Sources */,

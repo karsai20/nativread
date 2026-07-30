@@ -155,34 +155,52 @@ final class TranslationBackendClientTests: XCTestCase {
         XCTAssertEqual(json["appleAuthorizationCode"], "one-time-code")
     }
 
-    func testCreditsDecodeAndPlaceholderPurchaseSendsTransaction() async throws {
+    func testUploadDecodesThePriceTierForTheBook() async throws {
         StubURLProtocol.enqueue(
             200,
-            #"{"account":{"balance":248,"purchasedCredits":250,"reservedCredits":0,"spentCredits":2},"products":[{"productId":"com.karsai.nativread.credits.250","credits":250}]}"#
+            #"{"id":"job-9","sourceHash":"abc","entitledLanguages":[],"quote":{"version":"source-chars-v1","sourceCharacters":420000,"requiredCredits":420,"charactersPerCredit":1000},"price":{"productId":"com.karsai.nativread.book.t3","tier":3,"sourceCharacters":420000}}"#
         )
-        let credits = try await makeClient().credits()
-        XCTAssertEqual(credits.account.balance, 248)
-        XCTAssertEqual(credits.products.first?.credits, 250)
-        XCTAssertEqual(StubURLProtocol.lastRequest?.url?.path, "/api/credits")
+        let epub = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(UUID().uuidString).epub")
+        try Data("PK\u{03}\u{04}fake".utf8).write(to: epub)
+        defer { try? FileManager.default.removeItem(at: epub) }
+        let response = try await makeClient().upload(epubURL: epub)
 
+        XCTAssertEqual(response.price?.productId, "com.karsai.nativread.book.t3")
+        XCTAssertEqual(response.price?.tier, 3)
+        XCTAssertEqual(response.entitledLanguages, [])
+    }
+
+    func testConfirmPurchaseSendsTheJobAndTransaction() async throws {
         StubURLProtocol.enqueue(
             200,
-            #"{"ok":true,"applied":true,"account":{"balance":250,"purchasedCredits":250,"reservedCredits":0,"spentCredits":0}}"#
+            #"{"ok":true,"applied":true,"entitledLanguages":["hu"]}"#
         )
-        let purchase = try await makeClient().grantPlaceholderCredits(
-            transactionID: "test-tx", productID: "com.karsai.nativread.credits.250"
+        let purchase = try await makeClient().confirmPurchase(
+            jobID: "job-9", transactionID: "2000000900000001"
         )
+
         XCTAssertTrue(purchase.applied)
-        XCTAssertEqual(purchase.account.balance, 250)
+        XCTAssertEqual(purchase.entitledLanguages, ["hu"])
         let request = try XCTUnwrap(StubURLProtocol.lastRequest)
-        XCTAssertEqual(request.url?.path, "/api/credits/purchase")
+        XCTAssertEqual(request.url?.path, "/api/purchase")
         let body = try XCTUnwrap(request.httpBodyStreamData)
         let json = try XCTUnwrap(
             JSONSerialization.jsonObject(with: body) as? [String: String]
         )
-        XCTAssertEqual(json["transactionId"], "test-tx")
+        XCTAssertEqual(json["id"], "job-9")
+        XCTAssertEqual(json["transactionId"], "2000000900000001")
+    }
+
+    func testSessionDecodesTheAppAccountToken() async throws {
+        StubURLProtocol.enqueue(
+            200,
+            #"{"token":"session","expiresIn":2592000,"appAccountToken":"ab12cd34-ef56-ab78-cd90-ef12ab34cd56"}"#
+        )
+        let session = try await makeClient().exchangeAppleIdentityToken("apple-token")
+
         XCTAssertEqual(
-            json["productId"], "com.karsai.nativread.credits.250"
+            session.appAccountToken, "ab12cd34-ef56-ab78-cd90-ef12ab34cd56"
         )
     }
 

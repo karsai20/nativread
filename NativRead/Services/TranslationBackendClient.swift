@@ -38,13 +38,23 @@ struct TranslationBackendClient: Sendable {
             let charactersPerCredit: Int
         }
 
+        /// The App Store product this book is sold as. The tier is chosen
+        /// server-side from the source length; the app never computes a price.
+        struct Price: Decodable, Equatable, Sendable {
+            let productId: String
+            let tier: Int
+            let sourceCharacters: Int
+        }
+
         let id: String
         let title: String?
         let spineItemCount: Int?
         let provider: String?
         let alreadyTranslated: Bool?
         let sourceHash: String?
+        let entitledLanguages: [String]?
         let quote: Quote?
+        let price: Price?
     }
 
     struct StartResponse: Decodable, Equatable, Sendable {
@@ -54,30 +64,15 @@ struct TranslationBackendClient: Sendable {
     struct SessionResponse: Decodable, Equatable, Sendable {
         let token: String
         let expiresIn: Int
+        /// Attached to every StoreKit purchase so Apple signs the account into
+        /// the receipt itself.
+        let appAccountToken: String?
     }
 
-    struct CreditAccount: Decodable, Equatable, Sendable {
-        let balance: Int
-        let purchasedCredits: Int
-        let reservedCredits: Int
-        let spentCredits: Int
-    }
-
-    struct CreditProduct: Decodable, Equatable, Sendable, Identifiable {
-        var id: String { productId }
-        let productId: String
-        let credits: Int
-    }
-
-    struct CreditsResponse: Decodable, Equatable, Sendable {
-        let account: CreditAccount
-        let products: [CreditProduct]
-    }
-
-    struct CreditPurchaseResponse: Decodable, Equatable, Sendable {
+    struct PurchaseResponse: Decodable, Equatable, Sendable {
         let ok: Bool
         let applied: Bool
-        let account: CreditAccount
+        let entitledLanguages: [String]?
     }
 
     struct StatusResponse: Decodable, Equatable, Sendable {
@@ -139,32 +134,24 @@ struct TranslationBackendClient: Sendable {
         return try decode(UploadResponse.self, from: data, response: response)
     }
 
-    func credits() async throws -> CreditsResponse {
-        let (data, response) = try await session.data(
-            for: makeRequest(path: "api/credits")
-        )
-        return try decode(CreditsResponse.self, from: data, response: response)
-    }
-
-    /// Debug/LAN placeholder only. Production keeps unsigned grants disabled
-    /// and will replace this call with verified StoreKit transaction data.
-    func grantPlaceholderCredits(
-        transactionID: String,
-        productID: String
-    ) async throws -> CreditPurchaseResponse {
-        var request = makeRequest(path: "api/credits/purchase")
+    /// Hands a StoreKit transaction to the backend, which verifies it with
+    /// Apple before granting the book. Only a success here means the purchase
+    /// is safe to finish.
+    func confirmPurchase(
+        jobID: String,
+        transactionID: String
+    ) async throws -> PurchaseResponse {
+        var request = makeRequest(path: "api/purchase")
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(
             withJSONObject: [
-                "transactionId": transactionID,
-                "productId": productID
+                "id": jobID,
+                "transactionId": transactionID
             ]
         )
         let (data, response) = try await session.data(for: request)
-        return try decode(
-            CreditPurchaseResponse.self, from: data, response: response
-        )
+        return try decode(PurchaseResponse.self, from: data, response: response)
     }
 
     func start(
@@ -339,6 +326,8 @@ struct TranslationBackendClient: Sendable {
 @Observable
 final class TranslationAuthStore {
     private(set) var sessionToken: String?
+    /// The UUID the backend expects on every StoreKit purchase.
+    private(set) var appAccountToken: UUID?
     private(set) var isSigningIn = false
     private(set) var isDeletingAccount = false
     private(set) var errorMessage: String?
@@ -356,6 +345,7 @@ final class TranslationAuthStore {
             return
         }
         sessionToken = record.token
+        appAccountToken = record.appAccountToken.flatMap(UUID.init(uuidString:))
     }
 
     var isSignedIn: Bool { sessionToken != nil }
@@ -386,10 +376,13 @@ final class TranslationAuthStore {
                 token: response.token,
                 expiresAt: .now.addingTimeInterval(
                     TimeInterval(response.expiresIn)
-                )
+                ),
+                appAccountToken: response.appAccountToken
             )
             try keychain.save(record)
             sessionToken = response.token
+            appAccountToken = response.appAccountToken
+                .flatMap(UUID.init(uuidString:))
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -398,6 +391,7 @@ final class TranslationAuthStore {
     func signOut() {
         keychain.delete()
         sessionToken = nil
+        appAccountToken = nil
         errorMessage = nil
         accountDeletionErrorMessage = nil
     }
@@ -452,6 +446,8 @@ final class TranslationAuthStore {
 private struct TranslationSessionRecord: Codable {
     let token: String
     let expiresAt: Date
+    /// Absent for sessions minted before per-book purchases existed.
+    var appAccountToken: String?
 }
 
 private struct TranslationSessionKeychain {

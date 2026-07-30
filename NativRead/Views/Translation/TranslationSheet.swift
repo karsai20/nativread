@@ -1,4 +1,5 @@
 import AuthenticationServices
+import StoreKit
 import SwiftUI
 
 struct TranslationSheet: View {
@@ -8,6 +9,7 @@ struct TranslationSheet: View {
     @Environment(SettingsStore.self) private var settings
     @Environment(TranslationStore.self) private var translations
     @Environment(TranslationAuthStore.self) private var auth
+    @Environment(BookPurchaseStore.self) private var purchases
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
@@ -17,7 +19,8 @@ struct TranslationSheet: View {
     @State private var detectedLanguage: DetectedBookLanguage = .unknown
     @State private var usesLocalTestAccount = false
     @State private var fullQuote: TranslationBackendClient.UploadResponse?
-    @State private var creditState: TranslationBackendClient.CreditsResponse?
+    @State private var bookProduct: Product?
+    @State private var isEntitledToFullBook = false
     @State private var pricingError: String?
     @State private var showsTranslationDetails = false
     @State private var showsWholeBookOptions = false
@@ -55,11 +58,9 @@ struct TranslationSheet: View {
                         languageSection
                         freeChapterSection
                         translationDetails
-#if DEBUG
                         if hasAcceptedTerms && hasBackendIdentity {
                             purchaseSection
                         }
-#endif
                     }
                     .padding(.horizontal, Spacing.lg)
                     .padding(.bottom, Spacing.lg)
@@ -595,8 +596,8 @@ struct TranslationSheet: View {
     private var purchaseSection: some View {
         AppSettingsSection(palette: palette) {
             AppSettingsRow(
-                systemImage: "hammer",
-                title: "Whole book · developer test",
+                systemImage: "book.closed",
+                title: "Whole book",
                 hidesSeparator: !showsWholeBookOptions,
                 action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -620,30 +621,19 @@ struct TranslationSheet: View {
     private var purchaseOptions: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             if let quote = fullQuote?.quote {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    HStack {
-                        Text("Source characters")
-                        Spacer()
-                        Text(quote.sourceCharacters.formatted())
-                            .monospacedDigit()
-                    }
-                    HStack {
-                        Text("Exact quote")
-                        Spacer()
-                        Text("\(quote.requiredCredits) credits")
-                            .monospacedDigit()
-                    }
-                    HStack {
-                        Text("Available")
-                        Spacer()
-                        Text("\(creditState?.account.balance ?? 0) credits")
-                            .monospacedDigit()
-                    }
+                HStack {
+                    Text("Source characters")
+                    Spacer()
+                    Text(quote.sourceCharacters.formatted())
+                        .monospacedDigit()
                 }
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
 
-                if hasEnoughCredits(for: quote) {
+                // No price means the backend is not selling this book — a
+                // self-hosted deployment with entitlements turned off. Nothing
+                // to buy, so the translation is simply available.
+                if isEntitledToFullBook || fullQuote?.price == nil {
                     AppPrimaryButton(
                         title: fullBookButtonTitle,
                         systemImage: "book.closed",
@@ -657,15 +647,27 @@ struct TranslationSheet: View {
                         palette: palette
                     )
                     .accessibilityIdentifier("translation.fullBook")
-                } else if let product = placeholderProduct(for: quote) {
+                } else if let bookProduct {
+                    // The price always comes from StoreKit, never from our own
+                    // tier table: it is the only source that is localized and
+                    // matches what the App Store will actually charge.
                     AppPrimaryButton(
-                        title: "Add \(product.credits) test credits · $0",
-                        systemImage: "cart.badge.plus",
-                        isEnabled: !isRequestingTranslation,
-                        action: { addPlaceholderCredits(product) },
+                        title: "Translate whole book · \(bookProduct.displayPrice)",
+                        systemImage: "cart",
+                        isEnabled: !isRequestingTranslation && !purchases.isPurchasing,
+                        action: { buyFullBook(bookProduct) },
                         palette: palette
                     )
-                    .accessibilityIdentifier("translation.placeholderPurchase")
+                    .accessibilityIdentifier("translation.purchaseFullBook")
+
+                    Text("One purchase per book. Buy it once and it stays yours — reinstall the app and it comes back.")
+                        .font(Typography.meta())
+                        .foregroundStyle(palette.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Loading the price…")
+                        .font(Typography.meta())
+                        .foregroundStyle(palette.secondaryText)
                 }
             } else {
                 AppPrimaryButton(
@@ -784,10 +786,7 @@ struct TranslationSheet: View {
                     library: library
                 )
                 translations.markBackendFinished(for: book, kind: kind)
-                if kind == .full {
-                    fullQuote = nil
-                    creditState = try? await client.credits()
-                }
+                if kind == .full { fullQuote = nil }
             } catch {
                 handleTranslationError(error)
             }
@@ -827,7 +826,10 @@ struct TranslationSheet: View {
                     throw TranslationBackendClient.ClientError.invalidResponse
                 }
                 fullQuote = upload
-                creditState = try await client.credits()
+                isEntitledToFullBook = upload.entitledLanguages?.contains("hu") ?? false
+                if !isEntitledToFullBook, let price = upload.price {
+                    bookProduct = try? await purchases.product(for: price.productId)
+                }
                 translations.markBackendQuoteReady(
                     for: book, backendJobID: upload.id
                 )
@@ -841,46 +843,28 @@ struct TranslationSheet: View {
         }
     }
 
-    private func addPlaceholderCredits(
-        _ product: TranslationBackendClient.CreditProduct
-    ) {
-        guard let client = backendClient else { return }
+    private func buyFullBook(_ product: Product) {
+        guard let fullQuote, let appAccountToken = auth.appAccountToken else { return }
         pricingError = nil
-        isRequestingTranslation = true
         Task {
             do {
-                let response = try await client.grantPlaceholderCredits(
-                    transactionID: "debug-\(UUID().uuidString)",
-                    productID: product.productId
-                )
-                creditState = TranslationBackendClient.CreditsResponse(
-                    account: response.account,
-                    products: creditState?.products ?? []
-                )
+                switch try await purchases.purchase(
+                    product,
+                    jobID: fullQuote.id,
+                    appAccountToken: appAccountToken
+                ) {
+                case .entitled:
+                    isEntitledToFullBook = true
+                    beginTranslation(kind: .full, preparedUpload: fullQuote)
+                case .cancelled:
+                    break
+                case .pending:
+                    pricingError = "This purchase needs approval. The translation starts once it is approved."
+                }
             } catch {
                 pricingError = error.localizedDescription
             }
-            isRequestingTranslation = false
         }
-    }
-
-    private func hasEnoughCredits(
-        for quote: TranslationBackendClient.UploadResponse.Quote
-    ) -> Bool {
-        (creditState?.account.balance ?? 0) >= quote.requiredCredits
-    }
-
-    private func placeholderProduct(
-        for quote: TranslationBackendClient.UploadResponse.Quote
-    ) -> TranslationBackendClient.CreditProduct? {
-        let missing = max(
-            0, quote.requiredCredits - (creditState?.account.balance ?? 0)
-        )
-        let products = (creditState?.products ?? []).sorted {
-            $0.credits < $1.credits
-        }
-        return products.first(where: { $0.credits >= missing })
-            ?? products.last
     }
 
     private var hasBackendIdentity: Bool {
