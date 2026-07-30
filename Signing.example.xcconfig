@@ -1,0 +1,23 @@
+// NativRead — local code signing template.
+//
+// `Signing.xcconfig` itself is gitignored because it carries a machine-specific
+// Team ID. Copy this file to `Signing.xcconfig` before the first
+// `xcodegen generate` — project.yml references it, and generation fails
+// outright if it is missing.
+//
+//   cp Signing.example.xcconfig Signing.xcconfig
+//
+// Simulator builds and tests work as-is with no team. To run on a PHYSICAL
+// iPhone with a free Apple ID:
+//
+//   1. Xcode → Settings → Accounts → add your Apple ID (creates a free
+//      "Personal Team").
+//   2. Open NativRead.xcodeproj, select the NativRead target → Signing &
+//      Capabilities → pick your Team. Xcode shows the Team ID there.
+//   3. Paste that Team ID below (uncomment the line) so `xcodegen generate`
+//      keeps signing configured on every regenerate.
+//
+// DEVELOPMENT_TEAM = YOUR_TEAM_ID
+
+CODE_SIGN_STYLE = Automatic
+CODE_SIGNING_ALLOWED = YES

@@ -9,6 +9,8 @@ on:
 # Supply-chain floor (blueprint §7): read-only token, SHA-pinned actions.
 permissions:
   contents: read
+  # gitleaks reads the PR's commit list; without this its scan dies on a 403.
+  pull-requests: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -45,6 +47,9 @@ jobs:
       - name: Generate project
         run: |
           brew install xcodegen
+          # project.yml requires Signing.xcconfig, which is gitignored because
+          # it carries a machine-specific Team ID. Generation fails without it.
+          cp Signing.example.xcconfig Signing.xcconfig
           xcodegen generate
 
       - name: Unit tests
