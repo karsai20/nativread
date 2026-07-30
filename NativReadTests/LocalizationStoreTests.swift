@@ -125,6 +125,30 @@ final class LocalizationStoreTests: XCTestCase {
         )
     }
 
+    // MARK: - bundleLanguage
+
+    /// `.system` must never reach the bundle as "no preference". The app sets
+    /// `CFBundleAllowMixedLocalizations`, which turns off preferred-localization
+    /// matching, so an unresolved `.system` serves English strings while
+    /// `resolvedLocale` already reports the device language — English labels
+    /// next to Hungarian ones on the same screen.
+    func testSystemResolvesToAConcreteBundleLanguage() {
+        let store = LocalizationStore(defaults: defaults)
+
+        XCTAssertEqual(store.appLanguage, .system)
+        XCTAssertNotEqual(store.bundleLanguage, .system)
+        XCTAssertNotNil(store.bundleLanguage.languageCode)
+        XCTAssertEqual(store.bundleLanguage, AppLanguage.matchingDevice())
+    }
+
+    func testExplicitChoiceIsUsedVerbatimForTheBundle() {
+        let store = LocalizationStore(defaults: defaults)
+        for language in AppLanguage.pickable {
+            store.setLanguage(language)
+            XCTAssertEqual(store.bundleLanguage, language)
+        }
+    }
+
     // MARK: - Bundle fallback
 
     func testBundleIsMainWhenLprojMissing() {

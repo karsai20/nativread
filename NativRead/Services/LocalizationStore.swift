@@ -82,6 +82,19 @@ final class LocalizationStore {
         return Locale(identifier: code)
     }
 
+    /// The language whose `.lproj` must serve string lookups.
+    ///
+    /// `.system` resolves to a concrete language here rather than being handed
+    /// to the bundle as "no preference". The app ships with
+    /// `CFBundleAllowMixedLocalizations`, which switches off the bundle's
+    /// preferred-localization matching: left to itself it serves the
+    /// development region, English. Meanwhile `resolvedLocale` already reports
+    /// the device's own language, so a Hungarian phone on `.system` ended up
+    /// with "Translation · Magyar" — half the label from each mechanism.
+    var bundleLanguage: AppLanguage {
+        appLanguage == .system ? AppLanguage.matchingDevice() : appLanguage
+    }
+
     /// A `Bundle` that resolves string lookups from the chosen `.lproj`
     /// directory.  Use this with `String(localized: key, bundle: bundle)`
     /// whenever `\.locale` environment injection alone doesn't reliably route
@@ -91,7 +104,7 @@ final class LocalizationStore {
     /// (which can happen on a simulator that hasn't been rebuilt after adding
     /// a new language).
     var bundle: Bundle {
-        guard let code = appLanguage.languageCode,
+        guard let code = bundleLanguage.languageCode,
               let path = Bundle.main.path(forResource: code, ofType: "lproj"),
               let b = Bundle(path: path) else {
             return .main
@@ -122,14 +135,14 @@ final class LocalizationStore {
         }
         // Route Bundle.main string lookups to the chosen language so every
         // `Text`/`String(localized:)` follows the choice from first launch.
-        Bundle.setAppLanguage(appLanguage.languageCode)
+        Bundle.setAppLanguage(bundleLanguage.languageCode)
     }
 
     /// Applies `language` and writes it to `UserDefaults`.
     func setLanguage(_ language: AppLanguage) {
         appLanguage = language
         defaults.set(language.rawValue, forKey: Self.key)
-        Bundle.setAppLanguage(language.languageCode)
+        Bundle.setAppLanguage(bundleLanguage.languageCode)
     }
 
     /// Applies `language` for the current session without writing to
@@ -137,7 +150,7 @@ final class LocalizationStore {
     /// forced settings never leak into subsequent test runs.
     func overrideWithoutPersisting(_ language: AppLanguage) {
         appLanguage = language
-        Bundle.setAppLanguage(language.languageCode)
+        Bundle.setAppLanguage(bundleLanguage.languageCode)
     }
 
     /// Removes the persisted language choices; the next launch will default

@@ -1,12 +1,30 @@
 import XCTest
 
-/// Verifies the four-step first-run experience. The app language follows the
+/// Verifies the three-beat first-run experience. The app language follows the
 /// phone — onboarding never asks for it — so these tests assert that the
 /// device language reaches the copy and that every step stays reachable,
 /// including in landscape and at accessibility text sizes.
 final class OnboardingUITests: XCTestCase {
 
     private var app: XCUIApplication!
+
+    /// The English source copy for each beat, in order.
+    private static let beats = [
+        "Add a book in a language you don't read.",
+        "We translate the first chapter free.",
+        "You can close the app. We keep translating."
+    ]
+
+    /// Hungarian runs longer than English on most beats, so it is the case the
+    /// layout has to survive.
+    private static let hungarianBeats = [
+        "Tedd fel az idegen nyelvű könyvedet.",
+        "Az első fejezetet ingyen lefordítjuk.",
+        "Bezárhatod az appot, mi közben tovább fordítunk."
+    ]
+
+    private static let outcome =
+        "The finished translation lands on your shelf, beside the original."
 
     override func setUp() {
         continueAfterFailure = false
@@ -31,11 +49,11 @@ final class OnboardingUITests: XCTestCase {
         app.launch()
     }
 
-    /// Walks welcome → add → translate → read and taps the final action.
+    /// Walks add → translate → wait and taps the final action.
     private func completeTour() {
         let next = app.buttons["onboarding.tour.next"]
 
-        for _ in 0..<3 {
+        for _ in 0..<(Self.beats.count - 1) {
             XCTAssertTrue(next.waitForExistence(timeout: 10))
             next.tap()
         }
@@ -61,29 +79,46 @@ final class OnboardingUITests: XCTestCase {
         add(attachment)
     }
 
-    func testWalkthroughExplainsTheFourCoreSteps() {
+    func testWalkthroughExplainsTheThreeCoreSteps() {
         launchOnboarding(extraArguments: ["-forceLanguage", "en"])
 
         let title = app.staticTexts["onboarding.tour.title"]
         XCTAssertTrue(title.waitForExistence(timeout: 10))
-        XCTAssertEqual(title.label, "Your books, in your language.")
-        keepScreenshot("onboarding-01-welcome")
+        XCTAssertEqual(title.label, Self.beats[0])
+        keepScreenshot("onboarding-01-add-book")
 
         app.buttons["onboarding.tour.next"].tap()
-        expectTitle("Choose a book from your iPhone")
-        keepScreenshot("onboarding-02-add-book")
+        expectTitle(Self.beats[1])
+        keepScreenshot("onboarding-02-translate")
 
         app.buttons["onboarding.tour.next"].tap()
-        expectTitle("Let NativRead bring it into your language")
-        keepScreenshot("onboarding-03-translate")
-
-        app.buttons["onboarding.tour.next"].tap()
-        expectTitle("Read in comfort, at your own pace")
-        keepScreenshot("onboarding-04-read")
+        expectTitle(Self.beats[2])
+        keepScreenshot("onboarding-03-wait")
 
         XCTAssertTrue(
             app.buttons["onboarding.tour.finish"].waitForExistence(timeout: 4)
         )
+    }
+
+    /// The payoff closes the flow: it is the last thing read before the
+    /// library opens, and it only belongs on the final beat.
+    func testOutcomeAppearsOnlyOnTheFinalBeat() {
+        launchOnboarding(extraArguments: ["-forceLanguage", "en"])
+
+        let promise = app.staticTexts["onboarding.tour.promise"]
+        XCTAssertTrue(
+            app.buttons["onboarding.tour.next"].waitForExistence(timeout: 10)
+        )
+        XCTAssertFalse(promise.exists)
+
+        app.buttons["onboarding.tour.next"].tap()
+        expectTitle(Self.beats[1])
+        XCTAssertFalse(promise.exists)
+
+        app.buttons["onboarding.tour.next"].tap()
+        expectTitle(Self.beats[2])
+        XCTAssertTrue(promise.waitForExistence(timeout: 4))
+        XCTAssertEqual(promise.label, Self.outcome)
     }
 
     func testBackReturnsToThePreviousStep() {
@@ -92,10 +127,10 @@ final class OnboardingUITests: XCTestCase {
         let next = app.buttons["onboarding.tour.next"]
         XCTAssertTrue(next.waitForExistence(timeout: 10))
         next.tap()
-        expectTitle("Choose a book from your iPhone")
+        expectTitle(Self.beats[1])
 
         app.buttons["onboarding.tour.back"].tap()
-        expectTitle("Your books, in your language.")
+        expectTitle(Self.beats[0])
     }
 
     /// Skip is the escape hatch: it must land in the library, not the next step.
@@ -119,7 +154,7 @@ final class OnboardingUITests: XCTestCase {
 
         let title = app.staticTexts["onboarding.tour.title"]
         XCTAssertTrue(title.waitForExistence(timeout: 10))
-        XCTAssertEqual(title.label, "A könyveid, a saját nyelveden.")
+        XCTAssertEqual(title.label, Self.hungarianBeats[0])
     }
 
     func testOnboardingRemainsUsableInLandscape() {
@@ -150,23 +185,42 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["onboarding.tour.skip"].isHittable)
     }
 
-    func testOnboardingRemainsUsableWithAccessibilityText() {
+    /// The overflow this redesign exists to fix: at the largest text size the
+    /// sentence must stay clear of the bottom bar, on every beat.
+    func testCopyClearsTheBottomBarAtAccessibilityText() {
         launchOnboarding(extraArguments: [
-            "-forceLanguage", "en",
+            "-forceLanguage", "hu",
             "-UIPreferredContentSizeCategoryName",
             "UICTContentSizeCategoryAccessibilityXXL"
         ])
 
         let next = app.buttons["onboarding.tour.next"]
+        let title = app.staticTexts["onboarding.tour.title"]
         XCTAssertTrue(next.waitForExistence(timeout: 10))
-        XCTAssertTrue(next.isHittable)
-        keepScreenshot("onboarding-accessibility-welcome")
 
-        next.tap()
-        expectTitle("Choose a book from your iPhone")
-        XCTAssertTrue(next.isHittable)
-        XCTAssertTrue(app.buttons["onboarding.tour.back"].isHittable)
-        keepScreenshot("onboarding-accessibility-text")
+        let last = Self.hungarianBeats.count - 1
+        for index in 0...last {
+            // Wait for the label itself, not merely for an element to exist:
+            // during the page transition the previous beat is still on screen.
+            expectTitle(Self.hungarianBeats[index])
+
+            // The primary action is relabelled on the final beat.
+            let action = index == last
+                ? app.buttons["onboarding.tour.finish"]
+                : next
+            XCTAssertTrue(action.waitForExistence(timeout: 4))
+            XCTAssertTrue(action.isHittable)
+            XCTAssertTrue(
+                title.frame.maxY <= action.frame.minY,
+                "beat \(index + 1): the sentence overlaps the primary button"
+            )
+            if index > 0 {
+                XCTAssertTrue(app.buttons["onboarding.tour.back"].isHittable)
+            }
+            keepScreenshot("onboarding-accessibility-\(index + 1)")
+
+            if index < last { action.tap() }
+        }
     }
 
     func testRelaunchWithoutForceSkipsOnboarding() {

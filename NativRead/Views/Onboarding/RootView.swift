@@ -1,8 +1,8 @@
 import SwiftUI
 import StoreKit
 
-/// App root: shows the tab shell and, on first launch, a four-step animated
-/// explanation of the core workflow. The app language follows the phone, so
+/// App root: shows the tab shell and, on first launch, a three-beat walk
+/// through the core workflow. The app language follows the phone, so
 /// onboarding never asks for it.
 struct RootView: View {
     @Environment(SettingsStore.self) private var settingsStore

@@ -78,28 +78,39 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
             app.staticTexts["onboarding.tour.title"]
                 .waitForExistence(timeout: 25)
         )
-        capture(locale, 1, "onboarding-welcome")
+        capture(locale, 1, "onboarding-add-book")
 
-        app.buttons["onboarding.tour.next"].tap()
-        XCTAssertTrue(
-            app.buttons["onboarding.tour.next"].waitForExistence(timeout: 10)
-        )
-        capture(locale, 2, "onboarding-add-book")
-
-        app.buttons["onboarding.tour.next"].tap()
+        tapTourNext()
         waitForTourStep(2)
-        capture(locale, 3, "onboarding-translate")
+        capture(locale, 2, "onboarding-translate")
 
-        app.buttons["onboarding.tour.next"].tap()
+        tapTourNext()
         XCTAssertTrue(
             app.buttons["onboarding.tour.finish"]
                 .waitForExistence(timeout: 10)
         )
-        capture(locale, 4, "onboarding-read")
+        capture(locale, 3, "onboarding-wait")
+    }
+
+    /// Seeding the showcase library imports several megabytes of EPUB, so the
+    /// first taps can land while the app is still busy. Waiting for the button
+    /// to be hittable — not merely present — keeps them from being swallowed.
+    private func tapTourNext() {
+        let next = app.buttons["onboarding.tour.next"]
+        XCTAssertTrue(next.waitForExistence(timeout: 10))
+        let hittable = NSPredicate(format: "isHittable == true")
+        expectation(for: hittable, evaluatedWith: next)
+        waitForExpectations(timeout: 10)
+        next.tap()
     }
 
     private func waitForTourStep(_ step: Int) {
-        let progress = app.staticTexts["onboarding.tour.progress"]
+        // The progress rail is an accessibility container built from shapes,
+        // so it surfaces as `other`, not `staticText`. Querying it as text
+        // matched nothing and the wait could only ever time out.
+        let progress = app.descendants(matching: .any)
+            .matching(identifier: "onboarding.tour.progress")
+            .firstMatch
         let predicate = NSPredicate(
             format: "label CONTAINS %@",
             String(step)
