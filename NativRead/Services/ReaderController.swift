@@ -4,10 +4,10 @@ import WebKit
 /// SwiftUI only ever wraps `webView`; all commands go through here.
 @MainActor
 final class ReaderController: NSObject, WKScriptMessageHandler,
-                              UIScrollViewDelegate {
+                              UIScrollViewDelegate, WKNavigationDelegate {
 
     let webView: HighlightingWebView
-    let pageSize: CGSize
+    private(set) var pageSize: CGSize
 
     /// (page, pageCount) after every page change or relayout.
     var onState: ((Int, Int) -> Void)?
@@ -15,21 +15,16 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     var onChapterReady: (() -> Void)?
     /// Tap zones reported by the page: "left", "right", "center".
     var onTap: ((String) -> Void)?
-    /// Horizontal swipe in paged flow: "forward" or "backward".
-    var onSwipe: ((String) -> Void)?
     /// The user picked Highlight in the selection menu.
     var onHighlightRequested: (() -> Void)? {
         get { webView.onHighlightSelection }
         set { webView.onHighlightSelection = newValue }
     }
-    /// The user picked Define in the selection menu.
-    var onDefineRequested: (() -> Void)? {
-        get { webView.onDefineSelection }
-        set { webView.onDefineSelection = newValue }
-    }
-    /// Scroll flow: the user pulled past the chapter edge.
-    /// "forward" (bottom) or "backward" (top).
-    var onOverscroll: ((String) -> Void)?
+    /// The user pulled past the chapter edge. "forward" (bottom/right
+    /// edge) or "backward" (top/left edge). In scroll flow this is a
+    /// vertical overscroll; in paged flow a horizontal one past the last
+    /// or first column. Returns true when a chapter load started.
+    var onOverscroll: ((String) -> Bool)?
 
     /// Dragging past the chapter edge by this much advances chapters.
     private static let overscrollThreshold: CGFloat = 70
@@ -49,9 +44,12 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     private var transition: PageTransition
     private var pendingFraction: Double?
     private var pendingLocate: (query: String, occurrence: Int)?
+    private var chapterAdvancePending = false
+    private var navigationGeneration = 0
+    private var readAccessRoot: URL?
 
     init(
-        pageSize: CGSize, initialCSS: String,
+        pageSize: CGSize, initialCSS: String, backgroundColor: UIColor,
         flow: PageFlow, transition: PageTransition
     ) {
         self.pageSize = pageSize
@@ -70,18 +68,28 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         )
         // Paged flow turns pages by scrolling the root scroller
         // horizontally (a CSS transform leaves WebKit's off-screen
-        // tiles unpainted, so the next page arrives blank). The scroll
-        // view must stay enabled for the programmatic scroll to take
-        // effect, and paging snaps it to whole viewport-wide columns.
-        webView.scrollView.isScrollEnabled = true
+        // tiles unpainted, so the next page arrives blank). Paging
+        // snaps it to whole viewport-wide columns. In curl mode the
+        // page's touch handlers scrub the curl from the finger, so
+        // native panning is disabled (programmatic setContentOffset
+        // still works); every other mode keeps the native pan.
+        webView.scrollView.isScrollEnabled =
+            !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.showsHorizontalScrollIndicator = false
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
-        webView.isOpaque = false
+        // Opaque, with the theme paper behind everything: a transparent
+        // WKWebView forces blended tile compositing, which visibly drops
+        // scroll-flow frame rate. Overscroll rubber-band regions show the
+        // scroll view's background instead of see-through SwiftUI.
+        webView.isOpaque = true
+        webView.backgroundColor = backgroundColor
+        webView.scrollView.backgroundColor = backgroundColor
         super.init()
 
         webView.scrollView.delegate = self
+        webView.navigationDelegate = self
         configuration.userContentController.add(self, name: "lumen")
         installUserScripts()
     }
@@ -106,25 +114,75 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
 
     // MARK: - Commands
 
+    /// Prepares the engine scripts and stylesheet for a changed viewport.
+    /// The view model reloads the current chapter immediately afterwards at
+    /// the same fractional position, so the fixed-width column engine never
+    /// keeps portrait page geometry after a rotation.
+    func prepareViewport(pageSize: CGSize, css: String) {
+        self.pageSize = pageSize
+        settingsCSS = css
+        installUserScripts()
+    }
+
     func loadChapter(
         at url: URL, readAccessRoot: URL,
         fraction: Double = 0, locate: (String, Int)? = nil
     ) {
+        let normalizedRoot = readAccessRoot.standardizedFileURL
+        let normalizedURL = url.standardizedFileURL
+        let rootPrefix = normalizedRoot.path.hasSuffix("/")
+            ? normalizedRoot.path
+            : normalizedRoot.path + "/"
+        guard normalizedURL.path.hasPrefix(rootPrefix) else { return }
+        self.readAccessRoot = normalizedRoot
+        navigationGeneration += 1
         pendingFraction = fraction
         pendingLocate = locate.map { (query: $0.0, occurrence: $0.1) }
         webView.alpha = 0
         webView.loadFileURL(url, allowingReadAccessTo: readAccessRoot)
     }
 
+    /// Book-authored navigation stays inside the current extracted EPUB.
+    /// Remote subresources are additionally denied by the injected CSP.
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void
+    ) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.cancel)
+            return
+        }
+        if url.scheme == "about" {
+            decisionHandler(.allow)
+            return
+        }
+        guard url.isFileURL, let readAccessRoot else {
+            decisionHandler(.cancel)
+            return
+        }
+        let rootPrefix = readAccessRoot.path.hasSuffix("/")
+            ? readAccessRoot.path
+            : readAccessRoot.path + "/"
+        decisionHandler(
+            url.standardizedFileURL.path.hasPrefix(rootPrefix)
+                ? .allow
+                : .cancel
+        )
+    }
+
     func applySettings(
         css: String, backgroundColor: UIColor,
         flow: PageFlow, transition: PageTransition
     ) {
+        navigationGeneration += 1
         settingsCSS = css
         self.flow = flow
         self.transition = transition
         webView.backgroundColor = backgroundColor
         webView.scrollView.backgroundColor = backgroundColor
+        webView.scrollView.isScrollEnabled =
+            !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
         installUserScripts()
@@ -153,6 +211,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     }
 
     func goToFraction(_ fraction: Double) {
+        navigationGeneration += 1
         webView.evaluateJavaScript(
             "window.lumen && window.lumen.goToFraction(\(fraction), false)"
         )
@@ -184,27 +243,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         }
     }
 
-    /// The current selection's plain text, trimmed; empty when nothing
-    /// usable is selected. Used to seed a dictionary Define lookup.
-    func selectedText(completion: @escaping (String) -> Void) {
-        webView.evaluateJavaScript(
-            "window.lumen && window.lumen.selectedText()"
-        ) { result, _ in
-            completion((result as? String) ?? "")
-        }
-    }
-
-    /// The sentence the current selection sits in, for saving a word
-    /// with its reading context; empty when none can be derived. Pure
-    /// DOM read — never affects layout or the rendered page.
-    func selectionSentence(completion: @escaping (String) -> Void) {
-        webView.evaluateJavaScript(
-            "window.lumen && window.lumen.selectionSentence()"
-        ) { result, _ in
-            completion((result as? String) ?? "")
-        }
-    }
-
     func clearSelection() {
         webView.evaluateJavaScript(
             "window.lumen && window.lumen.clearSelection()"
@@ -221,26 +259,74 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         )
     }
 
-    // MARK: - Overscroll chapter advance (scroll flow)
+    // MARK: - Overscroll chapter advance
 
     /// The rubber-band overscroll happens at the UIScrollView level,
     /// invisible to the page's JS, so chapter-edge pulls are detected
-    /// here from the drag's end position.
+    /// here from the drag's end position — vertically in scroll flow,
+    /// horizontally past the first/last column in paged flow.
     nonisolated func scrollViewDidEndDragging(
         _ scrollView: UIScrollView, willDecelerate decelerate: Bool
     ) {
         MainActor.assumeIsolated {
-            guard flow == .scroll else { return }
-            let offset = scrollView.contentOffset.y
-            let maxOffset = max(
-                0, scrollView.contentSize.height
-                    - scrollView.bounds.height
-            )
-            if offset > maxOffset + Self.overscrollThreshold {
-                onOverscroll?("forward")
-            } else if offset < -Self.overscrollThreshold {
-                onOverscroll?("backward")
+            if flow == .scroll {
+                let offset = scrollView.contentOffset.y
+                let maxOffset = max(
+                    0, scrollView.contentSize.height
+                        - scrollView.bounds.height
+                )
+                if offset > maxOffset + Self.overscrollThreshold {
+                    if onOverscroll?("forward") == true {
+                        chapterAdvancePending = true
+                    }
+                } else if offset < -Self.overscrollThreshold {
+                    if onOverscroll?("backward") == true {
+                        chapterAdvancePending = true
+                    }
+                }
+            } else {
+                let offset = scrollView.contentOffset.x
+                let maxOffset = max(
+                    0, scrollView.contentSize.width
+                        - scrollView.bounds.width
+                )
+                if offset > maxOffset + Self.overscrollThreshold {
+                    // The advance starts loading the next chapter; a sync
+                    // now would read the OLD chapter's rubber-band offset
+                    // and persist stale state under the new spine index.
+                    if onOverscroll?("forward") == true {
+                        chapterAdvancePending = true
+                    }
+                    return
+                } else if offset < -Self.overscrollThreshold {
+                    if onOverscroll?("backward") == true {
+                        chapterAdvancePending = true
+                    }
+                    return
+                }
+                // A drag that snaps back within the same page won't
+                // decelerate, so sync here too: the engine's page must
+                // never go stale before the next tap turn reads it.
+                if !decelerate {
+                    webView.evaluateJavaScript(
+                        "window.lumen && window.lumen.syncPagedPage()"
+                    )
+                }
             }
+        }
+    }
+
+    /// A finger drag must win over an in-flight programmatic tap-turn:
+    /// freeze the scroll view at whatever offset the animation has
+    /// reached (its presentation layer) and drop the animation, so the
+    /// native pager tracks the finger from there instead of fighting it.
+    nonisolated func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        MainActor.assumeIsolated {
+            guard flow == .paged else { return }
+            if let origin = scrollView.layer.presentation()?.bounds.origin {
+                scrollView.setContentOffset(origin, animated: false)
+            }
+            scrollView.layer.removeAllAnimations()
         }
     }
 
@@ -251,8 +337,84 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     ) {
         MainActor.assumeIsolated {
             guard flow == .paged else { return }
+            if chapterAdvancePending {
+                // A hard edge pull can start the next chapter in
+                // didEndDragging, then decelerate after rubber-band
+                // settle; that late sync would read the old document under
+                // the new spine index. At the first/last chapter the
+                // overscroll callback returns false, so this flag is not set.
+                return
+            }
             webView.evaluateJavaScript(
                 "window.lumen && window.lumen.syncPagedPage()"
+            )
+        }
+    }
+
+    // MARK: - Curl capture bridge
+
+    /// Snapshot config capped at an effective 2× pixel density. Full 3×
+    /// captures add ~1.5s latency and make the turn feel broken (Readest
+    /// production finding); capped, the overlay mounts tens of ms after
+    /// the tap. `snapshotWidth` is in POINTS (image px = points × screen
+    /// scale), so shrink the point width on >2× screens.
+    private var curlSnapshotConfiguration: WKSnapshotConfiguration {
+        let configuration = WKSnapshotConfiguration()
+        let scale = UIScreen.main.scale
+        if scale > 2 {
+            configuration.snapshotWidth = NSNumber(
+                value: Double(webView.bounds.width) * 2.0 / Double(scale)
+            )
+        }
+        return configuration
+    }
+
+    /// The curl animation itself lives in the JS engine: a transparent
+    /// WebGL overlay curls a bitmap of the OUTGOING page away over the
+    /// live (already-turned) page. Only the outgoing page is ever
+    /// captured — it is still on screen when the engine asks, so the
+    /// capture can never race WebKit's paint of the target column. Swift's
+    /// whole job is this snapshot, since JS cannot photograph a WKWebView.
+    ///
+    /// Known ceiling, accepted: chapter-boundary turns use the loading
+    /// veil, never a cross-document curl.
+    /// True while a snapshot request is being served; extra requests are
+    /// dropped (the engine's rescue timers self-heal a dropped turn).
+    private var curlCaptureInFlight = false
+
+    private func captureForCurl(targetX: Double, forward: Bool) {
+        // Only the curl transition may drive native snapshots, and only
+        // one at a time — defense in depth so page JS that survived
+        // sanitization can never spam snapshot + JPEG-encode + multi-MB
+        // eval work through this bridge. The engine itself requests at
+        // most one capture per turn.
+        guard transition == .curl, flow == .paged,
+              !curlCaptureInFlight else { return }
+        curlCaptureInFlight = true
+        let generation = navigationGeneration
+        webView.takeSnapshot(with: curlSnapshotConfiguration) {
+            [weak self] image, _ in
+            guard let self else { return }
+            self.curlCaptureInFlight = false
+            guard generation == self.navigationGeneration else { return }
+            guard let image,
+                  let data = image.jpegData(compressionQuality: 0.85) else {
+                // Capture failed: let the engine fall back to the spring
+                // slide so the turn still animates.
+                self.evaluate(
+                    "window.lumen && window.lumen.curlFailed(\(targetX))"
+                )
+                return
+            }
+            // JPEG, not PNG: a text page encodes ~5× smaller, and the
+            // whole bitmap crosses the JS bridge as base64.
+            let dataURL = "data:image/jpeg;base64,"
+                + data.base64EncodedString()
+            self.evaluate(
+                """
+                window.lumen && window.lumen.curlBegin(\
+                '\(dataURL)', \(forward), \(targetX))
+                """
             )
         }
     }
@@ -279,7 +441,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         let page = body["page"] as? Int ?? 0
         let pageCount = body["pageCount"] as? Int ?? 1
         let zone = body["zone"] as? String
-        let direction = body["direction"] as? String
         let scrollX = body["x"] as? Double
         let scrollY = body["y"] as? Double
         let animate = body["animate"] as? Bool ?? false
@@ -287,6 +448,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         Task { @MainActor in
             switch type {
             case "ready":
+                self.navigationGeneration += 1
+                self.chapterAdvancePending = false
                 // Reset the scroll position before revealing so a stale
                 // offset left by the previous chapter can never flash an
                 // empty page; goToFraction below sets the precise target.
@@ -323,8 +486,6 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 self.onState?(page, pageCount)
             case "tap":
                 if let zone { self.onTap?(zone) }
-            case "swipe":
-                if let direction { self.onSwipe?(direction) }
             case "scroll":
                 // The engine requests a horizontal page move; drive the
                 // native scroll view directly (reliable, unlike a JS
@@ -333,32 +494,61 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                     let target = CGPoint(x: scrollX, y: 0)
                     let scroll = self.webView.scrollView
                     if animate {
-                        // A gentle ease-out glide reads more pleasantly than
-                        // UIKit's default paged snap: the page slides in and
-                        // settles. `.allowUserInteraction` keeps rapid taps
-                        // responsive mid-turn; `setContentOffset(animated:
-                        // false)` inside the block lets the curve below own
-                        // the motion.
+                        // A critically-damped spring (damping 1.0 → no
+                        // overshoot) departs quickly and settles softly, the
+                        // Apple Books tap-turn feel. `.beginFromCurrentState`
+                        // lets a rapid second tap retarget mid-glide instead
+                        // of snapping; `.allowUserInteraction` keeps a drag
+                        // able to take over. The inner
+                        // `setContentOffset(animated: false)` lets the spring
+                        // own the motion.
                         UIView.animate(
-                            withDuration: 0.34, delay: 0,
-                            options: [.curveEaseOut, .allowUserInteraction]
+                            withDuration: 0.42, delay: 0,
+                            usingSpringWithDamping: 1.0,
+                            initialSpringVelocity: 0.6,
+                            options: [.allowUserInteraction, .beginFromCurrentState]
                         ) {
                             scroll.setContentOffset(target, animated: false)
                         }
                     } else {
                         scroll.setContentOffset(target, animated: false)
+                        // A silent jump during an active touch (curl drag
+                        // scrub) can leave the destination column unpainted:
+                        // WebKit defers tile paint while the visible rect is
+                        // "unstable" mid-touch. A layout pass forces the
+                        // visible-content-rect update so the page can never
+                        // stay blank until the next interaction.
+                        self.webView.setNeedsLayout()
                     }
+                }
+            case "captureCurl":
+                // The engine is about to curl: it needs a bitmap of the
+                // page currently on screen before it jumps underneath.
+                let forward = body["forward"] as? Bool ?? true
+                self.captureForCurl(
+                    targetX: scrollX ?? 0, forward: forward
+                )
+            case "edgeDrag":
+                // Curl mode disables native panning, so chapter-edge
+                // pulls arrive from the page's touch handlers instead
+                // of the scroll view's rubber band.
+                if let direction = body["direction"] as? String,
+                   self.onOverscroll?(direction) == true {
+                    self.chapterAdvancePending = true
                 }
             case "scrollV":
                 // Scroll-flow tap advance: glide the native scroll view
-                // vertically. Same ease-out curve as the paged turn so a
-                // tap-to-advance feels smooth, not the steppy JS smooth-scroll.
+                // vertically. Same critically-damped spring as the paged turn
+                // so a tap-to-advance feels smooth, not the steppy JS
+                // smooth-scroll.
                 if let scrollY {
                     let scroll = self.webView.scrollView
                     let target = CGPoint(x: 0, y: scrollY)
                     UIView.animate(
-                        withDuration: 0.34, delay: 0,
-                        options: [.curveEaseOut, .allowUserInteraction]
+                        withDuration: 0.42, delay: 0,
+                        usingSpringWithDamping: 1.0,
+                        initialSpringVelocity: 0.6,
+                        options: [.allowUserInteraction, .beginFromCurrentState]
                     ) {
                         scroll.setContentOffset(target, animated: false)
                     }

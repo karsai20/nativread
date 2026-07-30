@@ -1,8 +1,8 @@
-# Quire — Editorial / Literary-Modern Redesign
+# NativRead — Editorial / Literary-Modern Redesign
 
 Direction adopted 2026-06 after market research (2025–26 reading apps trend
 typography-first and content-led; Kobo/Readwise clean redesigns; Apple Books as
-the "clean reading UI" benchmark). Quire moves off the dark-academia brand toward
+the "clean reading UI" benchmark). NativRead moves off the dark-academia brand toward
 a warm, editorial identity where **the book is the hero**.
 
 ## Design tokens (`NativRead/DesignSystem/`)
@@ -19,15 +19,18 @@ a warm, editorial identity where **the book is the hero**.
 
 ## What uses what
 
-- **Library, onboarding, Stats, Vocabulary** → `BrandPalette` (its own constant
-  identity, following system light/dark). The shelf no longer morphs with the
-  reading theme.
+- **Library and onboarding** → `BrandPalette` (its own constant identity,
+  following system light/dark). The shelf no longer morphs with the reading
+  theme. Reading statistics and saved vocabulary were removed in the 2026-07-20
+  product simplification.
 - **Reader page + reader chrome + reading-context sheets** (Typography panel,
-  Contents, Search, Define) → keep `ReaderPalette` for COLOR (they melt into the
-  open page), but adopt the shared `Typography`/`Spacing` for an editorial feel.
-- The 5 reading atmospheres (Paper/Sepia/Dusk/Ink/Academia) are unchanged — their
-  per-atmosphere accents are intentional. The default theme is **Paper** (russet
-  accent), which matches the brand. Default reading font is **Crimson Pro**.
+  Contents, Search) → keep `ReaderPalette` for COLOR (they melt into the open
+  page), but adopt the shared `Typography`/`Spacing` for an editorial feel.
+  Selected text uses Apple's native Look Up action rather than an app-owned
+  definition sheet.
+- The 4 reading atmospheres (Paper/Sepia/Dusk/Ink) keep their intentional
+  per-atmosphere accents. The default theme is **Paper**, which matches the
+  brand. Default reading font is **Charter**.
 
 ## Open follow-up: app icon
 

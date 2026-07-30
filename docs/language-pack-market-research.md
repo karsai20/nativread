@@ -1,6 +1,10 @@
 # Language pack and Define market research
 
-Status: PRODUCT DIRECTION, 2026-07-02.
+> **Archived 2026-07-20.** This is historical research, not current product
+> direction. NativRead no longer ships custom dictionaries, vocabulary, or a
+> learner mode; selected text uses Apple's native Look Up action exclusively.
+
+Status: HISTORICAL / SUPERSEDED, 2026-07-02.
 
 ## Decision
 

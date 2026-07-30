@@ -38,7 +38,7 @@ final class PDFReaderUITests: XCTestCase {
             "PDF reader chrome should appear"
         )
         XCTAssertTrue(
-            app.staticTexts["reader.pageLabel"].waitForExistence(timeout: 15)
+            app.buttons["reader.position"].waitForExistence(timeout: 15)
         )
     }
 
@@ -48,14 +48,14 @@ final class PDFReaderUITests: XCTestCase {
         snapshot("02-pdf-reader-light")
 
         // Turn the page via the right tap zone; the page label must advance.
-        let initial = app.staticTexts["reader.pageLabel"].label
+        let initial = app.buttons["reader.position"].label
         app.windows.firstMatch.coordinate(
             withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)
         ).tap()
         let advanced = NSPredicate(format: "label != %@", initial)
         expectation(
             for: advanced,
-            evaluatedWith: app.staticTexts["reader.pageLabel"]
+            evaluatedWith: app.buttons["reader.position"]
         )
         waitForExpectations(timeout: 10)
         snapshot("03-pdf-page-advanced")
@@ -75,6 +75,18 @@ final class PDFReaderUITests: XCTestCase {
         expectation(for: appearanceGone, evaluatedWith: app.staticTexts["Appearance"])
         waitForExpectations(timeout: 10)
         snapshot("05-pdf-reader-night")
+    }
+
+    func testPDFPositionNavigatorUsesAccessibleSlider() {
+        launch(["-seedSamplePDF"])
+        openPDF()
+        app.buttons["reader.position"].tap()
+
+        XCTAssertTrue(
+            app.sliders["reader.position.slider"].waitForExistence(timeout: 10)
+        )
+        XCTAssertTrue(app.buttons["reader.position.nextPage"].exists)
+        app.buttons["reader.position.done"].tap()
     }
 
     func testPDFContentsAndSearch() {
@@ -117,7 +129,7 @@ final class PDFReaderUITests: XCTestCase {
             app.buttons["reader.back"].waitForExistence(timeout: 15)
         )
         XCTAssertTrue(
-            app.staticTexts["reader.pageLabel"].waitForExistence(timeout: 15)
+            app.buttons["reader.position"].waitForExistence(timeout: 15)
         )
         snapshot("09-txt-reflow-reader")
     }

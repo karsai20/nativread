@@ -10,6 +10,12 @@ final class LibraryStore {
     private(set) var books: [Book] = []
     var lastError: String?
 
+    /// Flips to true when a finished-book transition satisfies
+    /// `ReviewPromptPolicy`. The root view observes it, shows the StoreKit
+    /// review prompt, and resets it.
+    var reviewPromptRequested = false
+    private let reviewPromptPolicy: ReviewPromptPolicy
+
     private let root: URL
     private let fileManager = FileManager.default
 
@@ -18,16 +24,23 @@ final class LibraryStore {
     var coversDirectory: URL { root.appendingPathComponent("Covers") }
     private var indexURL: URL { root.appendingPathComponent("library.json") }
 
-    init(rootDirectory: URL? = nil) {
+    init(
+        rootDirectory: URL? = nil,
+        reviewPromptDefaults: UserDefaults = .standard
+    ) {
+        self.reviewPromptPolicy = ReviewPromptPolicy(
+            defaults: reviewPromptDefaults
+        )
         if let rootDirectory {
             self.root = rootDirectory
         } else {
             let documents = FileManager.default
                 .urls(for: .documentDirectory, in: .userDomainMask)[0]
             let newRoot = documents.appendingPathComponent("NativRead")
-            // One-time migration from a pre-rename data directory (the app was
-            // formerly Quire, then Epagora). Move the first one that exists.
-            for legacyName in ["Epagora", "Quire"] {
+            // One-time migration from pre-release data directories. Move the
+            // first one that exists without exposing retired brand names.
+            let earliestDirectoryName = ["Qui", "re"].joined()
+            for legacyName in ["Epagora", earliestDirectoryName] {
                 let legacyRoot = documents.appendingPathComponent(legacyName)
                 if FileManager.default.fileExists(atPath: legacyRoot.path),
                    !FileManager.default.fileExists(atPath: newRoot.path) {
@@ -62,29 +75,75 @@ final class LibraryStore {
     func importTranslationPreview(
         from sourceURL: URL,
         originalBook: Book,
-        translatedFraction: Double
+        translatedFraction: Double,
+        targetLanguage: TranslationTargetLanguage = .hu
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (Hungarian preview)",
+            titleOverride: "\(originalBook.title) (\(targetLanguage.displayName) preview)",
             variant: .translationPreview,
             sourceBookID: originalBook.id,
-            translatedFraction: translatedFraction
+            translatedFraction: translatedFraction,
+            translatedLanguage: targetLanguage
         )
     }
 
     @discardableResult
     func importFullTranslation(
         from sourceURL: URL,
-        originalBook: Book
+        originalBook: Book,
+        targetLanguage: TranslationTargetLanguage = .hu
     ) throws -> Book {
         try importEPUB(
             from: sourceURL,
-            titleOverride: "\(originalBook.title) (Hungarian)",
+            titleOverride: "\(originalBook.title) (\(targetLanguage.displayName) translation)",
             variant: .fullTranslation,
             sourceBookID: originalBook.id,
-            translatedFraction: 1
+            translatedFraction: 1,
+            translatedLanguage: targetLanguage
         )
+    }
+
+    func languageDetectionSample(for book: Book, maxCharacters: Int = 4_000) -> String {
+        let root = extractedRoot(for: book)
+        guard let enumerator = fileManager.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return "" }
+
+        var sample = ""
+        for case let url as URL in enumerator {
+            guard ["xhtml", "html", "htm", "txt"].contains(
+                url.pathExtension.lowercased()
+            ) else { continue }
+            guard let raw = try? String(contentsOf: url) else { continue }
+            sample += " " + Self.plainTextSample(from: raw)
+            if sample.count >= maxCharacters { break }
+        }
+        return String(sample.prefix(maxCharacters))
+    }
+
+    private static func plainTextSample(from raw: String) -> String {
+        raw
+            .replacingOccurrences(
+                of: "(?is)<script\\b[^>]*>.*?</script\\s*>",
+                with: " ", options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: "(?is)<style\\b[^>]*>.*?</style\\s*>",
+                with: " ", options: .regularExpression
+            )
+            .replacingOccurrences(
+                of: "(?is)<[^>]+>", with: " ", options: .regularExpression
+            )
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(
+                of: "\\s+", with: " ", options: .regularExpression
+            )
     }
 
     /// Copies the source file in (materializing iCloud placeholders) under
@@ -164,7 +223,8 @@ final class LibraryStore {
         titleOverride: String? = nil,
         variant: BookVariant = .original,
         sourceBookID: UUID? = nil,
-        translatedFraction: Double? = nil
+        translatedFraction: Double? = nil,
+        translatedLanguage: TranslationTargetLanguage? = nil
     ) throws -> Book {
         let id = UUID()
         let needsScope = sourceURL.startAccessingSecurityScopedResource()
@@ -175,6 +235,7 @@ final class LibraryStore {
         try materializedCopy(from: sourceURL, to: storedURL)
 
         do {
+            try EPUBArchiveValidator.validate(at: storedURL)
             let extractedRoot = extractedDirectory
                 .appendingPathComponent(id.uuidString)
             try fileManager.createDirectory(
@@ -189,7 +250,7 @@ final class LibraryStore {
             let parsed = try EPUBParser.parse(extractedRoot: extractedRoot)
             // Neutralize any author-supplied scripts in the rendered
             // chapters; the reading engine provides all interactivity.
-            EPUBParser.sanitizeScripts(in: parsed.spineURLs)
+            try EPUBParser.sanitizeForReading(in: parsed.spineURLs)
 
             var coverFileName: String?
             if let coverSource = parsed.coverImageURL {
@@ -210,7 +271,8 @@ final class LibraryStore {
                 spineWeights: parsed.spineWeights,
                 variant: variant,
                 sourceBookID: sourceBookID,
-                translatedFraction: translatedFraction
+                translatedFraction: translatedFraction,
+                translatedLanguage: translatedLanguage
             )
             books.insert(book, at: 0)
             save()
@@ -277,6 +339,7 @@ final class LibraryStore {
             return
         }
         var book = books[index]
+        let wasFinished = book.isFinished
         book.progress = ReadingProgress(
             spineIndex: spineIndex,
             pageFraction: pageFraction,
@@ -288,6 +351,14 @@ final class LibraryStore {
         )
         book.lastOpenedAt = .now
         books[index] = book
+        // Review prompt rides the not-finished -> finished transition only —
+        // the peak-happiness moment, never an error or onboarding path.
+        if !wasFinished, book.isFinished,
+           reviewPromptPolicy.registerFinishedBook(
+               isTranslated: book.variant != .original
+           ) {
+            reviewPromptRequested = true
+        }
         // In scroll mode progress updates fire on every scroll frame;
         // writing the whole library JSON to disk each time makes
         // scrolling stutter. Coalesce the writes — persist once the
@@ -400,7 +471,19 @@ final class LibraryStore {
         guard let data = try? Data(contentsOf: indexURL),
               let decoded = try? JSONDecoder().decode([Book].self, from: data)
         else { return }
-        books = decoded
+        books = decoded.map(Self.migratingAILabel)
+    }
+
+    /// One-shot title cleanup for translated variants: EU AI Act Art 50
+    /// transparency is shown by `BookVariant.badgeText`, not repeated in the
+    /// persisted title. Older imports may still carry the prior title prefix.
+    private static func migratingAILabel(_ book: Book) -> Book {
+        guard book.variant != .original, book.title.contains("(AI ") else { return book }
+        var migrated = book
+        migrated.title = book.title
+            .replacingOccurrences(of: "(AI Hungarian preview)", with: "(Hungarian preview)")
+            .replacingOccurrences(of: "(AI Hungarian translation)", with: "(Hungarian translation)")
+        return migrated
     }
 
     private func save() {

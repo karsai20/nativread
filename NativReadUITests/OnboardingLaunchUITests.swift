@@ -1,6 +1,6 @@
 import XCTest
 
-/// Verifies the first-launch brand splash: it appears when forced and is
+/// Verifies the first-launch welcome: it appears when forced and is
 /// absent (library shown directly) when skipped.
 final class OnboardingLaunchUITests: XCTestCase {
 
@@ -12,34 +12,40 @@ final class OnboardingLaunchUITests: XCTestCase {
     }
 
     func testLaunchSplashAppearsWhenForced() {
-        // `-onboardingHold` keeps the splash on screen so the assertion can't
-        // race the auto-dismiss crossfade (which fires as soon as the bundled
-        // dictionaries are ready — often instantly on a warm simulator).
+        // Welcome is deliberately user-paced, so an older reader has time to
+        // absorb the promise before choosing to continue.
         app.launchArguments = [
-            "-resetSettings", "-forceOnboarding", "-onboardingHold",
+            "-resetSettings", "-forceOnboarding",
             "-seedSampleBook"
         ]
         app.launch()
 
         XCTAssertTrue(
-            app.staticTexts["onboarding.wordmark"].waitForExistence(timeout: 6),
-            "the brand wordmark should appear on first launch"
+            app.staticTexts["onboarding.tour.title"]
+                .waitForExistence(timeout: 6),
+            "the welcome step should appear on first launch"
         )
+        XCTAssertTrue(
+            app.buttons["onboarding.tour.next"]
+                .waitForExistence(timeout: 4),
+            "welcome should wait for an explicit, clearly labelled action"
+        )
+        XCTAssertTrue(app.buttons["onboarding.tour.skip"].exists)
     }
 
     func testLaunchSplashSkipped() {
         app.launchArguments = ["-resetLibrary", "-skipOnboarding", "-seedSampleBook"]
         app.launch()
 
-        // The library must be present immediately, with no splash wordmark.
+        // The library must be present immediately, with no welcome wordmark.
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10),
             "library should show directly when onboarding is skipped"
         )
         XCTAssertFalse(
-            app.staticTexts["onboarding.wordmark"].exists,
-            "splash wordmark must not appear when skipped"
+            app.staticTexts["onboarding.tour.title"].exists,
+            "the welcome step must not appear when skipped"
         )
     }
 }

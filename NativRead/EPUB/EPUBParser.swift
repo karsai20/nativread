@@ -17,8 +17,9 @@ enum EPUBParser {
             throw EPUBError.missingContainer
         }
 
-        let opfURL = extractedRoot.appendingPathComponent(opfPath)
-        guard let opfData = try? Data(contentsOf: opfURL) else {
+        guard let opfURL = containedURL(
+            href: opfPath, against: extractedRoot, root: extractedRoot
+        ), let opfData = try? Data(contentsOf: opfURL) else {
             throw EPUBError.missingOPF(opfPath)
         }
         let opfDirectory = opfURL.deletingLastPathComponent()
@@ -26,16 +27,20 @@ enum EPUBParser {
         let opf = OPFDelegate()
         opf.run(on: opfData)
 
-        let manifestByID = Dictionary(
-            uniqueKeysWithValues: opf.manifest.map { ($0.id, $0) }
-        )
+        // Malicious duplicate ids must not trigger Dictionary's
+        // `uniqueKeysWithValues` precondition trap. Keep the first binding.
+        var manifestByID: [String: EPUBManifestItem] = [:]
+        for item in opf.manifest where manifestByID[item.id] == nil {
+            manifestByID[item.id] = item
+        }
 
         var spineURLs: [URL] = []
         var spineHrefs: [String] = []
         for idref in opf.spineIDRefs {
             guard let item = manifestByID[idref] else { continue }
-            let url = resolve(href: item.href, against: opfDirectory)
-            if FileManager.default.fileExists(atPath: url.path) {
+            if let url = containedURL(
+                href: item.href, against: opfDirectory, root: extractedRoot
+            ), FileManager.default.fileExists(atPath: url.path) {
                 spineURLs.append(url)
                 spineHrefs.append(normalize(href: item.href))
             }
@@ -43,12 +48,14 @@ enum EPUBParser {
         guard !spineURLs.isEmpty else { throw EPUBError.emptySpine }
 
         let coverImageURL = findCover(
-            opf: opf, manifestByID: manifestByID, opfDirectory: opfDirectory
+            opf: opf, manifestByID: manifestByID,
+            opfDirectory: opfDirectory, extractedRoot: extractedRoot
         )
 
         let toc = parseTOC(
             opf: opf, manifestByID: manifestByID,
-            opfDirectory: opfDirectory, spineHrefs: spineHrefs
+            opfDirectory: opfDirectory, extractedRoot: extractedRoot,
+            spineHrefs: spineHrefs
         )
 
         let weights = spineURLs.map { url -> Double in
@@ -73,17 +80,22 @@ enum EPUBParser {
     private static func findCover(
         opf: OPFDelegate,
         manifestByID: [String: EPUBManifestItem],
-        opfDirectory: URL
+        opfDirectory: URL,
+        extractedRoot: URL
     ) -> URL? {
         // EPUB 3: manifest item flagged properties="cover-image".
         if let item = opf.manifest.first(where: {
             $0.properties.contains("cover-image")
         }) {
-            return existingURL(href: item.href, against: opfDirectory)
+            return existingURL(
+                href: item.href, against: opfDirectory, root: extractedRoot
+            )
         }
         // EPUB 2: <meta name="cover" content="item-id"/>.
         if let coverID = opf.coverMetaItemID, let item = manifestByID[coverID] {
-            return existingURL(href: item.href, against: opfDirectory)
+            return existingURL(
+                href: item.href, against: opfDirectory, root: extractedRoot
+            )
         }
         // Last resort: a manifest image whose id or href mentions "cover".
         if let item = opf.manifest.first(where: {
@@ -91,7 +103,9 @@ enum EPUBParser {
                 && ($0.id.lowercased().contains("cover")
                     || $0.href.lowercased().contains("cover"))
         }) {
-            return existingURL(href: item.href, against: opfDirectory)
+            return existingURL(
+                href: item.href, against: opfDirectory, root: extractedRoot
+            )
         }
         return nil
     }
@@ -102,6 +116,7 @@ enum EPUBParser {
         opf: OPFDelegate,
         manifestByID: [String: EPUBManifestItem],
         opfDirectory: URL,
+        extractedRoot: URL,
         spineHrefs: [String]
     ) -> [TOCEntry] {
         var raw: [(title: String, href: String, depth: Int)] = []
@@ -109,9 +124,9 @@ enum EPUBParser {
         // EPUB 3 navigation document.
         if let navItem = opf.manifest.first(where: {
             $0.properties.contains("nav")
-        }), let data = try? Data(
-            contentsOf: resolve(href: navItem.href, against: opfDirectory)
-        ) {
+        }), let navURL = containedURL(
+            href: navItem.href, against: opfDirectory, root: extractedRoot
+        ), let data = try? Data(contentsOf: navURL) {
             let nav = NavDelegate()
             nav.run(on: data)
             raw = nav.entries.map {
@@ -128,9 +143,9 @@ enum EPUBParser {
            let ncxItem = opf.manifest.first(where: {
                $0.mediaType == "application/x-dtbncx+xml"
            }) ?? manifestByID[opf.spineTOCID ?? ""],
-           let data = try? Data(
-               contentsOf: resolve(href: ncxItem.href, against: opfDirectory)
-           ) {
+           let ncxURL = containedURL(
+               href: ncxItem.href, against: opfDirectory, root: extractedRoot
+           ), let data = try? Data(contentsOf: ncxURL) {
             let ncx = NCXDelegate()
             ncx.run(on: data)
             raw = ncx.entries.map {
@@ -171,13 +186,36 @@ enum EPUBParser {
     /// Resolves a (possibly percent-encoded) href against a directory.
     static func resolve(href: String, against directory: URL) -> URL {
         let decoded = href.removingPercentEncoding ?? href
-        return URL(fileURLWithPath: decoded, relativeTo: directory)
-            .standardizedFileURL
+        if decoded.hasPrefix("/") {
+            return URL(fileURLWithPath: decoded).standardizedFileURL
+        }
+        return directory.appendingPathComponent(decoded).standardizedFileURL
     }
 
-    private static func existingURL(href: String, against dir: URL) -> URL? {
-        let url = resolve(href: href, against: dir)
+    private static func existingURL(
+        href: String, against dir: URL, root: URL
+    ) -> URL? {
+        guard let url = containedURL(href: href, against: dir, root: root)
+        else { return nil }
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    /// Resolves an author-controlled path only when it remains inside the
+    /// current extracted book. This prevents container.xml / OPF `../`
+    /// references from reading another book or an app-private file.
+    static func containedURL(
+        href: String, against directory: URL, root: URL
+    ) -> URL? {
+        let candidate = resolve(href: href, against: directory)
+        let normalizedRoot = root.standardizedFileURL
+        let rootPrefix = normalizedRoot.path.hasSuffix("/")
+            ? normalizedRoot.path
+            : normalizedRoot.path + "/"
+        let candidatePath = candidate.standardizedFileURL.path
+        guard candidatePath == normalizedRoot.path
+                || candidatePath.hasPrefix(rootPrefix)
+        else { return nil }
+        return candidate
     }
 
     /// Normalises hrefs for spine matching: decode, drop "./".
@@ -219,13 +257,53 @@ enum EPUBParser {
     /// and the cleaned file is written back in the same encoding.
     static func sanitizeScripts(in spineURLs: [URL]) {
         for url in spineURLs {
-            var encoding = String.Encoding.utf8
-            guard let original = try? String(contentsOf: url, usedEncoding: &encoding)
-            else { continue }
-            let cleaned = stripScripts(from: original)
-            guard cleaned != original else { continue }
-            try? cleaned.write(to: url, atomically: true, encoding: encoding)
+            try? sanitizeForReading(url)
         }
+    }
+
+    /// Strict import path: unreadable or unwritable content fails closed
+    /// instead of letting an unsanitized chapter reach the JS-enabled reader.
+    static func sanitizeForReading(in spineURLs: [URL]) throws {
+        for url in spineURLs { try sanitizeForReading(url) }
+    }
+
+    private static func sanitizeForReading(_ url: URL) throws {
+        var encoding = String.Encoding.utf8
+        let original = try String(contentsOf: url, usedEncoding: &encoding)
+        let hardened = injectContentSecurityPolicy(
+            into: stripScripts(from: original)
+        )
+        guard hardened != original else { return }
+        try hardened.write(to: url, atomically: true, encoding: encoding)
+    }
+
+    /// Stops remote images/fonts/CSS, frames, forms, plugins and author
+    /// scripts. WKUserScript-based reader controls continue to run, while an
+    /// EPUB cannot make a hidden network request that reveals reading data.
+    static func injectContentSecurityPolicy(into html: String) -> String {
+        if html.contains("data-nativread-policy=\"offline\"") { return html }
+        let policy = "default-src 'none'; img-src file: data:; "
+            + "style-src file: 'unsafe-inline'; font-src file: data:; "
+            + "media-src file: data:; script-src 'none'; connect-src 'none'; "
+            + "frame-src 'none'; child-src 'none'; object-src 'none'; "
+            + "form-action 'none'; base-uri 'none'"
+        let meta = "<meta data-nativread-policy=\"offline\" "
+            + "http-equiv=\"Content-Security-Policy\" content=\"\(policy)\" />"
+        if let head = html.range(
+            of: "(?i)<head\\b[^>]*>", options: .regularExpression
+        ) {
+            var output = html
+            output.insert(contentsOf: meta, at: head.upperBound)
+            return output
+        }
+        if let document = html.range(
+            of: "(?i)<html\\b[^>]*>", options: .regularExpression
+        ) {
+            var output = html
+            output.insert(contentsOf: "<head>\(meta)</head>", at: document.upperBound)
+            return output
+        }
+        return "<head>\(meta)</head>" + html
     }
 
     /// Removes script elements, inline event-handler attributes, and

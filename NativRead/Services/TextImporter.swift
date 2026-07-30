@@ -2,7 +2,7 @@ import Foundation
 
 /// Turns a plain-text file into a single synthesized XHTML "chapter" so it
 /// can be read by the same reflowable web engine the EPUB reader uses —
-/// themes, fonts, search and Define all come for free.
+/// themes, fonts, search and the native iOS text-selection menu come for free.
 enum TextImporter {
     /// The synthesized chapter file written into the book's extracted dir.
     static let chapterFileName = "content.xhtml"

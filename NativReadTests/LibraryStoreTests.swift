@@ -63,6 +63,10 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(preview.translatedFraction, 0.01)
         XCTAssertFalse(preview.isTranslatableSource)
         XCTAssertTrue(original.isTranslatableSource)
+        // EU AI Act Art 50 transparency markers: AI prefix required on
+        // translated variants, no badge on originals.
+        XCTAssertEqual(preview.variantBadgeText, "AI · HU PREVIEW")
+        XCTAssertNil(original.variantBadgeText)
 
         let reloaded = makeStore()
         let persisted = reloaded.book(id: preview.id)
@@ -81,12 +85,70 @@ final class LibraryStoreTests: XCTestCase {
         )
 
         XCTAssertEqual(store.books.count, 2)
-        XCTAssertEqual(translated.title, "Imported Title (Hungarian)")
+        XCTAssertEqual(translated.title, "Imported Title (Hungarian translation)")
         XCTAssertEqual(translated.variant, .fullTranslation)
         XCTAssertEqual(translated.sourceBookID, original.id)
         XCTAssertEqual(translated.translatedFraction, 1)
         XCTAssertFalse(translated.isTranslatableSource)
-        XCTAssertEqual(translated.variant.badgeText, "HU")
+        XCTAssertEqual(translated.variantBadgeText, "AI · HU")
+    }
+
+    func testImportTranslationPersistsTargetLanguageMetadata() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+
+        let preview = try store.importTranslationPreview(
+            from: epubURL,
+            originalBook: original,
+            translatedFraction: 0.01,
+            targetLanguage: .de
+        )
+        let translated = try store.importFullTranslation(
+            from: epubURL,
+            originalBook: original,
+            targetLanguage: .es
+        )
+
+        XCTAssertEqual(preview.title, "Imported Title (German preview)")
+        XCTAssertEqual(preview.translatedLanguage, .de)
+        XCTAssertEqual(preview.variantBadgeText, "AI · DE PREVIEW")
+        XCTAssertEqual(translated.title, "Imported Title (Spanish translation)")
+        XCTAssertEqual(translated.translatedLanguage, .es)
+        XCTAssertEqual(translated.variantBadgeText, "AI · ES")
+
+        let reloaded = makeStore()
+        XCTAssertEqual(reloaded.book(id: preview.id)?.translatedLanguage, .de)
+        XCTAssertEqual(reloaded.book(id: translated.id)?.translatedLanguage, .es)
+    }
+
+    func testLoadCleansRepeatedAIActTranslatedTitles() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+        let preview = try store.importTranslationPreview(
+            from: epubURL, originalBook: original, translatedFraction: 0.01
+        )
+        let translated = try store.importFullTranslation(
+            from: epubURL, originalBook: original
+        )
+
+        // Rewrite the persisted index to the older title format that repeated
+        // the AI marker in the title as well as the variant badge.
+        let indexURL = root.appendingPathComponent("store/library.json")
+        let legacy = try String(contentsOf: indexURL, encoding: .utf8)
+            .replacingOccurrences(of: "(Hungarian preview)", with: "(AI Hungarian preview)")
+            .replacingOccurrences(of: "(Hungarian translation)", with: "(AI Hungarian translation)")
+        try legacy.write(to: indexURL, atomically: true, encoding: .utf8)
+
+        let reloaded = makeStore()
+        XCTAssertEqual(
+            reloaded.book(id: preview.id)?.title,
+            "Imported Title (Hungarian preview)"
+        )
+        XCTAssertEqual(
+            reloaded.book(id: translated.id)?.title,
+            "Imported Title (Hungarian translation)"
+        )
+        XCTAssertEqual(reloaded.book(id: original.id)?.title, "Imported Title")
     }
 
     func testLibraryPersistsAcrossInstances() throws {
@@ -192,5 +254,40 @@ final class LibraryStoreTests: XCTestCase {
             atPath: store.booksDirectory.path
         )
         XCTAssertTrue(leftovers.isEmpty, "no orphan files after failure")
+    }
+
+    // MARK: - Review prompt (E8)
+
+    func testFinishingTranslatedBookRequestsReviewPromptOnce() throws {
+        let suiteName = "libstore-review-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let store = LibraryStore(
+            rootDirectory: root.appendingPathComponent("store"),
+            reviewPromptDefaults: defaults
+        )
+        let original = try store.importBook(from: epubURL)
+        let preview = try store.importTranslationPreview(
+            from: epubURL, originalBook: original, translatedFraction: 1.0
+        )
+
+        // Mid-book progress: no prompt.
+        store.updateProgress(
+            bookID: preview.id, spineIndex: 1, pageFraction: 0.5
+        )
+        XCTAssertFalse(store.reviewPromptRequested)
+
+        // Finishing the translated book crosses the transition: prompt.
+        store.updateProgress(
+            bookID: preview.id, spineIndex: 2, pageFraction: 1.0
+        )
+        XCTAssertTrue(store.reviewPromptRequested)
+
+        // Already-finished updates never re-request.
+        store.reviewPromptRequested = false
+        store.updateProgress(
+            bookID: preview.id, spineIndex: 2, pageFraction: 1.0
+        )
+        XCTAssertFalse(store.reviewPromptRequested)
     }
 }

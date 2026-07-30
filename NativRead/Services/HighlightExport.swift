@@ -22,7 +22,7 @@ enum HighlightExport {
             for highlight in book.highlights where highlight.chapterTitle == chapter {
                 lines.append("")
                 lines.append(blockquote(highlight.text))
-                if let note = trimmedNote(highlight) {
+                if let note = highlight.trimmedNote {
                     lines.append("")
                     lines.append("*Note: \(note)*")
                 }
@@ -45,23 +45,13 @@ enum HighlightExport {
                 highlight.chapterTitle,
                 highlight.text,
                 isoDateFormatter.string(from: highlight.createdAt),
-                trimmedNote(highlight) ?? ""
+                highlight.trimmedNote ?? ""
             ]))
         }
         return rows.joined(separator: "\r\n") + "\r\n"
     }
 
     // MARK: - Markdown helpers
-
-    /// A highlight's note with surrounding whitespace stripped, or nil
-    /// when it is absent or blank — so a blank note never exports.
-    private static func trimmedNote(_ highlight: Highlight) -> String? {
-        guard let note = highlight.note?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-            !note.isEmpty
-        else { return nil }
-        return note
-    }
 
     /// Chapter titles in first-appearance order, without duplicates.
     private static func orderedChapters(of highlights: [Highlight]) -> [String] {

@@ -2,7 +2,7 @@ import Foundation
 
 /// The JavaScript reading engine injected into every chapter.
 /// All page/scroll math lives here; Swift only sends intents and
-/// receives `{type:"state"|"tap"|"swipe"|...}` messages back.
+/// receives `{type:"state"|"tap"|...}` messages back.
 enum ReaderScripts {
 
     /// EPUB chapters rarely ship a viewport meta tag, so WKWebView would
@@ -40,6 +40,7 @@ enum ReaderScripts {
             page: 0,
             pageCount: 1,
             transition: "\(transition.rawValue)",
+            fadeInFlight: false,
 
             scroller() { return document.scrollingElement; },
             maxScroll() {
@@ -97,41 +98,574 @@ enum ReaderScripts {
 
             movePaged(animate) {
               const body = document.body;
-              if (animate && this.transition === "slide") {
+              if (animate && this.transition === "curl") {
+                body.style.opacity = "1";
+                this.curlStart();
+              } else if (animate && this.transition === "slide") {
                 body.style.opacity = "1";
                 this.postScroll(true);
               } else if (animate && this.transition === "eink") {
-                this.einkFlash(() => this.postScroll(false));
+                // "eink" is the legacy-persisted rawValue of the Fade case.
+                this.fadeSwap(() => this.postScroll(false));
               } else {
                 body.style.opacity = "1";
                 this.postScroll(false);
               }
             },
 
-            // The signature e-ink refresh: the screen snaps to a solid
-            // ink fill, the page is swapped underneath, then the fill
-            // clears — a crisp, deliberate blink rather than a dissolve.
-            // The overlay lives outside <body> so the page transform
-            // can't move it. The swap happens at peak opacity so the
-            // reader never sees the pages cross-fade.
-            einkFlash(move) {
-              let flash = document.getElementById("lumen-eink");
-              if (!flash) {
-                flash = document.createElement("div");
-                flash.id = "lumen-eink";
-                document.documentElement.appendChild(flash);
+            // --- Curl page turn ---------------------------------------
+            // A photo of the OUTGOING page is bent around a cylinder on a
+            // transparent WebGL canvas floating over the content, while
+            // the live page jumps instantly underneath. The canvas is
+            // see-through wherever the sheet has peeled away, so the
+            // reader watches the real new page emerge under the lifting
+            // old one. Only the old page is ever photographed (it is
+            // still on screen when Swift snaps it), so no capture can
+            // race WebKit's paint of the destination column.
+            curlBroken: false,
+            curlLive: null,
+
+            // Ask Swift for the bitmap; the turn continues in curlBegin.
+            curlTapRescue: null,
+
+            curlStart() {
+              if (this.curlBroken || !window.WebGLRenderingContext) {
+                this.curlBroken = true;
+                this.postScroll(true);
+                return;
               }
-              flash.classList.add("lumen-eink-on");
-              // Hold the solid ink for a beat (CSS snaps it on fast), swap the
-              // page behind it, give WebKit one more frame to paint the new
-              // column, then snap the fill away — so the reveal is the crisp
-              // finished page, never a half-painted cross-fade.
+              const x = this.page * PW;
+              if (this.curlTapRescue) {
+                // A capture is already in flight (rapid tapping): turn
+                // instantly to the newest target instead of racing a
+                // second snapshot; the in-flight capture is discarded
+                // on arrival because the engine page moved on.
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: x, animate: false
+                });
+                return;
+              }
+              if (this.curlLive) { this.curlLive.stop(); }
+              const forward = x > this.scroller().scrollLeft + 1;
+              // The engine page has already advanced; if Swift never
+              // answers (capture dropped by a generation bump), jump the
+              // live view to the engine's current page so persisted
+              // progress can never point at a page the reader isn't on.
+              this.curlTapRescue = setTimeout(() => {
+                this.curlTapRescue = null;
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: this.page * PW, animate: false
+                });
+              }, 1200);
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "captureCurl", x: x, forward: forward
+              });
+            },
+
+            // Swift could not produce a snapshot: latch off for this
+            // chapter and finish the pending turn as a spring slide.
+            curlFailed(x) {
+              this.curlBroken = true;
+              if (this.curlTapRescue) {
+                clearTimeout(this.curlTapRescue);
+                this.curlTapRescue = null;
+              }
+              const drag = this.curlDrag;
+              if (drag && !drag.edge && !drag.sheet) {
+                // Mid-drag failure before the sheet mounted: the live
+                // page never moved. Clear the drag so page turning is
+                // not deadlocked (next/prev and new drags gate on it)
+                // and never yank the page out from under the finger —
+                // the release falls back through the broken latch.
+                this.curlDrag = null;
+                return;
+              }
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "scroll", x: x, animate: true
+              });
+            },
+
+            curlBegin(dataUrl, forward, x) {
+              if (this.curlTapRescue) {
+                clearTimeout(this.curlTapRescue);
+                this.curlTapRescue = null;
+              }
+              const drag = this.curlDrag && !this.curlDrag.edge
+                && this.curlDrag.toX === x;
+              if (!drag && Math.round(x / PW) !== this.page) {
+                // Stale tap capture: the engine moved on (a later tap
+                // already turned instantly). Curling to this bitmap
+                // would drag the view back to an abandoned target.
+                return;
+              }
+              const fail = () => {
+                if (drag) {
+                  // The finger owns a drag: latch off and let the
+                  // release fall back to a spring turn — never yank the
+                  // page mid-touch.
+                  this.curlBroken = true;
+                  this.curlDrag = null;
+                } else {
+                  this.curlFailed(x);
+                }
+              };
+              const img = new Image();
+              img.onload = () => {
+                try {
+                  if (drag) { this.curlRunDrag(img); }
+                  else { this.curlRun(img, forward, x); }
+                } catch (e) { fail(); }
+              };
+              img.onerror = fail;
+              img.src = dataUrl;
+            },
+
+            curlRun(img, forward, x) {
+              const sheet = this.curlMakeSheet(img);
+              const run = { stop: null };
+              this.curlLive = run;
+              const DURATION = 440;
+              // Belt and braces: never leave the overlay stuck if the
+              // animation frames stop coming (app backgrounded mid-turn).
+              const safety = setTimeout(() => run.stop(), 1500);
+              run.stop = () => {
+                if (this.curlLive === run) { this.curlLive = null; }
+                clearTimeout(safety);
+                sheet.dispose();
+              };
+              // First frame: the flat photo exactly covers the live page.
+              // Only after that frame is committed may the page jump
+              // underneath — the same no-flash ordering as the fade veil.
+              sheet.draw(0, forward);
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                if (this.curlLive !== run) { return; }
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: x, animate: false
+                });
+                const t0 = performance.now();
+                const ease = (t) =>
+                  t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
+                const step = (now) => {
+                  if (this.curlLive !== run) { return; }
+                  const t = Math.min(1, (now - t0) / DURATION);
+                  sheet.draw(ease(t), forward);
+                  if (t < 1) { requestAnimationFrame(step); }
+                  else { run.stop(); }
+                };
+                requestAnimationFrame(step);
+              }));
+            },
+
+            // --- Finger-tracked curl (drag scrub) ---------------------
+            // Same captured-overlay pipeline as the tap turn, but
+            // progress follows the finger and the release commits (a
+            // flick, or past halfway) or settles back. The touch
+            // handlers at the bottom of the engine feed these.
+            curlDrag: null,
+
+            curlDragBegin(forward, touchId) {
+              if (this.curlLive) { return; }
+              const atEdge = forward
+                ? this.page >= this.pageCount - 1
+                : this.page <= 0;
+              if (atEdge) {
+                // Chapter boundary: no in-chapter page to curl to. Track
+                // the pull and report it on release so Swift can advance
+                // the chapter (native overscroll is disabled in curl
+                // mode).
+                this.curlDrag = {
+                  edge: forward ? "forward" : "backward",
+                  touchId: touchId, dx: 0
+                };
+                return;
+              }
+              if (this.curlBroken || !window.WebGLRenderingContext) {
+                // Degraded: no visual scrub, but a committed release
+                // still turns the page with the spring slide.
+                this.curlDrag = {
+                  edge: null, fallback: true, forward: forward,
+                  touchId: touchId, progress: 0,
+                  t0: performance.now(), sheet: null, ended: null
+                };
+                return;
+              }
+              const toX = (this.page + (forward ? 1 : -1)) * PW;
+              const drag = {
+                edge: null, fallback: false, forward: forward,
+                touchId: touchId, fromX: this.page * PW, toX: toX,
+                progress: 0, grabY: 0.5, t0: performance.now(),
+                sheet: null, run: null, ended: null, rescue: 0
+              };
+              this.curlDrag = drag;
+              // Swift can drop the capture silently (generation bumped
+              // by a settings/theme change mid-drag). An unanswered
+              // drag would deadlock page turning, so time it out: the
+              // live page never moved, clearing is safe.
+              drag.rescue = setTimeout(() => {
+                if (this.curlDrag === drag && !drag.sheet) {
+                  this.curlDrag = null;
+                }
+              }, 1200);
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "captureCurl", x: toX, forward: forward
+              });
+            },
+
+            // The captured bitmap arrived for an in-flight drag: mount
+            // the sheet at the finger's current progress, turn the live
+            // page instantly underneath, and apply a release that beat
+            // the capture round-trip.
+            curlRunDrag(img) {
+              const drag = this.curlDrag;
+              if (!drag || drag.edge || drag.fallback) { return; }
+              clearTimeout(drag.rescue);
+              const sheet = this.curlMakeSheet(img);
+              const run = { stop: null };
+              this.curlLive = run;
+              run.stop = () => {
+                if (this.curlLive === run) { this.curlLive = null; }
+                if (this.curlDrag === drag) { this.curlDrag = null; }
+                sheet.dispose();
+              };
+              drag.sheet = sheet;
+              drag.run = run;
+              sheet.draw(drag.progress, drag.forward, drag.grabY);
+              requestAnimationFrame(() => requestAnimationFrame(() => {
+                if (this.curlLive !== run) { return; }
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: drag.toX, animate: false
+                });
+                if (drag.ended) {
+                  const commit = drag.ended.commit;
+                  drag.ended = null;
+                  this.curlDragFinish(drag, commit);
+                }
+              }));
+            },
+
+            curlDragFinish(drag, commit) {
+              if (drag.fallback) {
+                this.curlDrag = null;
+                if (commit) {
+                  this.goTo(this.page + (drag.forward ? 1 : -1), true);
+                }
+                return;
+              }
+              if (!drag.sheet) {
+                // Capture still in flight; curlRunDrag applies this.
+                drag.ended = { commit: commit };
+                return;
+              }
+              const run = drag.run;
+              const sheet = drag.sheet;
+              const from = drag.progress;
+              const target = commit ? 1 : 0;
+              if (commit) {
+                // State first: an interrupted settle must never leave
+                // the engine pointing at a column the live view left.
+                this.page = Math.round(drag.toX / PW);
+                this.notify();
+              }
+              const duration = Math.max(80, 360 * Math.abs(target - from));
+              const t0 = performance.now();
+              const ease = (t) =>
+                t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t);
+              // If animation frames die mid-settle (app backgrounded),
+              // resolve to the engine's current page and drop the
+              // overlay — a stuck drag latch deadlocks page turning.
+              const settleSafety = setTimeout(() => {
+                if (this.curlLive !== run) { return; }
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: this.page * PW, animate: false
+                });
+                run.stop();
+              }, 1500);
+              const step = (now) => {
+                if (this.curlLive !== run) {
+                  clearTimeout(settleSafety);
+                  return;
+                }
+                const k = Math.min(1, (now - t0) / duration);
+                sheet.draw(
+                  from + (target - from) * ease(k),
+                  drag.forward, drag.grabY
+                );
+                if (k < 1) { requestAnimationFrame(step); return; }
+                clearTimeout(settleSafety);
+                if (commit) {
+                  // The finger is up by now: re-assert the offset so the
+                  // native side runs a stable-rect layout pass for the
+                  // column WebKit may have left unpainted while the
+                  // mid-drag jump happened under an active touch.
+                  window.webkit.messageHandlers.lumen.postMessage({
+                    type: "scroll", x: this.page * PW, animate: false
+                  });
+                  run.stop(); return;
+                }
+                // Cancelled: the sheet lies flat again covering the
+                // page; jump the live view back underneath, let it
+                // repaint, then uncover.
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: drag.fromX, animate: false
+                });
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                  run.stop();
+                }));
+              };
+              requestAnimationFrame(step);
+            },
+
+            // Builds the one-turn WebGL overlay: a grid mesh of the page
+            // photo plus the cylinder-wrap vertex math. Classic geometry:
+            // content before the fold stays flat; within half a
+            // circumference it winds around a cylinder of radius R
+            // (offset d - R*sin(d/R), lift R*(1-cos(d/R))); past that it
+            // lies flat on top, mirrored about the fold. Throws when
+            // WebGL is unavailable so the caller can fall back.
+            curlMakeSheet(img) {
+              const W = window.innerWidth;
+              const H = window.innerHeight;
+              const dpr = Math.min(2, window.devicePixelRatio || 1);
+              const canvas = document.createElement("canvas");
+              canvas.id = "lumen-curl";
+              canvas.width = Math.round(W * dpr);
+              canvas.height = Math.round(H * dpr);
+              canvas.style.cssText = "position:fixed;left:0;top:0;width:"
+                + W + "px;height:" + H
+                + "px;pointer-events:none;z-index:2147483000;";
+              document.documentElement.appendChild(canvas);
+              const gl = canvas.getContext("webgl", {
+                alpha: true, premultipliedAlpha: true
+              });
+              if (!gl) {
+                canvas.remove();
+                throw new Error("webgl unavailable");
+              }
+              const uni = {};
+              let indexCount = 0;
+              // Any setup failure (shader compile, texture upload) must
+              // tear the overlay down — an orphaned fixed canvas would
+              // cover the page forever.
+              try {
+              const vsrc = [
+                "attribute vec2 aXY;",
+                "uniform vec2 uSize;",
+                "uniform vec2 uFold;",
+                "uniform vec2 uDir;",
+                "uniform float uR;",
+                "varying vec2 vXY;",
+                "varying float vLift;",
+                "const float PI = 3.14159265358979;",
+                "void main() {",
+                "  vec2 pos = aXY * uSize;",
+                "  float d = dot(pos - uFold, uDir);",
+                "  float lift = 0.0;",
+                "  if (d > 0.0) {",
+                "    if (d < PI * uR) {",
+                "      pos -= uDir * (d - uR * sin(d / uR));",
+                "      lift = uR * (1.0 - cos(d / uR));",
+                "    } else {",
+                "      pos -= uDir * (2.0 * d - PI * uR);",
+                "      lift = 2.0 * uR;",
+                "    }",
+                "  }",
+                "  vXY = aXY;",
+                "  vLift = lift / (2.0 * uR);",
+                "  vec2 clip = pos / uSize * 2.0 - 1.0;",
+                "  gl_Position = vec4(clip.x, -clip.y, -vLift * 0.5, 1.0);",
+                "}"
+              ].join("\\n");
+              const fsrc = [
+                "precision mediump float;",
+                "uniform sampler2D uSheet;",
+                "uniform vec3 uPaper;",
+                "varying vec2 vXY;",
+                "varying float vLift;",
+                "void main() {",
+                "  vec4 ink = texture2D(uSheet, vXY);",
+                "  if (gl_FrontFacing) {",
+                "    ink.rgb *= 1.0 - 0.16 * vLift;",
+                "  } else {",
+                // The underside: each paper point shows its own ink
+                // bleeding through, faint against the theme's paper
+                // (never plain white, which flares in dark mode). The
+                // on-screen mirroring comes from the folded geometry
+                // itself — do NOT also reflect the texcoord across the
+                // fold: that cancels the geometric mirror and renders
+                // the text readable and merely shifted.
+                "    ink.rgb = mix(ink.rgb, uPaper, 0.9);",
+                "    ink.rgb *= 1.0 - 0.06 * vLift;",
+                "  }",
+                "  gl_FragColor = ink;",
+                "}"
+              ].join("\\n");
+              const compile = (kind, src) => {
+                const shader = gl.createShader(kind);
+                gl.shaderSource(shader, src);
+                gl.compileShader(shader);
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                  throw new Error(gl.getShaderInfoLog(shader));
+                }
+                return shader;
+              };
+              const program = gl.createProgram();
+              gl.attachShader(program, compile(gl.VERTEX_SHADER, vsrc));
+              gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fsrc));
+              gl.linkProgram(program);
+              if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                throw new Error(gl.getProgramInfoLog(program));
+              }
+              gl.useProgram(program);
+              // GRID x GRID quads over the unit page.
+              const GRID = 40;
+              const verts = [];
+              for (let gy = 0; gy <= GRID; gy++) {
+                for (let gx = 0; gx <= GRID; gx++) {
+                  verts.push(gx / GRID, gy / GRID);
+                }
+              }
+              const indices = [];
+              const at = (gx, gy) => gy * (GRID + 1) + gx;
+              for (let gy = 0; gy < GRID; gy++) {
+                for (let gx = 0; gx < GRID; gx++) {
+                  indices.push(at(gx, gy), at(gx + 1, gy), at(gx, gy + 1));
+                  indices.push(
+                    at(gx + 1, gy), at(gx + 1, gy + 1), at(gx, gy + 1)
+                  );
+                }
+              }
+              gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+              gl.bufferData(
+                gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW
+              );
+              const aXY = gl.getAttribLocation(program, "aXY");
+              gl.enableVertexAttribArray(aXY);
+              gl.vertexAttribPointer(aXY, 2, gl.FLOAT, false, 0, 0);
+              gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+              gl.bufferData(
+                gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices),
+                gl.STATIC_DRAW
+              );
+              indexCount = indices.length;
+              gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+              gl.texImage2D(
+                gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE
+              );
+              gl.texParameteri(
+                gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE
+              );
+              ["uSize", "uFold", "uDir", "uR", "uSheet", "uPaper"]
+                .forEach((n) => {
+                  uni[n] = gl.getUniformLocation(program, n);
+                });
+              gl.uniform2f(uni.uSize, W, H);
+              gl.uniform1i(uni.uSheet, 0);
+              // The theme's paper color, read from the live page so the
+              // sheet's underside matches dark and sepia themes alike.
+              const readPaper = (el) => {
+                const c = getComputedStyle(el).backgroundColor || "";
+                const open = c.indexOf("(");
+                const close = c.indexOf(")");
+                if (open < 0 || close < 0) { return null; }
+                const parts = c.slice(open + 1, close)
+                  .split(",").map(parseFloat);
+                if (parts.length > 3 && parts[3] === 0) { return null; }
+                return [parts[0] / 255, parts[1] / 255, parts[2] / 255];
+              };
+              const paper = readPaper(document.body)
+                || readPaper(document.documentElement)
+                || [1, 1, 1];
+              gl.uniform3f(uni.uPaper, paper[0], paper[1], paper[2]);
+              gl.viewport(0, 0, canvas.width, canvas.height);
+              gl.enable(gl.DEPTH_TEST);
+              gl.disable(gl.CULL_FACE);
+              // Clip-space y is flipped in the vertex shader, which flips
+              // triangle winding too; without this the front/back test
+              // (page face vs whitened underside) is inverted.
+              gl.frontFace(gl.CW);
+              gl.enable(gl.BLEND);
+              gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+              } catch (e) {
+                const lose = gl.getExtension("WEBGL_lose_context");
+                if (lose) { lose.loseContext(); }
+                canvas.remove();
+                throw e;
+              }
+              return {
+                // progress 0 = flat photo, 1 = fully peeled away.
+                // The sheet is pinched where it was grabbed: tap turns
+                // pinch near the lower outer corner, drags follow the
+                // finger's row. The fold starts as a diagonal there and
+                // straightens as the turn completes, so the whole page
+                // clears by the end.
+                draw(progress, forward, grabYIn) {
+                  const grabY = grabYIn === undefined ? 0.78 : grabYIn;
+                  const tilt = (grabY - 0.5) * 1.6 * (1 - progress);
+                  const sx = forward ? 1 : -1;
+                  const norm = Math.hypot(1, tilt);
+                  const dirX = sx / norm;
+                  const dirY = tilt / norm;
+                  // The cylinder tightens a little as the page lifts.
+                  const R = Math.max(20, W * 0.15 * (1 - 0.35 * progress));
+                  // To fully clear, the fold must cross the page width
+                  // plus the final half-circumference.
+                  const REnd = Math.max(20, W * 0.15 * 0.65);
+                  const sweep = (W + Math.PI * REnd) * progress;
+                  const foldX = (forward ? W : 0) - dirX * sweep;
+                  const foldY = grabY * H - dirY * sweep;
+                  gl.clearColor(0, 0, 0, 0);
+                  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                  gl.uniform2f(uni.uFold, foldX, foldY);
+                  gl.uniform2f(uni.uDir, dirX, dirY);
+                  gl.uniform1f(uni.uR, R);
+                  gl.drawElements(
+                    gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0
+                  );
+                },
+                dispose() {
+                  const lose = gl.getExtension("WEBGL_lose_context");
+                  if (lose) { lose.loseContext(); }
+                  canvas.remove();
+                }
+              };
+            },
+
+            // Kindle-style fade: the old page washes out to blank paper
+            // (a page-background veil), the page is swapped underneath,
+            // then the veil eases away over the new page. The overlay
+            // lives outside <body> so the page transform can't move it.
+            // The swap happens at peak opacity so the reader never sees
+            // the pages cross-fade.
+            fadeSwap(move) {
+              this.fadeInFlight = true;
+              let veil = document.getElementById("lumen-fade");
+              if (!veil) {
+                veil = document.createElement("div");
+                veil.id = "lumen-fade";
+                document.documentElement.appendChild(veil);
+              }
+              veil.classList.add("lumen-fade-on");
+              // Wait for the veil to be FULLY opaque (120ms fade-in + a
+              // hair), swap the page behind it, give WebKit one more frame
+              // to paint the new column, then ease the veil away — so the
+              // reveal is the crisp finished page, never a half-painted
+              // cross-fade.
               setTimeout(() => {
                 move();
                 requestAnimationFrame(() => requestAnimationFrame(() => {
-                  flash.classList.remove("lumen-eink-on");
+                  veil.classList.remove("lumen-fade-on");
+                  this.fadeInFlight = false;
                 }));
-              }, 110);
+              }, 140);
             },
 
             goTo(page, animate) {
@@ -170,6 +704,10 @@ enum ReaderScripts {
                 ));
                 return true;
               }
+              if (this.transition === "eink" && this.fadeInFlight) {
+                return true;
+              }
+              if (this.curlDrag) { return true; }
               if (this.page >= this.pageCount - 1) { return false; }
               this.goTo(this.page + 1, true);
               return true;
@@ -184,6 +722,10 @@ enum ReaderScripts {
                 ));
                 return true;
               }
+              if (this.transition === "eink" && this.fadeInFlight) {
+                return true;
+              }
+              if (this.curlDrag) { return true; }
               if (this.page <= 0) { return false; }
               this.goTo(this.page - 1, true);
               return true;
@@ -274,8 +816,11 @@ enum ReaderScripts {
 
             // Paged flow: the user can flick the native pager to a
             // different page; re-read it from the horizontal offset.
+            // Clamped: a rubber-band offset can round outside the range.
             syncPagedPage() {
-              this.page = Math.round(this.scroller().scrollLeft / PW);
+              this.page = Math.min(Math.max(
+                Math.round(this.scroller().scrollLeft / PW), 0
+              ), this.pageCount - 1);
               this.notify();
             },
 
@@ -359,64 +904,6 @@ enum ReaderScripts {
               return { text: text, occurrence: seen };
             },
 
-            // The current selection's plain text, trimmed, or "" when
-            // nothing usable is selected. Drives the Define lookup.
-            selectedText() {
-              const selection = window.getSelection();
-              if (!selection || selection.isCollapsed
-                  || !selection.rangeCount) { return ""; }
-              return (selection.toString() || "").replace(/\\s+/g, " ").trim();
-            },
-
-            // The sentence the current selection sits in, for saving a
-            // word with its reading context. Pure DOM read: expands from
-            // the selection's text node out to the nearest .!?… (or block)
-            // boundaries, collapses whitespace, and returns "" when no
-            // usable context can be derived. Never lays out, scrolls, or
-            // mutates the DOM or engine state.
-            selectionSentence() {
-              const selection = window.getSelection();
-              if (!selection || selection.isCollapsed
-                  || !selection.rangeCount) { return ""; }
-              const range = selection.getRangeAt(0);
-              const selected = (selection.toString() || "").trim();
-              if (!selected.length) { return ""; }
-              // Read the enclosing text from the common ancestor; for a
-              // selection inside one text node that is the paragraph.
-              let host = range.commonAncestorContainer;
-              if (host.nodeType === Node.TEXT_NODE) {
-                host = host.parentNode;
-              }
-              if (!host) { return ""; }
-              const block = host.textContent || "";
-              if (!block.length) { return ""; }
-              // Locate the selection within the block text. Prefer an
-              // exact match; fall back to the block itself if not found.
-              const lower = block.toLowerCase();
-              const at = lower.indexOf(selected.toLowerCase());
-              const TERMINATORS = ".!?\\u2026";
-              const isEnd = (ch) => TERMINATORS.indexOf(ch) !== -1;
-              let from = 0;
-              let to = block.length;
-              if (at !== -1) {
-                // Walk left to the char after the previous terminator.
-                for (let i = at - 1; i >= 0; i--) {
-                  if (isEnd(block[i])) { from = i + 1; break; }
-                }
-                // Walk right to and including the next terminator.
-                const selEnd = at + selected.length;
-                to = block.length;
-                for (let i = selEnd; i < block.length; i++) {
-                  if (isEnd(block[i])) { to = i + 1; break; }
-                }
-              }
-              const sentence = block
-                .slice(from, to)
-                .replace(/\\s+/g, " ")
-                .trim();
-              return sentence;
-            },
-
             clearSelection() {
               const selection = window.getSelection();
               if (selection) { selection.removeAllRanges(); }
@@ -488,26 +975,128 @@ enum ReaderScripts {
             });
           }, true);
 
-          let touchStartX = 0;
-          let touchStartY = 0;
-          document.addEventListener("touchstart", (event) => {
-            touchStartX = event.touches[0].clientX;
-            touchStartY = event.touches[0].clientY;
-          }, { passive: true });
-          document.addEventListener("touchend", (event) => {
-            if (MODE !== "paged") { return; }
-            const dx = event.changedTouches[0].clientX - touchStartX;
-            const dy = event.changedTouches[0].clientY - touchStartY;
-            if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy)) {
+          // Horizontal page turns in paged flow are owned by the native
+          // UIScrollView (isPagingEnabled): it tracks the finger and snaps
+          // to columns — EXCEPT in curl mode, where Swift disables native
+          // panning and the handlers below scrub the captured curl from
+          // the finger instead. Chapter-edge advances ride the scroll
+          // view's overscroll normally; in curl mode they arrive as an
+          // "edgeDrag" message from these handlers.
+          let touch = null;
+          const curlDraggable = () =>
+            MODE === "paged" && lumen.transition === "curl";
+          document.addEventListener("touchstart", (e) => {
+            if (!curlDraggable() || e.touches.length !== 1) {
+              // A second finger lands mid-drag: settle the live drag as
+              // a cancel instead of orphaning it — an orphaned drag
+              // deadlocks page turning (next/prev and new drags gate on
+              // curlDrag).
+              const drag = lumen.curlDrag;
+              if (drag && !drag.ended) {
+                if (drag.edge) { lumen.curlDrag = null; }
+                else { lumen.curlDragFinish(drag, false); }
+              }
+              touch = null;
               return;
             }
-            const selection = window.getSelection();
-            if (selection && !selection.isCollapsed) { return; }
-            window.webkit.messageHandlers.lumen.postMessage({
-              type: "swipe",
-              direction: dx < 0 ? "forward" : "backward"
-            });
+            const t = e.touches[0];
+            touch = { id: t.identifier, x: t.clientX, y: t.clientY };
           }, { passive: true });
+          document.addEventListener("touchmove", (e) => {
+            if (!curlDraggable() || !touch) { return; }
+            let t = null;
+            for (const c of e.touches) {
+              if (c.identifier === touch.id) { t = c; }
+            }
+            if (!t) { return; }
+            const dx = t.clientX - touch.x;
+            const dy = t.clientY - touch.y;
+            const drag = lumen.curlDrag;
+            if (!drag) {
+              // Horizontal intent only, and never while a turn plays or
+              // the reader is adjusting a text selection.
+              if (lumen.curlLive) { return; }
+              if (Math.abs(dx) < 15
+                  || Math.abs(dx) <= Math.abs(dy)) { return; }
+              const sel = window.getSelection();
+              if (sel && !sel.isCollapsed) { return; }
+              lumen.curlDragBegin(dx < 0, touch.id);
+              return;
+            }
+            if (drag.touchId !== touch.id || drag.ended) { return; }
+            if (drag.edge) { drag.dx = dx; return; }
+            const along = drag.forward ? -dx : dx;
+            drag.progress = Math.min(1, Math.max(
+              0, along / window.innerWidth
+            ));
+            drag.grabY = Math.min(0.95, Math.max(
+              0.05, t.clientY / window.innerHeight
+            ));
+            if (drag.sheet) {
+              drag.sheet.draw(drag.progress, drag.forward, drag.grabY);
+            }
+          }, { passive: true });
+          const curlTouchDone = (e, cancelled) => {
+            if (!touch) { return; }
+            let lifted = false;
+            for (const c of e.changedTouches) {
+              if (c.identifier === touch.id) { lifted = true; }
+            }
+            if (!lifted) { return; }
+            const drag = lumen.curlDrag;
+            touch = null;
+            if (!drag || drag.ended) { return; }
+            if (drag.edge) {
+              lumen.curlDrag = null;
+              if (!cancelled && Math.abs(drag.dx || 0) >= 70) {
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "edgeDrag", direction: drag.edge
+                });
+              }
+              return;
+            }
+            if (cancelled) {
+              lumen.curlDragFinish(drag, false);
+              return;
+            }
+            // Commit rule: a flick along the turn commits regardless of
+            // distance; otherwise commit past halfway.
+            const speed = drag.progress * window.innerWidth
+              / Math.max(1, performance.now() - drag.t0);
+            lumen.curlDragFinish(
+              drag, speed > 0.3 || drag.progress > 0.5
+            );
+          };
+          document.addEventListener("touchend", (e) => {
+            curlTouchDone(e, false);
+          }, { passive: true });
+          document.addEventListener("touchcancel", (e) => {
+            curlTouchDone(e, true);
+          }, { passive: true });
+          // Backgrounding kills animation frames: resolve any live drag
+          // instantly (commit past halfway, otherwise restore) so the
+          // overlay and the drag latch can never survive into the next
+          // foreground session.
+          document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState !== "hidden") { return; }
+            const drag = lumen.curlDrag;
+            touch = null;
+            if (!drag) { return; }
+            if (!drag.edge && drag.sheet && drag.run) {
+              if (drag.progress > 0.5) {
+                lumen.page = Math.round(drag.toX / PW);
+                lumen.notify();
+              } else {
+                window.webkit.messageHandlers.lumen.postMessage({
+                  type: "scroll", x: drag.fromX, animate: false
+                });
+              }
+              drag.run.stop();
+            } else {
+              clearTimeout(drag.rescue);
+              lumen.curlDrag = null;
+            }
+          });
 
           // Reveal as soon as the text is layouted (DOMContentLoaded):
           // waiting for the full load event leaves the page blank for

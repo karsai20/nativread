@@ -21,6 +21,18 @@ final class SettingsStoreOnboardingTests: XCTestCase {
         super.tearDown()
     }
 
+    func testOrientationUnlockedByDefaultAndLockPersists() {
+        let store = SettingsStore(defaults: defaults)
+        XCTAssertFalse(store.isOrientationLocked)
+
+        store.setOrientationLocked(true)
+        XCTAssertTrue(store.isOrientationLocked)
+        XCTAssertTrue(
+            SettingsStore(defaults: defaults).isOrientationLocked,
+            "the lock must survive a store reload"
+        )
+    }
+
     func testOnboardingNotSeenByDefault() {
         let store = SettingsStore(defaults: defaults)
         XCTAssertFalse(store.hasSeenOnboarding)
@@ -34,6 +46,16 @@ final class SettingsStoreOnboardingTests: XCTestCase {
         // A fresh store backed by the same defaults must still see it.
         let reloaded = SettingsStore(defaults: defaults)
         XCTAssertTrue(reloaded.hasSeenOnboarding)
+    }
+
+    func testRetiredOnboardingKeyMigratesWithoutRepeatingOnboarding() {
+        let retiredKey = ["qui", "re.onboarding.v1.seen"].joined()
+        defaults.set(true, forKey: retiredKey)
+
+        let store = SettingsStore(defaults: defaults)
+
+        XCTAssertTrue(store.hasSeenOnboarding)
+        XCTAssertNil(defaults.object(forKey: retiredKey))
     }
 
     func testResetPersistedClearsOnboarding() {
@@ -99,6 +121,26 @@ final class SettingsStoreOnboardingTests: XCTestCase {
             store.translationBackendURL?.absoluteString,
             "http://127.0.0.1:48218"
         )
+    }
+
+    func testTranslationBackendURLLaunchOverrideDoesNotPersist() {
+        let store = SettingsStore(
+            defaults: defaults,
+            defaultTranslationBackendURLString: ""
+        )
+        store.overrideTranslationBackendURLWithoutPersisting(
+            "  http://127.0.0.1:48218  "
+        )
+        XCTAssertEqual(
+            store.translationBackendURLString,
+            "http://127.0.0.1:48218"
+        )
+
+        let reloaded = SettingsStore(
+            defaults: defaults,
+            defaultTranslationBackendURLString: ""
+        )
+        XCTAssertEqual(reloaded.translationBackendURLString, "")
     }
 
     func testTranslationUserIDPersistsAcrossInstances() {

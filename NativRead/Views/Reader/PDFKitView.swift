@@ -1,36 +1,9 @@
 import SwiftUI
 import PDFKit
 
-/// PDFView that adds a "Define" item to the text-selection menu, mirroring
-/// the EPUB reader's HighlightingWebView so dictionary lookup feels native.
-final class DefiningPDFView: PDFView {
-    var onDefineSelection: ((String) -> Void)?
-
-    override func buildMenu(with builder: UIMenuBuilder) {
-        if onDefineSelection != nil,
-           let selection = currentSelection?.string,
-           !selection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            builder.insertChild(
-                UIMenu(options: .displayInline, children: [
-                    UIAction(
-                        title: "Define",
-                        image: UIImage(systemName: "character.book.closed")
-                    ) { [weak self] _ in
-                        guard let text = self?.currentSelection?.string
-                        else { return }
-                        self?.onDefineSelection?(text)
-                    }
-                ]),
-                atStartOfMenu: .root
-            )
-        }
-        super.buildMenu(with: builder)
-    }
-}
-
 /// Book-like fixed-layout PDF surface: single page, horizontal swipe
-/// paging, tap zones for page turns, night-mode rendering, and a Define
-/// selection action. Mirrors the EPUB reader's tap/paging conventions.
+/// paging and tap zones for page turns. PDFKit supplies its native text
+/// selection menu, including Apple's Look Up dictionary action.
 struct PDFKitView: UIViewRepresentable {
     let documentURL: URL
     let pageIndex: Int
@@ -38,21 +11,16 @@ struct PDFKitView: UIViewRepresentable {
     let backgroundColor: UIColor
     let onPageChange: (Int) -> Void
     let onTapZone: (String) -> Void
-    let onDefine: (String) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
-    func makeUIView(context: Context) -> DefiningPDFView {
-        let view = DefiningPDFView()
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
         view.displayMode = .singlePage
         view.displayDirection = .horizontal
         view.usePageViewController(true)
         view.autoScales = true
         view.backgroundColor = backgroundColor
-        view.onDefineSelection = { [weak coordinator = context.coordinator] text in
-            coordinator?.parent.onDefine(text)
-        }
-
         context.coordinator.pdfView = view
         context.coordinator.loadDocument(isNight: isNight, restoringPage: pageIndex)
 
@@ -71,7 +39,7 @@ struct PDFKitView: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ view: DefiningPDFView, context: Context) {
+    func updateUIView(_ view: PDFView, context: Context) {
         context.coordinator.parent = self
         view.backgroundColor = backgroundColor
 
@@ -87,7 +55,7 @@ struct PDFKitView: UIViewRepresentable {
         }
     }
 
-    static func dismantleUIView(_ view: DefiningPDFView, coordinator: Coordinator) {
+    static func dismantleUIView(_ view: PDFView, coordinator: Coordinator) {
         NotificationCenter.default.removeObserver(coordinator)
     }
 
@@ -95,7 +63,7 @@ struct PDFKitView: UIViewRepresentable {
     final class Coordinator: NSObject, PDFDocumentDelegate,
                              UIGestureRecognizerDelegate {
         var parent: PDFKitView
-        weak var pdfView: DefiningPDFView?
+        weak var pdfView: PDFView?
         /// Read by PDFKit's `classForPage()` on a background thread during
         /// page instantiation, written on the main actor. A stale read at
         /// worst renders one page in the old mode, corrected on next layout

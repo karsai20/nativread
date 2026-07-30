@@ -1,0 +1,106 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "10000000001",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · short",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t1",
+      "referenceName" : "Book translation tier 1",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "10000000002",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · tier 2",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t2",
+      "referenceName" : "Book translation tier 2",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "10000000003",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · tier 3",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t3",
+      "referenceName" : "Book translation tier 3",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "6.99",
+      "familyShareable" : false,
+      "internalID" : "10000000004",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · tier 4",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t4",
+      "referenceName" : "Book translation tier 4",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "8.99",
+      "familyShareable" : false,
+      "internalID" : "10000000005",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · tier 5",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t5",
+      "referenceName" : "Book translation tier 5",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "11.99",
+      "familyShareable" : false,
+      "internalID" : "10000000006",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · long",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t6",
+      "referenceName" : "Book translation tier 6",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6740000000",
+    "_developerTeamID" : "",
+    "_lastSynchronizedDate" : 0
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

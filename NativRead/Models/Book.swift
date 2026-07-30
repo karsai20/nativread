@@ -66,6 +66,16 @@ struct Highlight: Codable, Equatable, Identifiable {
         self.createdAt = createdAt
         self.note = note
     }
+
+    /// The note with surrounding whitespace stripped, or nil when absent
+    /// or blank — so a blank note never exports or renders.
+    var trimmedNote: String? {
+        guard let note = note?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !note.isEmpty
+        else { return nil }
+        return note
+    }
 }
 
 /// The source format of a book. Drives which reader opens it: `.epub`
@@ -80,14 +90,16 @@ enum BookVariant: String, Codable, Equatable {
     case translationPreview
     case fullTranslation
 
+    /// Legacy fallback for older call sites. Prefer `Book.variantBadgeText`, which
+    /// includes the translated target language when known.
     var badgeText: String? {
         switch self {
         case .original:
             return nil
         case .translationPreview:
-            return "HU PREVIEW"
+            return "AI · HU PREVIEW"
         case .fullTranslation:
-            return "HU"
+            return "AI · HU"
         }
     }
 }
@@ -113,6 +125,9 @@ struct Book: Codable, Equatable, Identifiable {
     var variant: BookVariant
     var sourceBookID: UUID?
     var translatedFraction: Double?
+    /// Target language for AI-translated variants. `nil` for original books and
+    /// for legacy translated imports from before multi-language metadata existed.
+    var translatedLanguage: TranslationTargetLanguage?
 
     init(
         id: UUID = UUID(),
@@ -129,7 +144,8 @@ struct Book: Codable, Equatable, Identifiable {
         spineWeights: [Double] = [],
         variant: BookVariant = .original,
         sourceBookID: UUID? = nil,
-        translatedFraction: Double? = nil
+        translatedFraction: Double? = nil,
+        translatedLanguage: TranslationTargetLanguage? = nil
     ) {
         self.id = id
         self.title = title
@@ -146,6 +162,7 @@ struct Book: Codable, Equatable, Identifiable {
         self.variant = variant
         self.sourceBookID = sourceBookID
         self.translatedFraction = translatedFraction
+        self.translatedLanguage = translatedLanguage
     }
 
     /// Tolerant decoding: libraries persisted before highlights existed
@@ -179,6 +196,8 @@ struct Book: Codable, Equatable, Identifiable {
             UUID.self, forKey: .sourceBookID)
         translatedFraction = try container.decodeIfPresent(
             Double.self, forKey: .translatedFraction)
+        translatedLanguage = try container.decodeIfPresent(
+            TranslationTargetLanguage.self, forKey: .translatedLanguage)
     }
 
     var percentText: String {
@@ -188,6 +207,19 @@ struct Book: Codable, Equatable, Identifiable {
 
     var isTranslationPreview: Bool { variant == .translationPreview }
     var isTranslatedCopy: Bool { variant != .original }
+    /// The visible EU AI Act transparency marker for translated output.
+    var variantBadgeText: String? {
+        guard variant != .original else { return nil }
+        let code = translatedLanguage?.shortCode ?? "HU"
+        switch variant {
+        case .original:
+            return nil
+        case .translationPreview:
+            return "AI · \(code) PREVIEW"
+        case .fullTranslation:
+            return "AI · \(code)"
+        }
+    }
     var canExportTranslatedEPUB: Bool {
         format == .epub && isTranslatedCopy
     }
@@ -231,5 +263,22 @@ struct Book: Codable, Equatable, Identifiable {
         let before = weights.prefix(spineIndex).reduce(0, +)
         let inside = weights[spineIndex] * min(max(pageFraction, 0), 1)
         return min(max((before + inside) / total, 0), 1)
+    }
+
+    /// Whole-book page estimate scaled from the current chapter's
+    /// measured density (its page count vs its spine weight), so the
+    /// number tracks the live typography instead of a fixed chars-per-
+    /// page heuristic. Falls back to the measured chapter alone when
+    /// weights are missing or degenerate.
+    static func estimatedBookPages(
+        chapterPageCount: Int,
+        spineIndex: Int,
+        weights: [Double]
+    ) -> Int {
+        let total = weights.reduce(0, +)
+        guard spineIndex < weights.count, weights[spineIndex] > 0,
+              total > 0 else { return max(1, chapterPageCount) }
+        let scaled = Double(chapterPageCount) * total / weights[spineIndex]
+        return max(1, Int(scaled.rounded()))
     }
 }

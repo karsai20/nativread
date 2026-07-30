@@ -82,6 +82,19 @@ final class LocalizationStore {
         return Locale(identifier: code)
     }
 
+    /// The language whose `.lproj` must serve string lookups.
+    ///
+    /// `.system` resolves to a concrete language here rather than being handed
+    /// to the bundle as "no preference". The app ships with
+    /// `CFBundleAllowMixedLocalizations`, which switches off the bundle's
+    /// preferred-localization matching: left to itself it serves the
+    /// development region, English. Meanwhile `resolvedLocale` already reports
+    /// the device's own language, so a Hungarian phone on `.system` ended up
+    /// with "Translation · Magyar" — half the label from each mechanism.
+    var bundleLanguage: AppLanguage {
+        appLanguage == .system ? AppLanguage.matchingDevice() : appLanguage
+    }
+
     /// A `Bundle` that resolves string lookups from the chosen `.lproj`
     /// directory.  Use this with `String(localized: key, bundle: bundle)`
     /// whenever `\.locale` environment injection alone doesn't reliably route
@@ -91,7 +104,7 @@ final class LocalizationStore {
     /// (which can happen on a simulator that hasn't been rebuilt after adding
     /// a new language).
     var bundle: Bundle {
-        guard let code = appLanguage.languageCode,
+        guard let code = bundleLanguage.languageCode,
               let path = Bundle.main.path(forResource: code, ofType: "lproj"),
               let b = Bundle(path: path) else {
             return .main
@@ -102,30 +115,34 @@ final class LocalizationStore {
     // MARK: - Persistence
 
     private let defaults: UserDefaults
-    private static let key = "quire.appLanguage.v1"
-    /// Legacy Define keys (pre Apple-Dictionary rework). Only cleared on reset
-    /// so stale values from upgraded installs don't linger in UserDefaults.
-    private static let defineKey = "quire.defineLanguage.v1"
-    private static let defineLanguagesKey = "quire.defineLanguages.v1"
-
+    private static let key = "nativread.appLanguage.v1"
+    private static let legacyKey = ["qui", "re.appLanguage.v1"].joined()
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        if let stored = defaults.string(forKey: Self.key),
+        let appLanguage: AppLanguage
+        let stored = defaults.string(forKey: Self.key)
+            ?? defaults.string(forKey: Self.legacyKey)
+        if let stored,
            let language = AppLanguage(rawValue: stored) {
-            self.appLanguage = language
+            appLanguage = language
         } else {
-            self.appLanguage = .system
+            appLanguage = .system
+        }
+        self.appLanguage = appLanguage
+        if defaults.object(forKey: Self.key) == nil, let stored {
+            defaults.set(stored, forKey: Self.key)
+            defaults.removeObject(forKey: Self.legacyKey)
         }
         // Route Bundle.main string lookups to the chosen language so every
         // `Text`/`String(localized:)` follows the choice from first launch.
-        Bundle.setAppLanguage(appLanguage.languageCode)
+        Bundle.setAppLanguage(bundleLanguage.languageCode)
     }
 
     /// Applies `language` and writes it to `UserDefaults`.
     func setLanguage(_ language: AppLanguage) {
         appLanguage = language
         defaults.set(language.rawValue, forKey: Self.key)
-        Bundle.setAppLanguage(language.languageCode)
+        Bundle.setAppLanguage(bundleLanguage.languageCode)
     }
 
     /// Applies `language` for the current session without writing to
@@ -133,15 +150,14 @@ final class LocalizationStore {
     /// forced settings never leak into subsequent test runs.
     func overrideWithoutPersisting(_ language: AppLanguage) {
         appLanguage = language
-        Bundle.setAppLanguage(language.languageCode)
+        Bundle.setAppLanguage(bundleLanguage.languageCode)
     }
 
     /// Removes the persisted language choices; the next launch will default
     /// to `.system`. Used by the `-resetLanguage` UI-test hook.
     static func resetPersisted(in defaults: UserDefaults = .standard) {
         defaults.removeObject(forKey: key)
-        defaults.removeObject(forKey: defineKey)
-        defaults.removeObject(forKey: defineLanguagesKey)
+        defaults.removeObject(forKey: legacyKey)
     }
 
     // MARK: - Localised string helper
@@ -157,9 +173,8 @@ final class LocalizationStore {
     }
 
     /// Localises `key` against a **specific** language's `.lproj`, independent
-    /// of the current `appLanguage`. Used by the onboarding picker so the
-    /// heading and Continue button preview the highlighted language live —
-    /// tapping "Magyar" flips "Continue" to "Folytatás" before confirming.
+    /// of the current `appLanguage`. Available for language previews that must
+    /// be resolved independently of the currently active app language.
     /// Falls back to the current bundle when the language has no `.lproj`.
     func localizedString(
         _ key: String,

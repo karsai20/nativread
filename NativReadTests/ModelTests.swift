@@ -29,6 +29,43 @@ final class ModelTests: XCTestCase {
         )
     }
 
+    // MARK: - Whole-book page estimate
+
+    func testEstimatedBookPagesScalesChapterDensityToWholeBook() {
+        // Chapter 1 (weight 2000 of 4000 total) measures 10 pages, so
+        // the whole book is estimated at 20.
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 10, spineIndex: 1,
+                weights: [1000, 2000, 1000]
+            ),
+            20
+        )
+    }
+
+    func testEstimatedBookPagesFallsBackToChapterCount() {
+        // No weights (TXT import edge) or a zero-weight chapter: the
+        // only trustworthy number is the measured chapter itself.
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 7, spineIndex: 0, weights: []
+            ),
+            7
+        )
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 7, spineIndex: 1, weights: [100, 0, 100]
+            ),
+            7
+        )
+        XCTAssertEqual(
+            Book.estimatedBookPages(
+                chapterPageCount: 7, spineIndex: 9, weights: [100, 100]
+            ),
+            7
+        )
+    }
+
     func testBookFractionHandlesDegenerateInput() {
         XCTAssertEqual(
             Book.bookFraction(spineIndex: 0, pageFraction: 0.5, weights: []),
@@ -169,6 +206,34 @@ final class ModelTests: XCTestCase {
             settings: settings, pageWidth: 390, pageHeight: 844
         )
         XCTAssertTrue(css.contains("text-align: left"))
+    }
+
+    func testReaderStyleClearsLandscapeSafeAreas() {
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(),
+            pageWidth: 874,
+            pageHeight: 402,
+            safeAreaLeft: 59,
+            safeAreaRight: 21
+        )
+
+        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 71.0px"))
+        XCTAssertTrue(css.contains("column-width: 739.0px"))
+        XCTAssertTrue(css.contains("column-gap: 135.0px"))
+        XCTAssertTrue(css.contains("max-height: 294.0px"))
+    }
+
+    func testReaderStyleKeepsHardwareSafeLandscapeMarginsWhenInsetsLag() {
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(),
+            pageWidth: 874,
+            pageHeight: 402,
+            safeAreaLeft: 0,
+            safeAreaRight: 0
+        )
+
+        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 64.0px"))
+        XCTAssertTrue(css.contains("column-width: 746.0px"))
     }
 
     func testReaderStyleNeutralizesPublisherMediaSizing() {
@@ -392,15 +457,36 @@ final class ModelTests: XCTestCase {
 
     func testEngineScriptCarriesFlowAndTransition() {
         let paged = ReaderScripts.engine(
-            pageWidth: 390, flow: .paged, transition: .eink
+            pageWidth: 390, flow: .paged, transition: .fade
         )
         XCTAssertTrue(paged.contains("\"paged\""))
+        // Fade's persisted rawValue is the legacy "eink".
         XCTAssertTrue(paged.contains("\"eink\""))
 
         let scroll = ReaderScripts.engine(
             pageWidth: 390, flow: .scroll, transition: .slide
         )
         XCTAssertTrue(scroll.contains("\"scroll\""))
+    }
+
+    func testCurlAndInstantTransitionsRoundTrip() throws {
+        XCTAssertEqual(PageTransition.curl.rawValue, "curl")
+        XCTAssertEqual(PageTransition.instant.rawValue, "instant")
+
+        var settings = ReaderSettings()
+        settings.pageTransition = .curl
+        let decoded = try JSONDecoder().decode(
+            ReaderSettings.self, from: JSONEncoder().encode(settings)
+        )
+        XCTAssertEqual(decoded.pageTransition, .curl)
+
+        // Curl must ride the engine's animated-scroll branch (Swift picks
+        // the choreography); the engine carries the raw transition value.
+        let curl = ReaderScripts.engine(
+            pageWidth: 390, flow: .paged, transition: .curl
+        )
+        XCTAssertTrue(curl.contains("transition: \"curl\""))
+        XCTAssertTrue(curl.contains("=== \"curl\""))
     }
 
     // MARK: - Highlights
@@ -473,37 +559,39 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded, highlight)
     }
 
-    func testEinkTransitionShipsFlashOverlay() {
+    func testFadeTransitionShipsVeilOverlay() {
         let script = ReaderScripts.engine(
-            pageWidth: 390, flow: .paged, transition: .eink
+            pageWidth: 390, flow: .paged, transition: .fade
         )
-        XCTAssertTrue(script.contains("einkFlash"))
+        XCTAssertTrue(script.contains("fadeSwap"))
 
         let css = ReaderStyle.css(
             settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
         )
-        XCTAssertTrue(css.contains("#lumen-eink"))
+        XCTAssertTrue(css.contains("#lumen-fade"))
     }
 
-    func testEinkFlashIsDarkInDarkThemeNotWhite() {
-        // In a dark theme the text colour is light; the e-ink flash must
-        // still be black, otherwise every page turn flashes white.
+    func testFadeVeilIsPageBackgroundNeverInk() {
+        // The fade must wash through blank paper — never black or the
+        // text colour — in every theme (the ink flash was e-paper only).
         var dark = ReaderSettings()
         dark.theme = .dusk
         let darkCSS = ReaderStyle.css(
             settings: dark, pageWidth: 390, pageHeight: 844
         )
-        XCTAssertTrue(darkCSS.contains("background: #000000"))
+        XCTAssertFalse(darkCSS.contains("background: #000000"))
         XCTAssertFalse(
             darkCSS.contains("background: \(ReaderTheme.dusk.textHex)")
         )
 
-        // Light theme keeps the dark ink text as the flash colour.
         let lightCSS = ReaderStyle.css(
             settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
         )
-        XCTAssertTrue(
+        XCTAssertFalse(
             lightCSS.contains("background: \(ReaderTheme.paper.textHex)")
+        )
+        XCTAssertTrue(
+            lightCSS.contains("background: \(ReaderTheme.paper.backgroundHex)")
         )
     }
 

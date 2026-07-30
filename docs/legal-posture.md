@@ -23,9 +23,9 @@ IAP** (free first chapter) + a **Western, training-excluded AI provider** (NOT
 DeepSeek's direct API — see principle 4 / MUST-FIX #3). Apple + Google login;
 ephemeral server with the durable copy in the user's own cloud.
 
-This is the deliberate **opposite** of `quire-translator`'s posture. That
+This is the deliberate **opposite** of `nativread-translator`'s posture. That
 project's entire legal cleanliness rested on *"private household LAN, not a
-public service"* (see `quire-translator/PLAN.md` → "Legal / data posture"). A
+public service"* (see `nativread-translator/PLAN.md` → "Legal / data posture"). A
 public, operator-run, paid app **inverts every one of those assumptions**, so
 none of that protection carries over. The constraints below replace it.
 
@@ -40,7 +40,7 @@ none of that protection carries over. The constraints below replace it.
    - Personal translation of a user's own legally-owned book, for their own
      reading, is the defensible case (akin to a private translation for personal
      use).
-   - **No shared/global translated library.** `quire-translator`'s "household
+   - **No shared/global translated library.** `nativread-translator`'s "household
      library, never re-translate" must NOT become a cross-user cache. The moment
      one user's translation is served to another, the operator is **storing and
      distributing derivative copies of copyrighted works** — clear infringement.
@@ -93,7 +93,7 @@ A book translation is **digital content consumed in the app**, so:
 
 ## Login (why it exists here)
 
-**Sign in with Apple + Google.** Login is required not for the feature but to:
+**Sign in with Apple + Google.** Login is renativreadd not for the feature but to:
 - attribute and verify per-book entitlements to a user (anti-fraud),
 - enforce per-user quota / cost ceiling (anti-abuse of the shared DeepSeek key),
 - scope stored content privately to one account (principle 2),
@@ -111,7 +111,7 @@ cross-provider linking unreliable).
 - A per-book entitlement gates the paid job; the free first chapter is bounded
   (real-first-content-chapter only, `(userId, sourceHash)` dedup, rate limit,
   word cap).
-- Reuse `quire-translator`'s `COST_CEILING_USD` per-book ceiling, a per-user/day
+- Reuse `nativread-translator`'s `COST_CEILING_USD` per-book ceiling, a per-user/day
   rate limit, **and a global daily spend kill-switch** on the free endpoint
   (per-user caps don't bound aggregate spend). Cost derived from `cost.ts`.
 
@@ -160,9 +160,9 @@ in the local-backend MVP so the public launch inherits it.
 ## Open-source & content licensing — added 2026-07-06
 
 - **Bundled GPL dictionaries: RESOLVED by removal** (2026-07-06 branch). The
-  FreeDict/StarDict bundles are gone; Define uses Apple's built-in
-  `UIReferenceLibraryViewController`. No GPL code or data ships in the binary.
-- **ZIPFoundation (MIT)** — the only external package. MIT requires the license
+  FreeDict/StarDict bundles are gone; word lookup stays in Apple's native Look
+  Up surface. No GPL code or data ships in the binary.
+- **ZIPFoundation (MIT)** — the only external package. MIT renativreads the license
   text to accompany the distribution: add an in-app acknowledgements/licenses
   entry (Settings → About). Cheap, standard, do before App Store submission.
 - **Test fixtures** (Standard Ebooks Alice/Tenniel AZW3) are public-domain and
@@ -190,7 +190,7 @@ see and are the make-or-break for getting on the store.
 4. ★ **Accurate App Store privacy nutrition labels + in-app pre-translation
    disclosure** naming the chosen AI provider's third-party transfer. Undisclosed
    egress is an independent rejection vector (5.1.1/5.1.2).
-5. ★ **In-app account + data deletion** (Apple 5.1.1(v) requires it
+5. ★ **In-app account + data deletion** (Apple 5.1.1(v) renativreads it
    independently of GDPR) plus data export.
 6. **Per-user isolation enforced by construction, not convention.** Cross-user
    dedup/serving must be impossible — keyed strictly to account ID. This is the
@@ -227,7 +227,7 @@ see and are the make-or-break for getting on the store.
   from the user's cloud, not our server. See `translator-plan.md` backend §5.
 - Abuse/takedown path: disable an account on a credible rightsholder complaint —
   cheap, strengthens the good-faith-conduit posture.
-- Keep the per-user cost ceiling + per-day rate limit (from quire-translator)
+- Keep the per-user cost ceiling + per-day rate limit (from nativread-translator)
   genuinely enforced server-side; doubles as abuse control on the shared key.
 - Counsel to pressure-test the personal-use derivative position specifically
   under the operator-stores-the-copy fact pattern.

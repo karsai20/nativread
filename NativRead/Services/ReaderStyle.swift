@@ -8,6 +8,17 @@ enum ReaderStyle {
     /// the home indicator. The chrome bars overlay these margins.
     static let topPadding: Double = 96
     static let bottomPadding: Double = 72
+    /// Compact-height landscape needs breathing room around the chrome, but
+    /// not the portrait-sized gutters that would consume almost half a page.
+    static let landscapeTopPadding: Double = 64
+    static let landscapeBottomPadding: Double = 44
+    /// Fallback for edge-to-edge WebKit layouts where UIKit can briefly
+    /// report zero horizontal safe-area insets during rotation. Symmetric
+    /// compact-height gutters keep either landscape orientation clear of the
+    /// sensor housing and avoid a visible left/right jump after relayout.
+    static let landscapeMinimumHorizontalMargin: Double = 64
+    /// Extra whitespace between the text and a sensor/home-indicator inset.
+    static let safeAreaGutter: Double = 12
 
     /// Memoised base64 `data:` URIs for bundled fonts, keyed by resource
     /// name. The WKWebView runs out-of-process and does not inherit the
@@ -55,12 +66,29 @@ enum ReaderStyle {
     /// scrolls html to the next column (driven from Swift via the
     /// scroll view, see ReaderController). Scroll flow leaves the
     /// document in normal vertical flow and lets the scroll view move it.
-    static func css(settings: ReaderSettings, pageWidth: Double,
-                    pageHeight: Double, systemDark: Bool = false) -> String {
+    static func css(
+        settings: ReaderSettings,
+        pageWidth: Double,
+        pageHeight: Double,
+        safeAreaLeft: Double = 0,
+        safeAreaRight: Double = 0,
+        systemDark: Bool = false
+    ) -> String {
         let theme = settings.palette(systemDark: systemDark)
         let margin = settings.horizontalMargin
-        let contentWidth = pageWidth - margin * 2
-        let textHeight = pageHeight - topPadding - bottomPadding
+        let compactHeight = pageHeight < 500
+        let minimumMargin = compactHeight
+            ? max(margin, landscapeMinimumHorizontalMargin) : margin
+        let leftMargin = max(minimumMargin, safeAreaLeft + safeAreaGutter)
+        let rightMargin = max(minimumMargin, safeAreaRight + safeAreaGutter)
+        let horizontalGutter = leftMargin + rightMargin
+        let contentWidth = pageWidth - horizontalGutter
+        let resolvedTopPadding = compactHeight
+            ? landscapeTopPadding : topPadding
+        let resolvedBottomPadding = compactHeight
+            ? landscapeBottomPadding : bottomPadding
+        let textHeight = pageHeight
+            - resolvedTopPadding - resolvedBottomPadding
 
         let layout: String
         switch settings.pageFlow {
@@ -80,7 +108,7 @@ enum ReaderStyle {
             }
             body {
                 margin: 0 !important;
-                padding: \(topPadding)px \(margin)px \(bottomPadding)px !important;
+                padding: \(resolvedTopPadding)px \(rightMargin)px \(resolvedBottomPadding)px \(leftMargin)px !important;
                 box-sizing: border-box;
                 height: \(pageHeight)px !important;
                 width: \(pageWidth)px !important;
@@ -90,30 +118,28 @@ enum ReaderStyle {
                    hidden body would clip every page but the first. */
                 overflow: visible !important;
                 column-width: \(contentWidth)px;
-                column-gap: \(margin * 2)px;
+                column-gap: \(horizontalGutter)px;
                 column-fill: auto;
             }
-            #lumen-eink {
+            #lumen-fade {
                 position: fixed;
                 inset: 0;
-                /* A real e-ink full refresh flashes to solid ink. Use the
-                   dark ink in every theme — in dark themes the text
-                   colour is light, which would flash white. */
-                background: \(theme.isDark ? "#000000" : theme.textHex);
+                /* Kindle-style fade: the veil is the PAGE BACKGROUND in
+                   every theme, so a turn reads as the page washing out to
+                   blank paper — never a black/ink flash (that pattern only
+                   makes sense on real e-paper hardware). */
+                background: \(theme.backgroundHex);
                 opacity: 0;
                 pointer-events: none;
-                /* Clear it with a near-instant snap, NOT a dissolve: a 70ms
-                   fade makes the new page wash up out of black and reads as a
-                   crossfade. A ~26ms snap reveals the already-painted page
-                   crisply, the way a real e-ink refresh blanks then returns. */
-                transition: opacity 26ms steps(2, end);
+                /* Reveal: ease the veil away over the already-painted new
+                   page — the swap happened at full opacity underneath. */
+                transition: opacity 180ms ease-in-out;
                 z-index: 99;
             }
-            #lumen-eink.lumen-eink-on {
-                /* Full, opaque ink. Snap it on instantly so the blink reads as
-                   a deliberate refresh, not a fade-in. */
+            #lumen-fade.lumen-fade-on {
+                /* Covering: the old page gently washes out to blank. */
                 opacity: 1;
-                transition: opacity 12ms linear;
+                transition: opacity 120ms ease-out;
             }
             """
         case .scroll:
@@ -123,7 +149,7 @@ enum ReaderStyle {
             }
             body {
                 margin: 0 !important;
-                padding: \(topPadding)px \(margin)px \(bottomPadding)px !important;
+                padding: \(resolvedTopPadding)px \(rightMargin)px \(resolvedBottomPadding)px \(leftMargin)px !important;
                 box-sizing: border-box;
                 width: \(pageWidth)px !important;
                 max-width: \(pageWidth)px !important;

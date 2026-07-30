@@ -146,6 +146,31 @@ final class EPUBParserTests: XCTestCase {
         XCTAssertEqual(EPUBParser.stripScripts(from: html), html)
     }
 
+    func testSanitizerInjectsOfflineCSPExactlyOnce() {
+        let html = "<html><head><title>Book</title></head><body>Text</body></html>"
+        let once = EPUBParser.injectContentSecurityPolicy(into: html)
+        let twice = EPUBParser.injectContentSecurityPolicy(into: once)
+        XCTAssertEqual(once, twice)
+        XCTAssertTrue(once.contains("connect-src 'none'"))
+        XCTAssertTrue(once.contains("script-src 'none'"))
+        XCTAssertTrue(once.contains("frame-src 'none'"))
+        XCTAssertTrue(once.contains("data-nativread-policy=\"offline\""))
+    }
+
+    func testContainedURLRejectsAuthorPathTraversal() {
+        let root = tempDirectory.appendingPathComponent("book", isDirectory: true)
+        let oebps = root.appendingPathComponent("OEBPS", isDirectory: true)
+        XCTAssertNotNil(EPUBParser.containedURL(
+            href: "text/ch1.xhtml", against: oebps, root: root
+        ))
+        XCTAssertNil(EPUBParser.containedURL(
+            href: "../../other-book/ch1.xhtml", against: oebps, root: root
+        ))
+        XCTAssertNil(EPUBParser.containedURL(
+            href: "/etc/passwd", against: oebps, root: root
+        ))
+    }
+
     func testSanitizeScriptsRewritesSpineFilesInPlace() throws {
         let chapter = tempDirectory.appendingPathComponent("ch1.xhtml")
         try """
@@ -268,5 +293,63 @@ final class EPUBParserTests: XCTestCase {
         let html = "<a href=\"chapter2.xhtml\" style=\"color:red\">"
             + "The page onload felt slow; go online.</a>"
         XCTAssertEqual(EPUBParser.stripScripts(from: html), html)
+    }
+
+    // MARK: - Art 50 AI-marked EPUB (E2)
+
+    /// The backend injects the EU AI Act machine-readable marker (IPTC
+    /// DigitalSourceType meta + dc:description + colophon spine item) into
+    /// every delivered EPUB. This mirrors that exact OPF shape and asserts
+    /// the app still imports it — the regression gate for the T25 backend
+    /// change. Spec: nativread-translator lib/core/ai-marker.ts.
+    func testParsesArt50AIMarkedEPUB() throws {
+        try EPUBFixtures.writeEPUB3(
+            to: tempDirectory, title: "Marked Book", chapterCount: 2
+        )
+        let oebps = tempDirectory.appendingPathComponent("OEBPS")
+        let opfURL = oebps.appendingPathComponent("content.opf")
+        var opf = try String(contentsOf: opfURL, encoding: .utf8)
+        opf = opf.replacingOccurrences(
+            of: "<package ",
+            with: "<package prefix=\"iptc: "
+                + "http://iptc.org/std/Iptc4xmpExt/2008-02-29/\" "
+        )
+        opf = opf.replacingOccurrences(
+            of: "</metadata>",
+            with: """
+                <meta property="iptc:DigitalSourceType">http://cv.iptc.org/\
+            newscodes/digitalsourcetype/trainedAlgorithmicMedia</meta>
+                <dc:description id="nativread-ai-marker">AI-generated \
+            content: machine translation from English to Hungarian by \
+            NativRead (EU AI Act Art 50).</dc:description>
+              </metadata>
+            """
+        )
+        opf = opf.replacingOccurrences(
+            of: "</manifest>",
+            with: "  <item id=\"nativread-colophon\" "
+                + "href=\"nativread-colophon.xhtml\" "
+                + "media-type=\"application/xhtml+xml\"/>\n  </manifest>"
+        )
+        opf = opf.replacingOccurrences(
+            of: "</spine>",
+            with: "  <itemref idref=\"nativread-colophon\"/>\n  </spine>"
+        )
+        try opf.write(to: opfURL, atomically: true, encoding: .utf8)
+        try EPUBFixtures.chapterXHTML(
+            title: "Colophon", body: "AI translation by NativRead."
+        ).write(
+            to: oebps.appendingPathComponent("nativread-colophon.xhtml"),
+            atomically: true, encoding: .utf8
+        )
+
+        let parsed = try EPUBParser.parse(extractedRoot: tempDirectory)
+
+        XCTAssertEqual(parsed.title, "Marked Book")
+        XCTAssertEqual(parsed.spineURLs.count, 3)
+        XCTAssertEqual(
+            parsed.spineURLs.last?.lastPathComponent,
+            "nativread-colophon.xhtml"
+        )
     }
 }

@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+# Supply-chain floor (blueprint §7): read-only token, SHA-pinned actions.
+permissions:
+  contents: read
+  # gitleaks reads the PR's commit list; without this its scan dies on a 403.
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    # Free secret-scanning net — GHAS secret scanning is Pro-gated on
+    # private repos (blueprint §7).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  unit-tests:
+    # Unit-test target only (eng D5): XCUITests are wedge-flaky on shared
+    # runners and macOS minutes bill 10x — they stay a local pre-release
+    # ritual.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          # project.yml requires Signing.xcconfig, which is gitignored because
+          # it carries a machine-specific Team ID. Generation fails without it.
+          cp Signing.example.xcconfig Signing.xcconfig
+          xcodegen generate
+
+      - name: Unit tests
+        # No formatter pipe: a pipe without pipefail can mask xcodebuild's
+        # exit code, turning a red suite into a green check.
+        run: |
+          xcodebuild test \
+            -project NativRead.xcodeproj \
+            -scheme NativRead \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -only-testing:NativReadTests \
+            CODE_SIGNING_ALLOWED=NO
+        env:
+          NSUnbufferedIO: "YES"

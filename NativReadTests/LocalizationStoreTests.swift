@@ -58,6 +58,16 @@ final class LocalizationStoreTests: XCTestCase {
         }
     }
 
+    func testRetiredLanguageKeyMigratesToCurrentKey() {
+        let retiredKey = ["qui", "re.appLanguage.v1"].joined()
+        defaults.set(AppLanguage.hu.rawValue, forKey: retiredKey)
+
+        let store = LocalizationStore(defaults: defaults)
+
+        XCTAssertEqual(store.appLanguage, .hu)
+        XCTAssertNil(defaults.object(forKey: retiredKey))
+    }
+
     func testResetPersistedClearsLanguage() {
         let store = LocalizationStore(defaults: defaults)
         store.setLanguage(.de)
@@ -115,6 +125,30 @@ final class LocalizationStoreTests: XCTestCase {
         )
     }
 
+    // MARK: - bundleLanguage
+
+    /// `.system` must never reach the bundle as "no preference". The app sets
+    /// `CFBundleAllowMixedLocalizations`, which turns off preferred-localization
+    /// matching, so an unresolved `.system` serves English strings while
+    /// `resolvedLocale` already reports the device language — English labels
+    /// next to Hungarian ones on the same screen.
+    func testSystemResolvesToAConcreteBundleLanguage() {
+        let store = LocalizationStore(defaults: defaults)
+
+        XCTAssertEqual(store.appLanguage, .system)
+        XCTAssertNotEqual(store.bundleLanguage, .system)
+        XCTAssertNotNil(store.bundleLanguage.languageCode)
+        XCTAssertEqual(store.bundleLanguage, AppLanguage.matchingDevice())
+    }
+
+    func testExplicitChoiceIsUsedVerbatimForTheBundle() {
+        let store = LocalizationStore(defaults: defaults)
+        for language in AppLanguage.pickable {
+            store.setLanguage(language)
+            XCTAssertEqual(store.bundleLanguage, language)
+        }
+    }
+
     // MARK: - Bundle fallback
 
     func testBundleIsMainWhenLprojMissing() {
@@ -139,10 +173,9 @@ final class LocalizationStoreTests: XCTestCase {
     }
 
     func testPickableIsFullyTranslatedLanguagesOnly() {
-        // Only fully-translated, dictionary-backed languages are offered in the
-        // picker. es/de stay in the enum (plumbing is ready) but are withheld
-        // until their String Catalog and dictionaries are complete, so picking
-        // them can't leave most of the app in the English fallback.
+        // Only fully-translated languages are offered in the picker. es/de
+        // stay in the enum (plumbing is ready) but are withheld until their
+        // String Catalog coverage is complete.
         let pickable = Set(AppLanguage.pickable.map(\.rawValue))
         XCTAssertEqual(pickable, ["en", "hu"])
         XCTAssertFalse(pickable.contains("es"))
@@ -152,4 +185,5 @@ final class LocalizationStoreTests: XCTestCase {
         XCTAssertNotNil(AppLanguage(rawValue: "es"))
         XCTAssertNotNil(AppLanguage(rawValue: "de"))
     }
+
 }

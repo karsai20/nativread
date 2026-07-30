@@ -4,15 +4,18 @@ import SwiftUI
 /// and swipe on top, chrome bars that melt away while reading.
 struct ReaderView: View {
     @State private var viewModel: ReaderViewModel
+    /// Whether the bottom-right reading menu is fanned out.
+    @State private var isMenuOpen = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    @Environment(VocabularyStore.self) private var vocabulary
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency)
+    private var reduceTransparency
 
     init(
         book: Book,
         library: LibraryStore,
         settingsStore: SettingsStore,
-        statsStore: StatsStore,
         initialSystemDark: Bool
     ) {
         let bounds = UIScreen.main.bounds
@@ -20,7 +23,6 @@ struct ReaderView: View {
             book: book,
             library: library,
             settingsStore: settingsStore,
-            statsStore: statsStore,
             pageSize: bounds.size,
             initialSystemDark: initialSystemDark
         ))
@@ -37,7 +39,10 @@ struct ReaderView: View {
             } else {
                 // Taps, swipes and scrolling are handled inside the web
                 // view by the JS engine so native text selection works.
-                ReaderWebView(controller: viewModel.controller)
+                ReaderWebView(
+                    controller: viewModel.controller,
+                    onViewportChange: viewModel.viewportDidChange(to:)
+                )
                     .ignoresSafeArea()
                 chapterLoadingVeil
                 nextChapterAffordance
@@ -46,7 +51,7 @@ struct ReaderView: View {
             chrome
         }
         .animation(
-            .easeOut(duration: 0.2),
+            reduceMotion ? nil : .easeOut(duration: 0.2),
             value: viewModel.isChapterLoading
         )
         .statusBarHidden(!viewModel.isChromeVisible)
@@ -59,8 +64,16 @@ struct ReaderView: View {
         .onChange(of: colorScheme) {
             viewModel.setSystemDark(colorScheme == .dark)
         }
+        .onChange(of: reduceMotion) {
+            viewModel.setReduceMotion(reduceMotion)
+        }
+        .onChange(of: viewModel.isChromeVisible) {
+            // A collapsed chrome must never come back with the fan open.
+            if !viewModel.isChromeVisible { isMenuOpen = false }
+        }
         .onAppear {
             viewModel.setSystemDark(colorScheme == .dark)
+            viewModel.setReduceMotion(reduceMotion)
             viewModel.open()
             if ProcessInfo.processInfo.arguments
                 .contains("-showTypographyPanel") {
@@ -74,36 +87,15 @@ struct ReaderView: View {
             switch sheet {
             case .contents:
                 ContentsSheet(viewModel: viewModel)
+            case .position:
+                ReadingPositionSheet(viewModel: viewModel)
             case .typography:
                 TypographyPanel(viewModel: viewModel)
             case .search:
                 SearchSheet(viewModel: viewModel)
             }
         }
-        .sheet(item: defineItem) { item in
-            DefineView(
-                word: item.word,
-                palette: palette,
-                context: viewModel.defineContext,
-                onSave: { definition, source in
-                    viewModel.saveToVocabulary(
-                        definition: definition,
-                        dictionarySource: source,
-                        into: vocabulary
-                    )
-                },
-                isAlreadySaved: vocabulary.contains(word: item.word)
-            )
-        }
-    }
-
-    /// Bridges the view model's `String?` define target to the
-    /// `Identifiable` value `.sheet(item:)` needs.
-    private var defineItem: Binding<DefineItem?> {
-        Binding(
-            get: { viewModel.defineWord.map(DefineItem.init) },
-            set: { viewModel.defineWord = $0?.word }
-        )
+        .accessibilityAction(.escape) { dismiss() }
     }
 
     // MARK: - Chapter loading veil
@@ -179,7 +171,7 @@ struct ReaderView: View {
             }
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .animation(
-                .easeOut(duration: 0.22),
+                reduceMotion ? nil : .easeOut(duration: 0.22),
                 value: viewModel.isAtChapterEnd
             )
         }
@@ -187,133 +179,271 @@ struct ReaderView: View {
 
     // MARK: - Chrome
 
+    /// Two states, Apple-Books-like. Resting (reading): ambient book
+    /// title above and page number below, no controls. Expanded (tap):
+    /// floating bookmark / close circles, a "pages left in chapter"
+    /// eyebrow up top, and a floating settings card down below.
     private var chrome: some View {
-        VStack(spacing: 0) {
-            if viewModel.isChromeVisible {
-                topBar.transition(.move(edge: .top).combined(with: .opacity))
+        ZStack {
+            restingLabels
+                .opacity(viewModel.isChromeVisible ? 0 : 1)
+            VStack(spacing: 0) {
+                if viewModel.isChromeVisible {
+                    topChrome.transition(
+                        .move(edge: .top).combined(with: .opacity)
+                    )
+                }
+                Spacer()
+                if viewModel.isChromeVisible {
+                    bottomPanel.transition(
+                        .move(edge: .bottom).combined(with: .opacity)
+                    )
+                }
             }
+        }
+        .animation(
+            reduceMotion ? nil : .easeOut(duration: 0.22),
+            value: viewModel.isChromeVisible
+        )
+    }
+
+    /// Ambient labels that stay up while reading. They never intercept
+    /// touches — the page behind them owns every gesture.
+    private var restingLabels: some View {
+        VStack {
+            Text(viewModel.currentChapterTitle)
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
+                .lineLimit(1)
+                .padding(.horizontal, Spacing.xl)
             Spacer()
-            if viewModel.isChromeVisible {
-                bottomBar.transition(
-                    .move(edge: .bottom).combined(with: .opacity)
-                )
-            }
+            Text("\(viewModel.estimatedBookPagesRead)")
+                .font(Typography.meta(12))
+                .monospacedDigit()
         }
-        .animation(.easeOut(duration: 0.22), value: viewModel.isChromeVisible)
-    }
-
-    private var topBar: some View {
-        HStack(spacing: Spacing.md) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .semibold))
-            }
-            .accessibilityIdentifier("reader.back")
-
-            VStack(spacing: 2) {
-                Text(viewModel.book?.title ?? "")
-                    // Literary title — Crimson Pro carries it cleanly at reading sizes.
-                    .font(Typography.title(15))
-                    .lineLimit(1)
-                Text(viewModel.currentChapterTitle)
-                    // Eyebrow treatment: uppercase + tracked, signals "location label".
-                    .font(Typography.eyebrow)
-                    .tracking(Typography.eyebrowTracking)
-                    .textCase(.uppercase)
-                    .foregroundStyle(palette.secondaryText)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity)
-
-            Button {
-                viewModel.toggleBookmark()
-            } label: {
-                Image(systemName: viewModel.currentBookmark != nil
-                    ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 16, weight: .medium))
-            }
-            .accessibilityIdentifier("reader.bookmark")
-        }
-        .foregroundStyle(palette.text)
-        .tint(palette.accent)
-        .padding(.horizontal, Spacing.md)
+        .foregroundStyle(palette.secondaryText.opacity(0.85))
         .padding(.vertical, Spacing.xs)
-        .background(chromeBackground)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
-    private var bottomBar: some View {
-        VStack(spacing: Spacing.xs) {
-            ScrubberView(
-                fraction: viewModel.bookFraction,
-                accent: palette.accent,
-                track: palette.hairline.opacity(0.6)
-            ) { fraction in
-                viewModel.scrub(toBookFraction: fraction)
-            }
-            .accessibilityIdentifier("reader.scrubber")
+    private var topChrome: some View {
+        ZStack {
+            Text(String.localizedStringWithFormat(
+                String(localized: "%lld pages left in chapter"),
+                viewModel.pagesLeftInChapter
+            ))
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
+                .foregroundStyle(palette.secondaryText)
+                .lineLimit(1)
+                .padding(.horizontal, 64)
+                .accessibilityIdentifier("reader.chapterPagesLeft")
 
             HStack {
-                Button {
-                    viewModel.activeSheet = .contents
-                } label: {
-                    Image(systemName: "list.bullet")
-                        .font(.system(size: 17))
-                }
-                .accessibilityIdentifier("reader.contents")
-
                 Spacer()
-
-                // Meta role: monospaced digits, unobtrusive at its utility size.
-                Text(pageLabel)
-                    .font(Typography.meta(12))
-                    .foregroundStyle(palette.secondaryText)
-                    .monospacedDigit()
-                    .accessibilityIdentifier("reader.pageLabel")
-
-                Spacer()
-
-                Button {
-                    viewModel.activeSheet = .search
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16))
+                floatingCircle(
+                    icon: "xmark", identifier: "reader.back"
+                ) {
+                    dismiss()
                 }
-                .accessibilityIdentifier("reader.search")
-
-                Button {
-                    viewModel.activeSheet = .typography
-                } label: {
-                    // Crimson Pro "Aa" echoes the typeface the reader uses.
-                    Text("Aa")
-                        .font(Typography.title(17))
-                }
-                .padding(.leading, Spacing.md)
-                .accessibilityIdentifier("reader.typography")
             }
         }
-        .foregroundStyle(palette.text)
-        .tint(palette.accent)
         .padding(.horizontal, Spacing.md)
-        .padding(.top, Spacing.sm)
-        .padding(.bottom, Spacing.xs)
-        .background(chromeBackground)
+        .padding(.top, Spacing.xs)
     }
 
-    private var chromeBackground: some View {
-        palette.background
-            .opacity(0.94)
-            .overlay(palette.surface.opacity(0.5))
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(palette.hairline).frame(height: 1)
+    /// A small floating circular control, the Books-style chrome unit.
+    private func floatingCircle(
+        icon: String,
+        identifier: String,
+        isActive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(isActive ? palette.accent : palette.text)
+                .frame(width: 48, height: 48)
+                .background(floatingCircleBackground(isActive: isActive))
+                .contentShape(Circle())
+        }
+        .accessibilityIdentifier(identifier)
+    }
+
+    private func floatingCircleBackground(isActive: Bool = false) -> some View {
+        Circle()
+            .fill(palette.background.opacity(reduceTransparency ? 1 : 0.96))
+            .overlay {
+                if isActive {
+                    Circle().fill(
+                        palette.accent.opacity(
+                            ReaderControlStyle.selectedAccentOpacity
+                        )
+                    )
+                }
             }
-            .ignoresSafeArea()
+            .shadow(color: .black.opacity(0.14), radius: 8, y: 2)
+            .overlay(
+                Circle().strokeBorder(
+                    isActive ? palette.accent : palette.hairline
+                )
+            )
     }
 
+    /// Bottom chrome: pages-read pill on the left, and the Books-style
+    /// menu on the right — one floating icon that fans out into the
+    /// reader's tools, with a share / rotation-lock / bookmark row at
+    /// the very bottom.
+    private var bottomPanel: some View {
+        ZStack(alignment: .bottom) {
+            positionNumber
+                .frame(maxWidth: .infinity)
+            HStack {
+                Spacer()
+                menuFan
+            }
+        }
+        .padding(.horizontal, Spacing.md)
+        .padding(.bottom, Spacing.xs)
+    }
+
+    /// Bare "read / total" number, bottom center — no pill chrome.
+    /// Still a button: it opens the position navigator.
+    private var positionNumber: some View {
+        Button {
+            viewModel.activeSheet = .position
+        } label: {
+            Text(pageLabel)
+                .font(Typography.meta(13))
+                .monospacedDigit()
+                .foregroundStyle(palette.secondaryText)
+                .frame(minHeight: Spacing.minTapTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("reader.position")
+        .accessibilityLabel(Text("Position in book: \(pageLabel)"))
+    }
+
+    private var menuFan: some View {
+        VStack(alignment: .trailing, spacing: Spacing.sm) {
+            if isMenuOpen {
+                Group {
+                    floatingCircle(
+                        icon: "list.bullet", identifier: "reader.contents"
+                    ) {
+                        viewModel.activeSheet = .contents
+                    }
+                    .accessibilityLabel(Text("Contents"))
+                    .transition(fanTransition(delay: 0.15))
+
+                    floatingCircle(
+                        icon: "magnifyingglass", identifier: "reader.search"
+                    ) {
+                        viewModel.activeSheet = .search
+                    }
+                    .accessibilityLabel(Text("Search"))
+                    .transition(fanTransition(delay: 0.10))
+
+                    Button {
+                        viewModel.activeSheet = .typography
+                    } label: {
+                        // Crimson Pro "Aa" echoes the reader's typeface.
+                        Text("Aa")
+                            .font(Typography.title(19))
+                            .foregroundStyle(palette.text)
+                            .frame(width: 48, height: 48)
+                            .background(floatingCircleBackground())
+                            .contentShape(Circle())
+                    }
+                    .accessibilityIdentifier("reader.typography")
+                    .accessibilityLabel(Text("Themes & settings"))
+                    .transition(fanTransition(delay: 0.05))
+
+                    HStack(spacing: Spacing.sm) {
+                        if let url = viewModel.bookFileURL {
+                            ShareLink(item: url) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(
+                                        size: 18, weight: .semibold
+                                    ))
+                                    .foregroundStyle(palette.text)
+                                    .frame(width: 48, height: 48)
+                                    .background(floatingCircleBackground())
+                                    .contentShape(Circle())
+                            }
+                            .accessibilityIdentifier("reader.share")
+                            .accessibilityLabel(Text("Share book"))
+                        }
+
+                        floatingCircle(
+                            icon: viewModel.isOrientationLocked
+                                ? "lock.rotation" : "rotate.right",
+                            identifier: "reader.rotationLock",
+                            isActive: viewModel.isOrientationLocked
+                        ) {
+                            viewModel.toggleOrientationLock()
+                            AppDelegate.lockPortrait =
+                                viewModel.isOrientationLocked
+                            AppDelegate.refreshOrientationLock()
+                        }
+                        .accessibilityLabel(Text(
+                            viewModel.isOrientationLocked
+                                ? "Unlock rotation" : "Lock rotation"
+                        ))
+
+                        floatingCircle(
+                            icon: viewModel.currentBookmark != nil
+                                ? "bookmark.fill" : "bookmark",
+                            identifier: "reader.bookmark"
+                        ) {
+                            viewModel.toggleBookmark()
+                        }
+                        .accessibilityLabel(Text(
+                            viewModel.currentBookmark != nil
+                                ? "Remove bookmark" : "Add bookmark"
+                        ))
+                    }
+                    .transition(fanTransition(delay: 0))
+                }
+            }
+
+            floatingCircle(
+                icon: isMenuOpen ? "chevron.down" : "ellipsis",
+                identifier: "reader.menu"
+            ) {
+                isMenuOpen.toggle()
+            }
+            .accessibilityLabel(Text("Reading menu"))
+        }
+        .animation(
+            reduceMotion
+                ? nil : .spring(response: 0.34, dampingFraction: 0.72),
+            value: isMenuOpen
+        )
+    }
+
+    /// Staggered pop for the fanned-out menu: each item springs up from
+    /// the menu button, the nearest first — the delay makes the fan
+    /// visibly cascade instead of appearing as one block.
+    private func fanTransition(delay: Double) -> AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .scale(scale: 0.3, anchor: .bottomTrailing)
+            .combined(with: .opacity)
+            .combined(with: .offset(y: 16))
+            .animation(
+                .spring(response: 0.34, dampingFraction: 0.72)
+                    .delay(delay)
+            )
+    }
+
+    /// "read / total" whole-book pages at the current typography.
     private var pageLabel: String {
-        let percent = Int((viewModel.bookFraction * 100).rounded())
-        return "\(viewModel.page + 1) / \(viewModel.pageCount) · \(percent)%"
+        "\(viewModel.estimatedBookPagesRead) / "
+            + "\(viewModel.estimatedBookPageCount)"
     }
 
     private func errorView(_ message: String) -> some View {
@@ -336,51 +466,127 @@ struct ReaderView: View {
     }
 }
 
-/// Wraps a define target so it can drive `.sheet(item:)`. The word itself
-/// is the identity, so re-selecting the same word re-presents cleanly.
-private struct DefineItem: Identifiable {
-    let word: String
-    var id: String { word }
-}
+/// Expanded whole-book navigator. The native Slider supplies the adjustable
+/// accessibility semantics that the old hand-built 13pt scrubber could not.
+private struct ReadingPositionSheet: View {
+    @Bindable var viewModel: ReaderViewModel
 
-/// A slim, finger-friendly progress scrubber.
-struct ScrubberView: View {
-    let fraction: Double
-    let accent: Color
-    let track: Color
-    let onScrub: (Double) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var draftFraction: Double
+    @State private var isEditing = false
 
-    @State private var dragFraction: Double?
+    private var palette: ReaderPalette { viewModel.palette }
+
+    init(viewModel: ReaderViewModel) {
+        self.viewModel = viewModel
+        _draftFraction = State(initialValue: viewModel.bookFraction)
+    }
 
     var body: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let current = dragFraction ?? fraction
-            ZStack(alignment: .leading) {
-                Capsule().fill(track).frame(height: 3)
-                Capsule().fill(accent)
-                    .frame(width: max(current * width, 0), height: 3)
-                Circle()
-                    .fill(accent)
-                    .frame(width: 13, height: 13)
-                    .offset(x: current * width - 6.5)
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            header
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(viewModel.currentChapterTitle)
+                    .font(Typography.title(20))
+                    .foregroundStyle(palette.text)
+                    .lineLimit(2)
+                    .textSelection(.disabled)
+
+                HStack {
+                    Text("Chapter \(viewModel.chapterPositionText)")
+                    Spacer()
+                    Text("\(displayPercent)%")
+                        .monospacedDigit()
+                }
+                .font(Typography.meta(13))
+                .foregroundStyle(palette.secondaryText)
             }
-            .frame(maxHeight: .infinity)
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        dragFraction = min(
-                            max(value.location.x / width, 0), 1
-                        )
-                    }
-                    .onEnded { value in
-                        let final = min(max(value.location.x / width, 0), 1)
-                        dragFraction = nil
-                        onScrub(final)
-                    }
+
+            Slider(
+                value: $draftFraction,
+                in: 0...1,
+                onEditingChanged: handleEditingChanged
             )
+            .tint(palette.accent)
+            .accessibilityLabel("Position in book")
+            .accessibilityValue("\(displayPercent)%")
+            .accessibilityIdentifier("reader.position.slider")
+
+            HStack(spacing: Spacing.sm) {
+                chapterButton(
+                    title: "Previous chapter",
+                    icon: "chevron.left",
+                    identifier: "reader.position.previousChapter",
+                    enabled: viewModel.spineIndex > 0
+                ) {
+                    if viewModel.goToPreviousChapter() {
+                        draftFraction = viewModel.bookFraction
+                    }
+                }
+                chapterButton(
+                    title: "Next chapter",
+                    icon: "chevron.right",
+                    identifier: "reader.position.nextChapter",
+                    enabled: viewModel.hasNextChapter
+                ) {
+                    if viewModel.goToNextChapter() {
+                        draftFraction = viewModel.bookFraction
+                    }
+                }
+            }
         }
-        .frame(height: 26)
+        .padding(.horizontal, Spacing.lg)
+        .padding(.top, Spacing.sm)
+        .padding(.bottom, Spacing.xl)
+        .foregroundStyle(palette.text)
+        .background(palette.background.ignoresSafeArea())
+        .presentationDetents([.height(320), .medium])
+        .presentationDragIndicator(.hidden)
+        .onChange(of: viewModel.bookFraction) { _, newValue in
+            if !isEditing { draftFraction = newValue }
+        }
+    }
+
+    private var displayPercent: Int {
+        Int((draftFraction * 100).rounded())
+    }
+
+    private var header: some View {
+        HStack {
+            Text("Position in book")
+                .font(Typography.display(28))
+            Spacer()
+            Button("Done") { dismiss() }
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(palette.accent)
+                .accessibilityIdentifier("reader.position.done")
+        }
+    }
+
+    private func handleEditingChanged(_ editing: Bool) {
+        isEditing = editing
+        if !editing {
+            viewModel.scrub(toBookFraction: draftFraction)
+        }
+    }
+
+    private func chapterButton(
+        title: LocalizedStringKey,
+        icon: String,
+        identifier: String,
+        enabled: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon)
+                .font(Typography.body(14))
+                .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.bordered)
+        .tint(palette.accent)
+        .disabled(!enabled)
+        .accessibilityIdentifier(identifier)
     }
 }

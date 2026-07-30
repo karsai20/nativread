@@ -1,6 +1,6 @@
 import bz2, re, struct, html as htmlmod, urllib.parse, collections, sys
 
-SRC = '/tmp/quire-enhu/en_ontolex.ttl.bz2'
+SRC = '/tmp/nativread-enhu/en_ontolex.ttl.bz2'
 subj_re = re.compile(r'^eng:__tr_hun_\d+_(.+?)\s*$')
 wf_re = re.compile(r'dbnary:writtenForm\s+"(.*)"@hu')
 
@@ -59,7 +59,7 @@ for key in words:
     idx.append(wb + b'\x00' + struct.pack('>I', off) + struct.pack('>I', len(b)))
 idxbuf = b''.join(idx)
 
-OUT='/tmp/quire-enhu/out'
+OUT='/tmp/nativread-enhu/out'
 import os; os.makedirs(OUT, exist_ok=True)
 open(f'{OUT}/enhu.dict','wb').write(dictbuf)
 open(f'{OUT}/enhu.idx','wb').write(idxbuf)

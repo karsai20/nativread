@@ -4,12 +4,12 @@
 
 # NativRead
 
-**A calm, editorial EPUB reader for iPhone — built to the standard of Apple Books and Kindle, with real page-level pagination, an in-app language switch, and a typeface you'll actually want to read in.**
+**Translate DRM-free books you own into your language, then read them in a calm, editorial iPhone reader built to the standard of Apple Books and Kindle.**
 
 ![Platform](https://img.shields.io/badge/platform-iOS%2017%2B-1d3a2f?style=flat-square)
 ![Swift](https://img.shields.io/badge/Swift-5.9-d6613c?style=flat-square)
 ![UI](https://img.shields.io/badge/SwiftUI-%40Observable-1d3a2f?style=flat-square)
-![Tests](https://img.shields.io/badge/tests-236%20passing-5a7d5a?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-passing-5a7d5a?style=flat-square)
 ![Languages](https://img.shields.io/badge/languages-English%20%C2%B7%20Magyar-5a7d5a?style=flat-square)
 
 </div>
@@ -19,8 +19,8 @@
 | Library | Reader · Light | Reader · Dark |
 |:---:|:---:|:---:|
 | ![Library](docs/screenshots/library.png) | ![Reader Light](docs/screenshots/reader-light.png) | ![Reader Dark](docs/screenshots/reader-dark.png) |
-| **Appearance panel** | **Language onboarding** | **Localized (Magyar)** |
-| ![Appearance panel](docs/screenshots/appearance-panel.png) | ![Onboarding](docs/screenshots/onboarding-language.png) | ![Hungarian library](docs/screenshots/library-hu.png) |
+| **Appearance panel** | **Animated welcome** | **Localized (Magyar)** |
+| ![Appearance panel](docs/screenshots/appearance-panel.png) | ![Animated welcome](docs/screenshots/onboarding-language.png) | ![Hungarian library](docs/screenshots/library-hu.png) |
 
 </div>
 
@@ -28,14 +28,20 @@
 
 ## Highlights
 
+### ✨ Translate your own books
+Choose an eligible EPUB from the shelf, translate a real first chapter free,
+then receive the translated edition directly in the same library. Translation
+runs as a durable backend job: reopening the app reconnects to it and imports
+the result when it is ready.
+
 ### 🌍 Read in your language
-Full **English** and **Magyar (Hungarian)** interface localization. The language is picked at first launch and applied everywhere — every `Text` follows your choice live, not just number and date formatting. A separate **dictionary (Define) language** lets the EN→HU dictionary back up Hungarian reading while the UI stays in whatever language you prefer.
+Full **English** and **Magyar (Hungarian)** interface localization. The language is picked at first launch and applied everywhere — every `Text` follows your choice live, not just number and date formatting. Selected text keeps the native iOS menu, including Apple's installed **Look Up** dictionaries.
 
 ### 📖 Real page-level reading
-Chapters are laid out in viewport-wide CSS columns inside a `WKWebView`, and a small JS engine turns pages with compositor-friendly `translate3d` animations, reporting state back to Swift over a message bridge. Tap zones, swipe, an animated page turn, and seamless chapter boundaries — the way real readers work, not one-swipe-per-chapter.
+Chapters are laid out in viewport-wide CSS columns inside a `WKWebView`; page turns move the native scroll view so off-screen columns stay painted, while a small JS bridge reports reading state and drives the optional curl effect. Tap zones, swipes, and chapter boundaries all operate at page level.
 
 - **Whole-book progress** weighted by chapter size, with a scrubber to jump anywhere (`Book.bookFraction` / `Book.position` are exact inverses, property-tested)
-- **Reading flows**: paged (default) or continuous vertical scroll; page-turn animation choice — slide, fade, or instant (e-ink style)
+- **Reading flows**: paged (default) or continuous vertical scroll; page-turn animation choice — curl, slide, fade, or instant
 - **Full-text search** across the whole book with snippets; tap a result to jump and highlight the match
 - **Persistent highlights** anchored by text + occurrence (survive font, margin, and flow changes), plus bookmarks and TOC in one contents sheet
 
@@ -52,8 +58,8 @@ Container → OPF → manifest/spine/metadata parsing with percent-encoded and f
 ### 📄 PDFs and plain text
 Beyond EPUB, NativRead opens **PDFs** and **plain-text files**.
 
-- **PDF** — a fixed-layout PDFKit reader with tap-zone paging, a page scrubber, bookmarks, the document outline as a contents list, full-document search, and Define on selected text. Each page counts as one unit of progress, so the same whole-book scrubber and progress math work as they do for EPUBs. Dark themes invert the page while preserving image hues, so night reading stays comfortable instead of turning photos into negatives. Password-protected or unreadable PDFs are rejected on import with a clear error.
-- **TXT** — a plain `.txt` is synthesised into a single chapter and flows into the same reflowable web reader as EPUBs, inheriting every theme, font, search, and Define for free. The title is taken from the first non-empty line.
+- **PDF** — a fixed-layout PDFKit reader with tap-zone paging, a page scrubber, bookmarks, the document outline as a contents list, full-document search, and the native iOS text-selection menu. Each page counts as one unit of progress, so the same whole-book scrubber and progress math work as they do for EPUBs. Dark themes invert the page while preserving image hues, so night reading stays comfortable instead of turning photos into negatives. Password-protected or unreadable PDFs are rejected on import with a clear error.
+- **TXT** — a plain `.txt` is synthesised into a single chapter and flows into the same reflowable web reader as EPUBs, inheriting every theme, font, search, and native Look Up for free. The title is taken from the first non-empty line.
 
 ---
 
@@ -72,17 +78,16 @@ NativRead/
 │   ├── TextImporter.swift      — TXT → synthesised reflowable chapter
 │   ├── NightInvertPDFPage.swift— dark-theme PDF page inversion
 │   ├── SettingsStore.swift     — appearance & typography persistence
-│   ├── LocalizationStore.swift — app + dictionary language, persisted
+│   ├── LocalizationStore.swift — app language, persisted
 │   ├── BundleLanguage.swift    — main-bundle .lproj routing for live switch
-│   ├── DictionaryProvider.swift— bundled bilingual dictionaries (WordNet, EN→HU)
 │   ├── ReaderStyle.swift       — CSS generator (pure, tested)
 │   ├── ReaderScripts.swift     — JS pagination engine
 │   ├── ReaderController.swift  — WKWebView bridge
 │   └── SearchService.swift     — whole-book search (pure, tested)
 └── Views/
-    ├── Onboarding/             — splash + language selection
+    ├── Onboarding/             — device-language welcome and animated core-loop guide
     ├── Library/                — shelf, covers, import
-    ├── Settings/               — appearance, language, dictionary
+    ├── Settings/               — appearance and language
     └── Reader/                 — EPUB reader + PDFReaderView (PDFKit),
                                   chrome, tabbed appearance panel
 ```
@@ -108,13 +113,13 @@ xcodebuild test -project NativRead.xcodeproj -scheme NativRead \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-- **214 unit tests** — EPUB 2/3 parsing, TOC (nav + NCX), cover detection, error paths, progress-math round-trips, settings persistence + migration, CSS generation (paged + scroll), warmth colour math, highlight locators, search, the full localization layer (language defaults, persistence, locale/bundle resolution, dictionary mapping), plus PDF/TXT import + the PDF reader (format routing, metadata/cover, text synthesis + HTML escaping, encoding fallback, page-clamp/persistence math, search, bookmarks, night-invert colour math)
-- **22 UI tests** — language onboarding, splash skip, seeded shelf, page turn + progress restore, theme switching across the tabbed panel, flow/transition pickers, scroll journey, highlight persistence, TOC navigation, whole-book search, bookmarking, vocabulary, and the PDF reader journey
+- **Unit tests** — EPUB 2/3 parsing, TOC (nav + NCX), cover detection, error paths, progress math, settings persistence, CSS generation, highlight locators, search, localization, PDF/TXT import, bookmarks, and night-mode rendering
+- **UI tests** — device-language detection, welcome language switching and core-loop onboarding, empty and seeded shelves, portrait/landscape relayout, native Look Up, page turn and progress restore, theme switching, reading flows, highlights, TOC navigation, search, bookmarking, translation, and the PDF reader journey
 
 **Launch-argument hooks** (UI tests + screenshot automation):
 `-resetLibrary`, `-resetSettings`, `-resetLanguage`, `-seedSampleBook`, `-seedProgress`,
-`-seedSampleVocabulary`, `-skipOnboarding`, `-forceOnboarding`, `-onboardingHold`,
-`-autoOpenFirstBook`, `-forceTheme <paper|sepia|dusk|ink>`, `-forceFlow <paged|scroll>`,
+`-skipOnboarding`, `-forceOnboarding`,
+`-seedAliceBooks`, `-autoOpenFirstBook`, `-forceTheme <paper|sepia|dusk|ink>`, `-forceFlow <paged|scroll>`,
 `-forceTransition <slide|fade|instant>`, `-forceLanguage <en|hu>`,
 `-showTypographyPanel`, `-appearanceTab <theme|text|layout>`.
 

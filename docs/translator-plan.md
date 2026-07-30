@@ -5,6 +5,20 @@ gate: see [`legal-posture.md`](./legal-posture.md) — **PASS WITH CONDITIONS**;
 MUST-FIX items there are build tasks here. EU AI Act (Art 50 transparency,
 applies 2026-08-02) folded in 2026-07-06 as MUST-FIX #9 → task T25.
 
+> **Sync 2026-07-07 (blueprint eng review):** the 2026-07-07 CEO review +
+> blueprint supersede parts of this doc — multi-language at launch (replaces
+> D3.1 Hungarian-only), `targetLanguage` added to entitlement/tier/job keys,
+> free-chapter moderation-refusal branch on T3, re-upload entitlement restore
+> promoted to P1, T18 failure-bucket events, T13/T14 relabeled P1. On conflict,
+> `blueprint.md` + this sync note win over older text below.
+>
+> **Product sync 2026-07-20:** learner inline glosses, custom dictionaries,
+> saved vocabulary, and reading statistics are no longer roadmap items. The
+> translator is the product wedge; the reader stays quiet and uses Apple's
+> native Look Up. Translation processing is already server-side and durable:
+> once a backend job ID exists, the app reconnects on relaunch/foreground and
+> downloads the finished EPUB. Upload before job creation remains foreground.
+
 ## CEO review decisions (2026-06-30, SELECTIVE EXPANSION)
 
 These override the matching items below; see the CEO plan in
@@ -14,9 +28,11 @@ These override the matching items below; see the CEO plan in
   **ship together in one App Review cycle.** Founder wants revenue from day one and
   accepts building money/durability machinery before stranger-demand is proven. The
   free first chapter stays as in-MVP try-before-buy, not a separate validation deploy.
-- **D3.1 — Hungarian-only at launch.** Quality is validated only for Hungarian; add
-  target languages post-launch, each gated on the quality bar. (Multi-language → TODOS.)
-- **D3.2 — Learner inline-gloss mode → deferred to TODOS** (strong Phase 2 bet).
+- **D3.1 — Hungarian-only at launch.** **[SUPERSEDED 2026-07-07 by CEO D4/C:
+  multi-language at launch with a raised per-language gate (full novel run +
+  native-speaker read + dated go/no-go) — see blueprint.md §3.]**
+- **D3.2 — Learner inline-gloss mode. [SUPERSEDED 2026-07-20: removed from the
+  roadmap.]**
 - **D3.3 — Keep iCloud/CloudKit durability (T13) in the launch MVP** (P2→P1) for the
   clean "book lives in the user's own cloud" legal-locker story.
 - **D4 — Pricing: value-anchored length ladder** (replaces "3 tiers"). 5-6
@@ -59,7 +75,7 @@ These override the matching items below; see the CEO plan in
   cloud: **iCloud (CloudKit private DB)** for Apple users now; **Google Drive**
   (`drive.file`) for Google users in Phase 2. This is both the cleanest legal
   posture and avoids re-running the API on reinstall.
-- **Reuse-first thin client:** the `quire-translator` Next.js server is already a
+- **Reuse-first thin client:** the `nativread-translator` Next.js server is already a
   job server (`upload / translate / status / result / job{pause,resume,cancel}`,
   per-chunk resume, `cost.ts` accounting, a `Translator` interface with
   `providers/{deepseek,fake}`). We **extend** it; we do not rebuild. The iOS app
@@ -71,7 +87,7 @@ These override the matching items below; see the CEO plan in
 ## Architecture
 
 ```
-iOS (thin client; Android/Kotlin later, same backend)   Backend (quire-translator, extended)
+iOS (thin client; Android/Kotlin later, same backend)   Backend (nativread-translator, extended)
 ──────────────────────────────────────────             ──────────────────────────────────────
 Sign in with Apple / Google ──id token──►  verify provider token → stable userId, session
 pick own EPUB → ownership attestation
@@ -87,7 +103,7 @@ sync to USER's cloud (iCloud/CloudKit)
                                             long-term server state = METADATA ONLY (no book content)
 ```
 
-## Backend work (extend quire-translator)
+## Backend work (extend nativread-translator)
 
 1. **Identity — Apple + Google.** Verify each provider's id token server-side
    (Apple: signature vs Apple keys, `aud`=bundle id, `iss`, expiry; Google: OAuth
@@ -102,17 +118,27 @@ sync to USER's cloud (iCloud/CloudKit)
    - **Free first chapter:** the first *content* chapter — **skip front matter**
      (cover/title/copyright/TOC); pick the first spine item past a word-count
      threshold / nav landmark, NOT `spine[0]` (outside-voice #3). Once per
-     `(userId, sourceHash)`.
+     `(userId, sourceHash)` — deliberately language-agnostic (eng D9,
+     2026-07-07): one free taste per BOOK, not per language, so the abuse
+     bound doesn't scale with the language count.
    - **Paid: chapters 2+**, priced by a **length tier** detected at upload
      (e.g. <150 / 150-400 / 400+ pages → 3 StoreKit **consumable** price points),
      shown before purchase. Tier derived from the `cost.ts` token estimate so
      margin stays positive on long books.
-   - **Entitlement per `(userId, sourceHash)`** (not a credit ledger). A verified
-     StoreKit 2 transaction grants it; verify server-side *before* granting;
-     **dedupe on transaction id** (no double-grant).
+   - **Entitlement per `(userId, sourceHash, targetLanguage)`** (not a credit
+     ledger; `targetLanguage` added by eng D9 2026-07-07 — multi-language launch
+     makes "this book" ambiguous without it: a German purchase must not entitle
+     or block the Spanish one). A verified StoreKit 2 transaction grants it;
+     verify server-side *before* granting; **dedupe on transaction id** (no
+     double-grant). **Re-upload restore (eng D11, P1):** consumables have no
+     Apple-side restore — the entitlement row IS the restore. Re-uploading the
+     same `(sourceHash, targetLanguage)` finds the entitlement and re-delivers
+     or re-runs at **no charge**; test asserts no double-charge and no
+     double-grant; purchase UI states the guarantee. Exotic recovery (new Apple
+     ID, lost file) stays the T17 P3 support path.
    - **Free-chapter abuse bounds:** real-first-content-chapter only +
      `(userId, sourceHash)` dedup + per-account/day rate limit + word-count cap +
-     login required.
+     login renativreadd.
 4. **Quota + cost ceiling + GLOBAL kill-switch (outside-voice #9).** Keep
    `COST_CEILING_USD` per book; add per-user/day limits **and a global daily
    spend kill-switch** — per-user caps don't bound aggregate spend across many
@@ -187,8 +213,14 @@ sync to USER's cloud (iCloud/CloudKit)
   A single **stateless `translate-one-chapter` endpoint** (a free chapter is
   seconds and ephemeral — it does NOT need volumes/resume/retention/auto-delivery)
   + Apple/Google auth + ownership attestation + front-matter-skipped free chapter
-  + DeepSeek disclosure + account deletion + **global spend kill-switch**. The
+  + AI-provider disclosure (Western provider per T15 — *not* DeepSeek; wording
+  synced 2026-07-07) + account deletion + **global spend kill-switch**. The
   free chapter IS the demand signal. Fastest path to the real answer.
+  **Refusal branch (eng D4, 2026-07-07):** provider moderation refusal is
+  classified separately from transient failure — distinct non-retry error code
+  and copy ("this book can't be translated automatically"), the free-chapter
+  credit is NOT consumed, and each refusal is logged as a T15 provider-selection
+  data point + a T18 failure event.
 - **Phase 1b — paid product (full job machinery appears here).** Full job
   lifecycle (resume, object storage), auto-deliver + APNs + background upload,
   per-book StoreKit + entitlement + txn-dedupe, **paid-job robustness**
@@ -227,15 +259,15 @@ sync to USER's cloud (iCloud/CloudKit)
 
 ## What already exists (reuse, don't rebuild)
 
-- `quire-translator` core: `epub`, `chunker`, `markup`, `glossary`, `translator`
+- `nativread-translator` core: `epub`, `chunker`, `markup`, `glossary`, `translator`
   (with `Translator` interface + `providers/{deepseek,fake}`), `job` (per-chunk
   resume), `cost.ts` (token accounting), quality pipeline. Framework-agnostic.
-- `quire-translator` server: `upload/translate/status/result/job{pause,resume,
+- `nativread-translator` server: `upload/translate/status/result/job{pause,resume,
   cancel}` routes, in-memory job registry, Dockerfile.
 - NativRead iOS: `LibraryStore.importBook(from:)`, WKWebView reader, library/UI.
-- Gaps the plan adds (not in quire-translator): auth, per-user isolation,
+- Gaps the plan adds (not in nativread-translator): auth, per-user isolation,
   StoreKit/entitlements, ephemeral+user-cloud storage, PaaS durability, public
-  hardening. quire-translator's file/in-memory model is household-LAN; it does
+  hardening. nativread-translator's file/in-memory model is household-LAN; it does
   NOT transfer to public PaaS unchanged (see Arch review finding #3).
 
 ## UI / Design spec (from /plan-design-review, 2026-06-30)
@@ -287,7 +319,7 @@ Auto-import       | "Adding to library"| —                       | storage-ful
 Every error is user-visible with a recovery path; **paid-but-undelivered** surfaces an
 explicit "we're retrying / you'll be refunded" message, never a silent failure.
 
-### Accessibility floor (50+ persona — required, not deferred)
+### Accessibility floor (50+ persona — renativreadd, not deferred)
 
 Dynamic Type on all translator chrome; 44pt minimum targets; VoiceOver labels on every
 control (esp. the attestation checkbox and buy buttons); contrast ≥ 4.5:1 on body. The
@@ -303,26 +335,30 @@ Synthesized from this review's findings. P1 blocks ship; P2 same branch; P3 foll
 - [ ] **T4 (P1, ~1d / ~3h)** — backend — Global daily spend kill-switch on free endpoint (outside-voice #9)
 - [ ] **T5 (P1, ~1d / ~2h)** — backend — EPUB upload zip hardening: size cap, sandbox, zip-slip, zip-bomb (outside-voice #10)
 - [ ] **T6 (P1, ~2d / ~3h)** — backend — Paid-job robustness: ceiling can't abort paid job; refund/redrive (outside-voice #2)
-- [ ] **T7 (P1, ~2d / ~3h)** — backend — StoreKit verify + entitlement(userId,sourceHash) + txn-id dedupe
+- [x] **T7 (P1, ~2d / ~3h)** — backend — StoreKit verify + entitlement(userId,sourceHash) + txn-id dedupe (2026-07-30; `cloudflare/src/storekit.ts`, `POST /api/purchase`, migration 0004)
 - [ ] **T8 (P1, ~1d / ~2h)** — backend — Ephemeral storage: delete source on done; deliver-then-delete; 30d cap; metadata-only
 - [ ] **T9 (P1, ~1d / ~2h)** — backend — Account + data deletion & export (Apple 5.1.1(v))
 - [ ] **T10 (P1, ~2d / ~3h)** — ios — Apple+Google login; attestation gate; background-URLSession upload
 - [ ] **T11 (P1, ~2d / ~3h)** — ios — Auto-deliver→import; APNs ready; storage-full; responsibility notice (outside-voice #4/#12)
-- [ ] **T12 (P1, ~1d / ~2h)** — ios — Per-book purchase UI (tier+price before buy); free chapter auto-shown
-- [ ] **T13 (P2, ~2d / ~3h)** — ios — iCloud/CloudKit private-DB durable sync (Apple)
-- [ ] **T14 (P2, ~1d / ~2h)** — backend — Cross-chunk name/term glossary quality gate, 1b (outside-voice #6)
+- [x] **T12 (P1, ~1d / ~2h)** — ios — Per-book purchase UI (tier+price before buy); free chapter auto-shown (2026-07-30; `BookPurchaseStore`, price from StoreKit `displayPrice`)
+- [ ] **T13 (P1, ~2d / ~3h)** — ios — iCloud/CloudKit private-DB durable sync (Apple) *(P2→P1 per CEO D3.3 "launch MVP"; label synced 2026-07-07)*
+- [ ] **T14 (P1, ~1d / ~2h)** — backend — Cross-chunk name/term glossary quality gate, 1b (outside-voice #6) *(P2→P1: 1b IS the launch; label synced 2026-07-07)*
 - [ ] **T15 (P1, ~1-2d / ~half-day)** — backend — Select Western training-excluded provider (default Gemini Flash-class), add adapter, re-validate Hungarian quality + cost A/B (resolves legal #3 + China transfer)
-- [ ] **T16 (P1, ~1d / ~1h)** — ios — DeepSeek disclosure + App Store labels + metadata scrub + privacy/ToS URLs
-- [ ] **T17 (P3, ~0.5d / ~1h)** — backend — Lost-entitlement recovery/support path (outside-voice #11)
-- [ ] **T18 (P1, ~0.5d / ~1h)** — backend — First-party conversion funnel events in Postgres (free-chapter-completed → purchase-started → purchase-completed; segment by length tier + target language)
+- [ ] **T16 (P1, ~1d / ~1h)** — ios — AI-provider disclosure (names the chosen Western provider per T15 — NOT DeepSeek; wording synced 2026-07-07) + App Store labels + metadata scrub + privacy/ToS URLs
+- [ ] **T17 (split 2026-07-07, eng D11)** — backend — Entitlement restore:
+  **(a) P1** re-upload restore — same `(userId, sourceHash, targetLanguage)` →
+  entitlement found → re-deliver/re-run at no charge; tests: no double-charge,
+  no double-grant; purchase UI states the guarantee. **(b) P3** exotic
+  recovery/support path (new Apple ID, lost file) (outside-voice #11)
+- [ ] **T18 (P1, ~0.5d / ~1h)** — backend — First-party conversion funnel events in Postgres (free-chapter-completed → purchase-started → purchase-completed; segment by length tier + target language). **Failure buckets (eng D12, 2026-07-07):** also emit import-failed / drm-blocked / format-unsupported / moderation-refused / chapter-detection-wrong, same table + retention + rate-limit posture, so the §4 kill signal reads conversion against *attempted-and-eligible*, not raw users
   - Surfaced by: CEO §8 / D5 — compressed MVP (D1) makes the funnel the only demand signal
   - **Eng D4:** funnel writes ride the SAME rate-limit + global kill-switch as the free endpoint (T4); rows are metadata-only (no book content); raw events pruned/aggregated on a retention window so abuse can't balloon the table or skew conversion. Test: event emitted on each transition.
 - [ ] **T19 (P1, ~1d / ~1-2h)** — backend — Backend-only Sentry-class error monitoring; alert on paid-but-undelivered; disclose as sub-processor (legal #7). iOS stays SDK-free.
   - Surfaced by: CEO §8 / D6 — paid-but-undelivered is the most damaging failure; needs fast paging
   - **Eng D2 (P1):** explicit scrub — `sendDefaultPii:false`; `beforeSend` strips request bodies (= book text); deny-list env + headers (the AI provider API key); allowlist only safe fields (error type, job id, hashed userId). Test asserts no book text and no key appear in the captured payload. The default config is unsafe and MUST NOT ship.
-- [ ] **T20 (P1, ~0.5d / ~1h)** — backend — Pricing: register 5-6 length-tier StoreKit consumables (D4 ladder); pick tier at upload
+- [ ] **T20 (P1, ~0.5d / ~1h)** — backend — Pricing: register the 6 length-tier StoreKit consumables in App Store Connect. The tier is already picked at upload from source characters (`BOOK_TIERS`, `com.karsai.nativread.book.t1…t6`); only the ASC products, the In-App Purchase key and the Paid Apps agreement remain
   - Surfaced by: CEO §9 / D4 — ladder replaces 3 tiers; continuous pricing barred by IAP
-  - **Eng D3:** tier = pure function of the parsed EPUB's word/char count (a STABLE input, not a variable live estimate), computed once at upload and FROZEN per `(userId, sourceHash)`; the price shown before purchase (legal #8) IS the SKU charged (Apple 3.1.1). Test: same book → same tier every time.
+  - **Eng D3:** tier = pure function of the parsed EPUB's word/char count (a STABLE input, not a variable live estimate), computed once at upload and FROZEN per `(userId, sourceHash, targetLanguage)` (key widened by eng D9 2026-07-07). Test: same book → same tier every time; the price shown before purchase (legal #8) IS the SKU charged (Apple 3.1.1).
 - [ ] **T21 (P1, ~1d / ~2h)** — ios — Progress screen, leave-and-notify primary (D3): reassurance copy + chapters-done/est-time + notifications-denied fallback; editorial tokens
   - Surfaced by: Design P2/P3 — multi-minute wait for the 50+ persona
 - [ ] **T22 (P1, ~1d / ~2h)** — ios — Three-entry purchase UX (D4): persistent buy entry from start + mid-chapter affordance + end-of-free-chapter prompt; tier+price+scope shown pre-buy; no forced scroll
@@ -331,7 +367,7 @@ Synthesized from this review's findings. P1 blocks ship; P2 same branch; P3 foll
   - Surfaced by: Design P1 — 5.2 survival artifact
 - [ ] **T24 (P1, ~1d / ~2h)** — ios — Translator screens on BrandPalette/Typography/Spacing + interaction state table (all states user-visible, paid-but-undelivered non-silent) + 50+ a11y floor (Dynamic Type, 44pt, VoiceOver, contrast)
   - Surfaced by: Design P2/P4/P5/P6 — editorial fit, full state coverage, accessibility
-- [ ] **T25 (P1, ~0.5d / ~1h)** — ios+backend — EU AI Act Art 50 transparency (applies 2026-08-02): machine-readable "AI-generated (machine translation)" marker in the delivered translated EPUB's OPF metadata, preserved on re-export; explicit "AI-translated" label replacing the bare "(Hungarian preview)" wording
+- [~] **T25 (P1, ~0.5d / ~1h)** — ios+backend — EU AI Act Art 50 transparency (applies 2026-08-02). **iOS visible label: DONE** 2026-07-06 — imported translations read "(AI Hungarian preview/translation)" + "AI · HU" library badge. **Remaining (backend):** machine-readable "AI-generated (machine translation)" marker in the delivered translated EPUB's OPF metadata, preserved on re-export.
   - Surfaced by: legal-posture.md §EU AI Act (2026-07-06 compliance pass); pairs with T16's disclosure copy
 
 ## Worktree parallelization
@@ -353,7 +389,7 @@ Lanes A, B, C touch `lib/` / `app/api/` (same repo, coordinate); D is the iOS re
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR | SELECTIVE_EXP: 5 proposals, 3 accepted (compressed MVP, kept iCloud, funnel+Sentry), 2 deferred (multi-lang, learner mode); pricing resolved |
 | Codex Review | `/codex review` | Independent 2nd opinion | 0 | — | — |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | CLEAR | Run 1: 5 findings + 12 outside-voice, dispositioned. Run 2 (post-CEO scope): 3 findings on new scope, all folded — Sentry scrub (T19a), tier determinism (T20a), funnel bounding (T18a) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (renativreadd) | 2 | CLEAR | Run 1: 5 findings + 12 outside-voice, dispositioned. Run 2 (post-CEO scope): 3 findings on new scope, all folded — Sentry scrub (T19a), tier determinism (T20a), funnel bounding (T18a) |
 | Design Review | `/plan-design-review` | UI/UX gaps | 1 | CLEAR | score 3/10 → 9/10; 3 decisions (progress leave-and-notify, 3-entry purchase, per-book attestation) + full UI/design spec added |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
@@ -364,7 +400,8 @@ Lanes A, B, C touch `lib/` / `app/api/` (same repo, coordinate); D is the iOS re
 - **CROSS-MODEL:** no tension at eng review; CEO review added strategy decisions (D1
   compressed MVP, D4 pricing ladder, D5 funnel, D6 monitoring) — none contradict eng.
 - **VERDICT:** CEO + ENG + DESIGN CLEARED — ready to implement as a **compressed paid
-  MVP** (D1, no longer 1a-first), **Hungarian-only** (D3.1), with the UI/design spec
+  MVP** (D1, no longer 1a-first), ~~Hungarian-only (D3.1)~~ **multi-language per CEO
+  D4/C 2026-07-07 (see Sync note at top + blueprint.md §3)**, with the UI/design spec
   above. Legal gate PASS WITH CONDITIONS (see `legal-posture.md`); provider selection
   (T15) is an external gate before launch, not a code blocker.
 
