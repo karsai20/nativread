@@ -45,6 +45,10 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleAllowMixedLocalizations: YES
+        # No custom crypto — only HTTPS to the Worker, which is exempt. Without
+        # this every TestFlight upload parks in "Missing Compliance" until the
+        # export question is answered by hand in App Store Connect.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
           UIColorName: "LaunchBackground"
         UISupportedInterfaceOrientations:
