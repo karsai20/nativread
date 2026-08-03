@@ -15,6 +15,9 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     var onChapterReady: (() -> Void)?
     /// Tap zones reported by the page: "left", "right", "center".
     var onTap: ((String) -> Void)?
+
+    /// A tap landed on an existing highlight: (text, occurrence).
+    var onHighlightTap: ((String, Int) -> Void)?
     /// The user picked Highlight in the selection menu.
     var onHighlightRequested: (() -> Void)? {
         get { webView.onHighlightSelection }
@@ -486,6 +489,12 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 self.onState?(page, pageCount)
             case "tap":
                 if let zone { self.onTap?(zone) }
+            case "highlightTap":
+                if let text = body["text"] as? String, !text.isEmpty {
+                    self.onHighlightTap?(
+                        text, body["occurrence"] as? Int ?? 0
+                    )
+                }
             case "scroll":
                 // The engine requests a horizontal page move; drive the
                 // native scroll view directly (reliable, unlike a JS

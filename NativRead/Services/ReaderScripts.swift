@@ -927,6 +927,8 @@ enum ReaderScripts {
                   try {
                     const mark = document.createElement("mark");
                     mark.className = "lumen-highlight";
+                    mark.dataset.hlText = item.text;
+                    mark.dataset.hlOccurrence = String(item.occurrence);
                     range.surroundContents(mark);
                   } catch (e) { /* node mutated mid-walk: skip */ }
                 }
@@ -967,6 +969,16 @@ enum ReaderScripts {
             event.preventDefault();
             const selection = window.getSelection();
             if (selection && !selection.isCollapsed) { return; }
+            const mark = event.target && event.target.closest
+              ? event.target.closest("mark.lumen-highlight") : null;
+            if (mark) {
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "highlightTap",
+                text: mark.dataset.hlText || "",
+                occurrence: Number(mark.dataset.hlOccurrence || 0)
+              });
+              return;
+            }
             const x = event.clientX / window.innerWidth;
             const zone = x < ZONE
               ? "left" : (x > 1 - ZONE ? "right" : "center");

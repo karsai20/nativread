@@ -95,7 +95,29 @@ struct ReaderView: View {
                 SearchSheet(viewModel: viewModel)
             }
         }
+        .confirmationDialog(
+            Text(verbatim: dialogExcerpt),
+            isPresented: Binding(
+                get: { viewModel.tappedHighlight != nil },
+                set: { if !$0 { viewModel.tappedHighlight = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Remove highlight", role: .destructive) {
+                if let highlight = viewModel.tappedHighlight {
+                    viewModel.removeHighlight(highlight)
+                }
+                viewModel.tappedHighlight = nil
+            }
+            .accessibilityIdentifier("reader.highlight.remove")
+        }
         .accessibilityAction(.escape) { dismiss() }
+    }
+
+    /// The tapped passage, trimmed so the dialog title stays one glance.
+    private var dialogExcerpt: String {
+        guard let text = viewModel.tappedHighlight?.text else { return "" }
+        return text.count > 120 ? String(text.prefix(120)) + "…" : text
     }
 
     // MARK: - Chapter loading veil

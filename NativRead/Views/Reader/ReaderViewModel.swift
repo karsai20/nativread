@@ -23,6 +23,9 @@ final class ReaderViewModel {
     private(set) var pageCount = 1
     var isChromeVisible = true
     var activeSheet: ReaderSheet?
+
+    /// Highlight the reader tapped in the text; drives the remove dialog.
+    var tappedHighlight: Highlight?
     var loadError: String?
 
     /// True from the moment a chapter starts loading until the engine
@@ -99,6 +102,12 @@ final class ReaderViewModel {
         }
         controller.onHighlightRequested = { [weak self] in
             self?.highlightCurrentSelection()
+        }
+        controller.onHighlightTap = { [weak self] text, occurrence in
+            guard let self else { return }
+            self.tappedHighlight = self.chapterHighlights.first {
+                $0.text == text && $0.occurrence == occurrence
+            }
         }
         controller.onChapterReady = { [weak self] in
             self?.finishChapterLoading()
