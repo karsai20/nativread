@@ -3,8 +3,14 @@
 **KIADÁS ELŐTTI VÁZLAT — ügyvédi felülvizsgálat és az üzemeltetői adatok
 kitöltése szükséges.**
 
-Hatályos: 2026. július 22. · 1.0 verzió
-Archivált webes változat: https://nativread.com/terms/2026-07-22/
+Hatályos: 2026. augusztus 3. · 1.1 verzió
+Archivált webes változat: https://nativread.com/terms/2026-08-03/
+
+Az 1.1 verzió a korábban külön álló, alkalmazáson belüli jogosultsági
+nyilatkozatot a 7.1 pontba olvasztja: a feltételek elfogadása és a fordítás
+elindítása egyben a jogosultság megerősítése, így az alkalmazásban egyetlen
+„Elfogadom a Felhasználási feltételeket” jelölőnégyzet szerepel önálló
+nyilatkozat helyett.
 
 E feltételek a NativRead alkalmazásra és választható AI-fordítószolgáltatására
 vonatkoznak. Üzemeltető: **[[OPERATOR_NAME]]**, székhely/lakcím:
@@ -89,10 +95,11 @@ vagy ismétlődő visszaélés esetén a fiókot korlátozhatjuk vagy megszünte
 
 ## 7. Felhasználói tartalom és szerzői jogi felelősség
 
-7.1 Csak olyan DRM-mentes könyvet vagy dokumentumot tölthetsz fel, amelyet
-jogszerűen szereztél be, és amelynek kért fordításához rendelkezel a szükséges
-engedéllyel vagy más jogalappal. Egy könyvpéldány megvásárlása vagy birtoklása
-önmagában nem feltétlenül ad fordítási jogot.
+7.1 E feltételek elfogadásával és a fordítás elindításával megerősíted, hogy a
+feltöltött könyv vagy dokumentum DRM-mentes, jogszerűen szerezted be, és kért
+fordításához rendelkezel a szükséges engedéllyel vagy más jogalappal. Egy
+könyvpéldány megvásárlása vagy birtoklása önmagában nem feltétlenül ad
+fordítási jogot.
 
 7.2 Kifejezetten kijelented, hogy a feltöltés és feldolgozás, valamint az
 eredmény általad történő használata nem sérti harmadik személy szerzői vagy

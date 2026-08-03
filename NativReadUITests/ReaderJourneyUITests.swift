@@ -392,16 +392,22 @@ final class ReaderJourneyUITests: XCTestCase {
         )
     }
 
-    func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
-        let translateTab = tab(.translate)
-        XCTAssertTrue(translateTab.waitForExistence(timeout: 10))
-        translateTab.tap()
+    /// Opens the translation sheet the way a user does now: hold the book on
+    /// the shelf and pick Translate from its context menu.
+    private func openTranslationSheet(
+        for title: String = "The Lantern of Aldebaran"
+    ) {
+        let book = app.buttons["library.book.\(title)"]
+        XCTAssertTrue(book.waitForExistence(timeout: 10))
+        book.press(forDuration: 1.2)
 
-        // The Translate destination lists eligible books directly.
-        let readyBook =
-            app.buttons["translate.ready.The Lantern of Aldebaran"]
-        XCTAssertTrue(readyBook.waitForExistence(timeout: 6))
-        readyBook.tap()
+        let translateItem = app.buttons["Translate book"]
+        XCTAssertTrue(translateItem.waitForExistence(timeout: 6))
+        translateItem.tap()
+    }
+
+    func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
+        openTranslationSheet()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 6)
@@ -420,6 +426,11 @@ final class ReaderJourneyUITests: XCTestCase {
             app.buttons["translation.signInWithApple"]
                 .waitForExistence(timeout: 6)
         )
+
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "translation-sheet"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     func testLocalBackendTranslatesAndImportsTheWholeBook() {
@@ -431,14 +442,7 @@ final class ReaderJourneyUITests: XCTestCase {
         ]
         app.launch()
 
-        let translate = tab(.translate)
-        XCTAssertTrue(translate.waitForExistence(timeout: 10))
-        translate.tap()
-
-        let pickerBook =
-            app.buttons["translate.ready.The Lantern of Aldebaran"]
-        XCTAssertTrue(pickerBook.waitForExistence(timeout: 6))
-        pickerBook.tap()
+        openTranslationSheet()
 
         let termsAcceptance = app.buttons["translation.termsAcceptance"]
         XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
@@ -480,9 +484,8 @@ final class ReaderJourneyUITests: XCTestCase {
         allowAI.tap()
 
         XCTAssertTrue(
-            app.staticTexts[
-                "Full Hungarian translation was added as a separate library book."
-            ].waitForExistence(timeout: 30),
+            app.staticTexts["Added to your library."]
+                .waitForExistence(timeout: 30),
             "the fake backend result should be consumed and imported by the app"
         )
     }
@@ -496,11 +499,12 @@ final class ReaderJourneyUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(
-            tab(.translate).waitForExistence(timeout: 10)
-        )
-        tab(.translate).tap()
-        app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
+        let book = app.buttons["library.book.The Lantern of Aldebaran"]
+        XCTAssertTrue(book.waitForExistence(timeout: 10))
+        book.press(forDuration: 1.2)
+        let translateItem = app.buttons["Könyv lefordítása"]
+        XCTAssertTrue(translateItem.waitForExistence(timeout: 6))
+        translateItem.tap()
 
         let terms = app.buttons["translation.termsAcceptance"]
         XCTAssertTrue(terms.waitForExistence(timeout: 6))
@@ -529,6 +533,66 @@ final class ReaderJourneyUITests: XCTestCase {
             app.otherElements["translation.sheet"]
                 .waitForExistence(timeout: 6),
             "declining AI processing must keep the offline app usable"
+        )
+    }
+
+    /// Tapping a highlighted passage in the page offers removal — the
+    /// undo path for an accidental highlight.
+    func testTappingAHighlightOffersRemoval() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-seedShowcaseBooks", "-seedShowcaseState", "en",
+            "-autoOpenFirstBook"
+        ]
+        app.launch()
+
+        XCTAssertTrue(
+            app.buttons["reader.position"].waitForExistence(timeout: 25)
+        )
+
+        // The book resumes pages past the seeded highlight, so jump to it
+        // through the contents sheet first — the same locate path a reader
+        // uses to revisit a highlight.
+        let snippet = "Alice was beginning to get very tired"
+        tapMenuItem("reader.contents")
+        let contentsSegments = app.segmentedControls.firstMatch.buttons
+        XCTAssertTrue(
+            contentsSegments.element(boundBy: 2).waitForExistence(timeout: 8)
+        )
+        contentsSegments.element(boundBy: 2).tap()
+        let row = app.scrollViews["contents.highlights"].staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", snippet)
+        ).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 8))
+        row.tap()
+
+        // WebKit exposes the whole paragraph as one text run — the mark
+        // gets no run of its own — so tap into the first line, which the
+        // highlighted sentence fully covers.
+        let paragraph = app.webViews.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", snippet)
+        ).firstMatch
+        XCTAssertTrue(paragraph.waitForExistence(timeout: 15))
+        paragraph.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.3, dy: 0.07)
+        ).tap()
+
+        // Dialog action buttons do not carry SwiftUI accessibility
+        // identifiers; address the action by its visible label. The dialog
+        // exposes the label on two elements, so take the first.
+        let remove = app.buttons["Remove highlight"].firstMatch
+        XCTAssertTrue(remove.waitForExistence(timeout: 6))
+        remove.tap()
+
+        // The mark is gone: the contents sheet lists no highlights.
+        tapMenuItem("reader.contents")
+        XCTAssertTrue(
+            contentsSegments.element(boundBy: 2).waitForExistence(timeout: 8)
+        )
+        contentsSegments.element(boundBy: 2).tap()
+        XCTAssertTrue(
+            app.staticTexts["No highlights yet"].waitForExistence(timeout: 6)
         )
     }
 

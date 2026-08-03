@@ -2,8 +2,13 @@
 
 **PRE-RELEASE DRAFT — legal review and completed operator details are required.**
 
-Effective 22 July 2026 · Version 1.0
-Archived web version: https://nativread.com/terms/2026-07-22/
+Effective 3 August 2026 · Version 1.1
+Archived web version: https://nativread.com/terms/2026-08-03/
+
+Version 1.1 folds the previously separate in-app rights attestation into
+clause 7.1: accepting these terms and starting a translation now carries the
+rights confirmation, so the app shows a single "I accept the Terms of Use"
+checkbox instead of a standalone statement.
 
 These terms govern the NativRead app and its optional AI translation service,
 operated by **[[OPERATOR_NAME]]**, registered/home address
@@ -84,10 +89,11 @@ abuse may lead to account restriction or termination.
 
 ## 7. User content and copyright responsibility
 
-7.1 You may upload only a DRM-free book or document that you lawfully acquired
-and for which you have the permission or another lawful basis required to
-create the requested translation. Buying or possessing a copy does not
-necessarily grant translation rights.
+7.1 By accepting these terms and starting a translation, you confirm that the
+uploaded book or document is DRM-free, that you lawfully acquired it, and that
+you have the permission or another lawful basis required to create the
+requested translation. Buying or possessing a copy does not necessarily grant
+translation rights.
 
 7.2 You expressly represent that uploading and processing the book, and your
 use of the result, do not infringe another person’s copyright or other

@@ -75,48 +75,16 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         ])
 
         XCTAssertTrue(
-            app.staticTexts["onboarding.tour.title"]
+            app.staticTexts["welcome.title"]
                 .waitForExistence(timeout: 25)
         )
-        capture(locale, 1, "onboarding-add-book")
-
-        tapTourNext()
-        waitForTourStep(2)
-        capture(locale, 2, "onboarding-translate")
-
-        tapTourNext()
-        XCTAssertTrue(
-            app.buttons["onboarding.tour.finish"]
-                .waitForExistence(timeout: 10)
-        )
-        capture(locale, 3, "onboarding-wait")
-    }
-
-    /// Seeding the showcase library imports several megabytes of EPUB, so the
-    /// first taps can land while the app is still busy. Waiting for the button
-    /// to be hittable — not merely present — keeps them from being swallowed.
-    private func tapTourNext() {
-        let next = app.buttons["onboarding.tour.next"]
-        XCTAssertTrue(next.waitForExistence(timeout: 10))
+        // The continue button is the last reveal stage; once it is hittable
+        // the screen is fully composed and worth photographing.
+        let continueButton = app.buttons["welcome.continue"]
         let hittable = NSPredicate(format: "isHittable == true")
-        expectation(for: hittable, evaluatedWith: next)
+        expectation(for: hittable, evaluatedWith: continueButton)
         waitForExpectations(timeout: 10)
-        next.tap()
-    }
-
-    private func waitForTourStep(_ step: Int) {
-        // The progress rail is an accessibility container built from shapes,
-        // so it surfaces as `other`, not `staticText`. Querying it as text
-        // matched nothing and the wait could only ever time out.
-        let progress = app.descendants(matching: .any)
-            .matching(identifier: "onboarding.tour.progress")
-            .firstMatch
-        let predicate = NSPredicate(
-            format: "label CONTAINS %@",
-            String(step)
-        )
-        expectation(for: predicate, evaluatedWith: progress)
-        waitForExpectations(timeout: 8)
+        capture(locale, 1, "onboarding-welcome")
     }
 
     // MARK: - Library + EPUB reader
@@ -211,24 +179,21 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
             ]
         )
 
-        XCTAssertTrue(
-            tab(.translate).waitForExistence(timeout: 30)
-        )
-        tab(.translate).tap()
+        let book = primaryBook(locale)
+        XCTAssertTrue(book.waitForExistence(timeout: 30))
+        book.press(forDuration: 1.2)
 
-        let pickerBook =
-            app.buttons["translate.ready.\(locale.primaryTitle)"]
-        XCTAssertTrue(pickerBook.waitForExistence(timeout: 12))
-        capture(locale, 17, "translation-book-picker")
-        pickerBook.tap()
+        let translateItem = app.buttons[
+            locale.code == "hu" ? "Könyv lefordítása" : "Translate book"
+        ]
+        XCTAssertTrue(translateItem.waitForExistence(timeout: 8))
+        capture(locale, 17, "translation-context-menu")
+        translateItem.tap()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 12)
         )
         capture(locale, 18, "translation-overview")
-
-        app.buttons["translation.details"].tap()
-        capture(locale, 19, "translation-details")
 
         app.buttons["translation.termsAcceptance"].tap()
         let localAccount = app.buttons["translation.localTestAccount"]

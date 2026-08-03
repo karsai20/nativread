@@ -1,4 +1,5 @@
 import SwiftUI
+import TipKit
 import UniformTypeIdentifiers
 
 /// The shelf. Warm paper surface, serif wordmark, two-column cover grid.
@@ -76,7 +77,9 @@ struct LibraryView: View {
                 .contains("-autoOpenFirstBook") {
                 openBook = sortedBooks.first
             }
+            updateTipState()
         }
+        .onChange(of: library.books.count) { _, _ in updateTipState() }
         .fileImporter(
             isPresented: $isImporterPresented,
             allowedContentTypes: [
@@ -177,54 +180,71 @@ struct LibraryView: View {
 
     private var bookGrid: some View {
         LazyVGrid(
+            // Adaptive: two columns on a phone, more as width grows (iPad).
             columns: [
-                GridItem(.flexible(), spacing: 22),
-                GridItem(.flexible(), spacing: 22)
+                GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 22)
             ],
             alignment: .leading,
             spacing: 30
         ) {
             ForEach(visibleBooks) { book in
-                        Button {
-                            openBook = book
-                        } label: {
-                            BookCard(
-                                book: book,
-                                coverURL: library.coverURL(for: book),
-                                titleColor: palette.text,
-                                captionColor: palette.secondaryText,
-                                accentColor: palette.accent
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier(
-                            "library.book.\(book.title)"
-                        )
-                        .contextMenu {
-                            if book.canExportTranslatedEPUB {
-                                ShareLink(item: library.storedFileURL(for: book)) {
-                                    Label(
-                                        "Export translated EPUB",
-                                        systemImage: "square.and.arrow.up"
-                                    )
-                                }
-                            }
-                            if book.isTranslatableSource {
-                                Button {
-                                    translationBook = book
-                                } label: {
-                                    Label(
-                                        "Translate book",
-                                        systemImage: "sparkles"
-                                    )
-                                }
-                            }
-                            Button(role: .destructive) {
-                                library.delete(book)
-                            } label: {
-                                Label("Delete book", systemImage: "trash")
-                            }
+                bookCell(book)
+            }
+        }
+    }
+
+    /// The translate tip anchors on the first translatable card only, so the
+    /// popover has one unambiguous home on the shelf.
+    @ViewBuilder
+    private func bookCell(_ book: Book) -> some View {
+        if book.id == firstTranslatableBookID {
+            bookButton(book)
+                .popoverTip(AppTips.translateBook)
+                .tipViewStyle(AppTipStyle(palette: palette))
+        } else {
+            bookButton(book)
+        }
+    }
+
+    private func bookButton(_ book: Book) -> some View {
+        Button {
+            openBook = book
+        } label: {
+            BookCard(
+                book: book,
+                coverURL: library.coverURL(for: book),
+                titleColor: palette.text,
+                captionColor: palette.secondaryText,
+                accentColor: palette.accent
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(
+            "library.book.\(book.title)"
+        )
+        .contextMenu {
+            if book.canExportTranslatedEPUB {
+                ShareLink(item: library.storedFileURL(for: book)) {
+                    Label(
+                        "Export translated EPUB",
+                        systemImage: "square.and.arrow.up"
+                    )
                 }
+            }
+            if book.isTranslatableSource {
+                Button {
+                    translationBook = book
+                } label: {
+                    Label(
+                        "Translate book",
+                        systemImage: "sparkles"
+                    )
+                }
+            }
+            Button(role: .destructive) {
+                library.delete(book)
+            } label: {
+                Label("Delete book", systemImage: "trash")
             }
         }
     }
@@ -347,6 +367,8 @@ struct LibraryView: View {
             }
             .accessibilityIdentifier("library.import")
             .disabled(isImporting)
+            .popoverTip(AppTips.addBook)
+            .tipViewStyle(AppTipStyle(palette: palette))
         }
     }
 
@@ -391,6 +413,18 @@ struct LibraryView: View {
         .background(palette.surface)
         .clipShape(Capsule(style: .continuous))
         .overlay(Capsule(style: .continuous).strokeBorder(palette.hairline))
+    }
+
+    /// The card the translate tip points at: the first book that can be sent
+    /// to the translator, in shelf order.
+    private var firstTranslatableBookID: UUID? {
+        visibleBooks.first(where: \.isTranslatableSource)?.id
+    }
+
+    private func updateTipState() {
+        AppTips.hasBooks = !library.books.isEmpty
+        AppTips.hasTranslatableBook =
+            library.books.contains(where: \.isTranslatableSource)
     }
 
     private var translationRecoveryID: String {

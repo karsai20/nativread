@@ -136,8 +136,8 @@ private struct TranslationTermsCopy {
     static let english = TranslationTermsCopy(
         navigationTitle: "Terms of Use",
         title: "NativRead Terms of Use",
-        version: "Translation service · Version 1.0 · Effective 22 July 2026",
-        introduction: "These terms apply to NativRead’s optional AI translation service. Before a book is uploaded for translation, you must actively accept the current version and confirm that you may lawfully request that translation.",
+        version: "Translation service · Version 1.1 · Effective 3 August 2026",
+        introduction: "These terms apply to NativRead’s optional AI translation service. Before a book is uploaded for translation, you actively accept the current version of these terms. By accepting them and starting a translation you also confirm, per the User content and copyright section, that you may lawfully request that translation.",
         draftNotice: "Draft for product testing · legal review is still required before release.",
         sections: [
             Section(
@@ -184,7 +184,7 @@ private struct TranslationTermsCopy {
             Section(
                 title: "User content and copyright",
                 paragraphs: [
-                    "You may upload only a DRM-free book that you lawfully acquired and for which you have the permission or another lawful basis required to create the requested translation. Owning a copy does not necessarily grant translation rights.",
+                    "By accepting these terms and starting a translation, you confirm that the book is DRM-free, that you lawfully acquired it, and that you have the permission or another lawful basis required to create the requested translation. Owning a copy does not necessarily grant translation rights.",
                     "You represent that uploading and processing the book, and your use of the result, do not infringe another person’s copyright or other intellectual-property right.",
                     "You are responsible for checking the legal basis for your use. NativRead does not conduct advance or retrospective legal review of books, and accepting an upload does not approve or certify its lawfulness.",
                     "The translation is supplied only for your personal, non-commercial reading. Except for copies reasonably necessary on devices or private storage you control, you must not reproduce, publish, sell, distribute, make available, or share it or any extract with another person.",
@@ -221,8 +221,8 @@ private struct TranslationTermsCopy {
     static let hungarian = TranslationTermsCopy(
         navigationTitle: "Felhasználási feltételek",
         title: "NativRead Felhasználási feltételek",
-        version: "Fordítószolgáltatás · 1.0 verzió · Hatályos: 2026. július 22.",
-        introduction: "Ezek a feltételek a NativRead választható AI-fordítószolgáltatására vonatkoznak. Mielőtt egy könyvet fordításra feltöltesz, aktívan el kell fogadnod az aktuális változatot, és meg kell erősítened, hogy jogszerűen kérheted a fordítást.",
+        version: "Fordítószolgáltatás · 1.1 verzió · Hatályos: 2026. augusztus 3.",
+        introduction: "Ezek a feltételek a NativRead választható AI-fordítószolgáltatására vonatkoznak. Mielőtt egy könyvet fordításra feltöltesz, aktívan elfogadod az aktuális változatot. Az elfogadással és a fordítás elindításával a Felhasználói tartalom és szerzői jog szakasz szerint azt is megerősíted, hogy jogszerűen kérheted a fordítást.",
         draftNotice: "Terméktesztelési vázlat · kiadás előtt jogi átvizsgálás szükséges.",
         sections: [
             Section(
@@ -269,7 +269,7 @@ private struct TranslationTermsCopy {
             Section(
                 title: "Felhasználói tartalom és szerzői jog",
                 paragraphs: [
-                    "Csak olyan DRM-mentes könyvet tölthetsz fel, amelyet jogszerűen szereztél be, és amelynek kért fordításához rendelkezel a szükséges engedéllyel vagy más jogalappal. Egy könyvpéldány megszerzése önmagában nem feltétlenül ad fordítási jogot.",
+                    "E feltételek elfogadásával és a fordítás elindításával megerősíted, hogy a könyv DRM-mentes, jogszerűen szerezted be, és kért fordításához rendelkezel a szükséges engedéllyel vagy más jogalappal. Egy könyvpéldány megszerzése önmagában nem feltétlenül ad fordítási jogot.",
                     "Kijelented, hogy a könyv feltöltése és feldolgozása, valamint az eredmény általad történő használata nem sérti más szerzői vagy egyéb szellemi tulajdonjogát.",
                     "A felhasználás jogalapjának ellenőrzése a te feladatod. A NativRead nem végez előzetes vagy utólagos jogi vizsgálatot a könyveken; a feltöltés elfogadása nem jelenti annak jóváhagyását vagy jogszerűségi tanúsítását.",
                     "A fordítást kizárólag saját, személyes, nem kereskedelmi olvasásra kapod. A saját ellenőrzésed alatt álló eszközökön vagy privát tárhelyen észszerűen szükséges példányokon túl nem másolhatod, nem teheted közzé, nem adhatod el, nem terjesztheted, nem teheted hozzáférhetővé és nem oszthatod meg mással a fordítást vagy annak részletét.",

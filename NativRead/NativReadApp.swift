@@ -73,6 +73,9 @@ struct NativReadApp: App {
         let locStore = LocalizationStore()
         Self.applyLanguageArgument(to: locStore)
         _localizationStore = State(initialValue: locStore)
+
+        AppTips.configure()
+        AppTips.hasCompletedOnboarding = settings.hasSeenOnboarding
     }
 
     var body: some Scene {
@@ -222,12 +225,19 @@ struct NativReadApp: App {
                     )
                 )
             }
+            // Unlike the bookmark's display-only snippet, the highlight text
+            // is a locator: it must match the book text verbatim or the mark
+            // never renders. Alice's sentence continues "…on the bank", so
+            // the seeded period would make the locator miss.
+            let highlightText = isHungarian
+                ? snippet
+                : "Alice was beginning to get very tired of sitting by her sister"
             if book.highlights.isEmpty {
                 store.addHighlight(
                     bookID: book.id,
                     highlight: Highlight(
                         spineIndex: spineIndex,
-                        text: snippet,
+                        text: highlightText,
                         occurrence: 0,
                         chapterTitle: chapterTitle,
                         note: note

@@ -22,7 +22,6 @@ struct TranslationSheet: View {
     @State private var bookProduct: Product?
     @State private var isEntitledToFullBook = false
     @State private var pricingError: String?
-    @State private var showsTranslationDetails = false
     @State private var showsWholeBookOptions = false
     @State private var pendingAITranslation: PendingAITranslation?
 
@@ -54,10 +53,8 @@ struct TranslationSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
                         header
-                        freePreviewCard
-                        languageSection
+                        heroCard
                         freeChapterSection
-                        translationDetails
                         if hasAcceptedTerms && hasBackendIdentity {
                             purchaseSection
                         }
@@ -108,7 +105,10 @@ struct TranslationSheet: View {
         }
     }
 
-    private var freePreviewCard: some View {
+    /// One card says everything above the fold: what you get (first chapter,
+    /// free) and which way the translation runs. The target is fixed until a
+    /// second language ships, so a single line replaces the old pair card.
+    private var heroCard: some View {
         HStack(spacing: Spacing.md) {
             Image(systemName: "sparkles")
                 .font(.system(size: 22, weight: .semibold))
@@ -121,18 +121,9 @@ struct TranslationSheet: View {
                     .font(Typography.control(18, weight: .semibold))
                     .foregroundStyle(palette.text)
 
-                Text("Try the translation before deciding.")
+                Text(verbatim: languagePairText)
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
-            }
-
-            if job.hasFreePreview {
-                Spacer(minLength: Spacing.xs)
-                AppPill(
-                    title: String(localized: "Added", locale: locale),
-                    tone: .accent,
-                    palette: palette
-                )
             }
         }
         .padding(Spacing.md)
@@ -145,112 +136,25 @@ struct TranslationSheet: View {
             RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
                 .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
         }
-    }
-
-    private var languageSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            AppSectionLabel(title: "Languages", palette: palette)
-
-            languagePairCard
-
-            // Only worth a control when there is something to choose between;
-            // with one shipped language the pair card already says everything.
-            if TranslationTargetLanguage.passed.count > 1 {
-                AppSegmentedControl(
-                    options: TranslationTargetLanguage.passed.map { language in
-                        .init(
-                            value: language,
-                            title: LocalizedStringKey(localizedName(for: language))
-                        )
-                    },
-                    selection: Binding(
-                        get: { job.targetLanguage },
-                        set: { translations.setTargetLanguage($0, for: book) }
-                    ),
-                    palette: palette
-                )
-                .disabled(job.isBackendActive)
-                // The primitive draws no disabled state of its own.
-                .opacity(job.isBackendActive ? 0.45 : 1)
-                .accessibilityIdentifier("translation.targetLanguage")
-            }
-        }
-    }
-
-    /// Source on the left, target on the right. The source side is read-only:
-    /// it reports what detection found rather than offering a choice.
-    private var languagePairCard: some View {
-        HStack(spacing: Spacing.xs) {
-            languageFace(
-                label: "From",
-                code: detectedLanguageCode,
-                name: localizedSourceLanguage
-            )
-
-            Image(systemName: "arrow.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(palette.accent)
-                .frame(width: 34, height: 34)
-                .background(palette.surfaceRaised, in: Circle())
-
-            languageFace(
-                label: "To",
-                code: job.targetLanguage.rawValue,
-                name: localizedName(for: job.targetLanguage)
-            )
-        }
-        .padding(Spacing.sm)
-        .frame(maxWidth: .infinity)
-        .background(palette.surface)
-        .clipShape(
-            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-                .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
-        }
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("translation.languagePair")
+        .accessibilityIdentifier("translation.hero")
     }
 
-    private func languageFace(
-        label: LocalizedStringKey,
-        code: String,
-        name: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(label)
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.secondaryText)
-
-            HStack(spacing: Spacing.xs) {
-                Text(code.uppercased())
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(palette.accent)
-                    .frame(width: 34, height: 34)
-                    .background(
-                        palette.accentSoft,
-                        in: RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    )
-
-                Text(name)
-                    .font(Typography.control(14, weight: .semibold))
-                    .foregroundStyle(palette.text)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+    /// "English → Magyar", or just the target when detection came up empty.
+    private var languagePairText: String {
+        let target = localizedName(for: job.targetLanguage)
+        switch detectedLanguage {
+        case .language(let code, let fallbackName, _):
+            let source = (locale.localizedString(forLanguageCode: code)
+                ?? fallbackName).capitalized
+            return "\(source) → \(target)"
+        case .unknown:
+            return "→ \(target)"
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var termsAcceptanceSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text(clickwrapCopy.title)
-                .font(Typography.control(17, weight: .semibold))
-                .foregroundStyle(palette.text)
-
             Button {
                 hasAcceptedTerms.toggle()
                 if hasAcceptedTerms {
@@ -334,6 +238,11 @@ struct TranslationSheet: View {
                 palette: palette
             )
             .accessibilityIdentifier("translation.freeChapter")
+
+            Text("The translation arrives as a separate book on your shelf. Your original stays unchanged.")
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .animation(.easeInOut(duration: 0.22), value: hasAcceptedTerms)
     }
@@ -400,35 +309,6 @@ struct TranslationSheet: View {
         }
     }
 
-    private var translationDetails: some View {
-        AppSettingsSection(palette: palette) {
-            AppSettingsRow(
-                systemImage: "info.circle",
-                title: "How translation works",
-                hidesSeparator: !showsTranslationDetails,
-                action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showsTranslationDetails.toggle()
-                    }
-                },
-                palette: palette,
-                trailing: { disclosureChevron(isOpen: showsTranslationDetails) }
-            )
-            .accessibilityIdentifier("translation.details")
-
-            if showsTranslationDetails {
-                Text("Your original book stays unchanged. The first reading chapter is translated and added to your library as a separate book.")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.bottom, Spacing.md)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
-
     /// The chevron that marks an expandable row. Rows carrying their own
     /// trailing control suppress `AppSettingsRow`'s navigation chevron, so
     /// this one stands in and rotates with the disclosure.
@@ -452,28 +332,6 @@ struct TranslationSheet: View {
         }
     }
 
-    /// The two-letter badge on the source side of the pair card. Detection can
-    /// come up empty, and an em dash reads better there than a blank tile.
-    private var detectedLanguageCode: String {
-        switch detectedLanguage {
-        case .language(let code, _, _):
-            return code
-        case .unknown:
-            return "—"
-        }
-    }
-
-    private var localizedSourceLanguage: String {
-        switch detectedLanguage {
-        case .language(let code, let fallbackName, _):
-            let name = locale.localizedString(forLanguageCode: code)
-                ?? fallbackName
-            return name.capitalized
-        case .unknown:
-            return String(localized: "Not detected", locale: locale)
-        }
-    }
-
     private func localizedName(
         for language: TranslationTargetLanguage
     ) -> String {
@@ -487,24 +345,10 @@ struct TranslationSheet: View {
     /// phase's own sentence underneath.
     private var progressCard: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    AppSectionLabel(title: "Overall progress", palette: palette)
-
-                    Text(progressHeadline)
-                        .font(Typography.control(21, weight: .bold))
-                        .foregroundStyle(palette.text)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: Spacing.xs)
-
-                AppPill(
-                    title: job.targetLanguage.rawValue.uppercased(),
-                    tone: .accent,
-                    palette: palette
-                )
-            }
+            Text(progressHeadline)
+                .font(Typography.control(21, weight: .bold))
+                .foregroundStyle(palette.text)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let fraction = job.progressFraction {
                 AppProgressTrack(value: fraction, palette: palette)
@@ -522,6 +366,8 @@ struct TranslationSheet: View {
         .clipShape(
             RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
         )
+        .popoverTip(AppTips.backgroundTranslation)
+        .tipViewStyle(AppTipStyle(palette: palette))
     }
 
     private var progressHeadline: LocalizedStringKey {
@@ -551,21 +397,16 @@ struct TranslationSheet: View {
         case .translating:
             if let reconnectMessage = job.errorMessage {
                 phaseText(verbatim: reconnectMessage)
+            } else if let sections = sectionsText {
+                phaseText(verbatim: sections)
             } else {
-                phaseText(
-                    verbatim: job.progressText.map {
-                        "\(job.activeProgressMessage)... \($0)"
-                    } ?? "\(job.activeProgressMessage)..."
-                )
+                phaseText("You can close the app. We keep translating.")
             }
         case .importingResult:
-            phaseText("Importing \(job.activeResultName)...")
+            // The headline ("Adding to your library") already says it all.
+            EmptyView()
         case .finished:
-            if job.hasFullTranslation {
-                phaseText("Full \(localizedName(for: job.targetLanguage)) translation was added as a separate library book.")
-            } else {
-                phaseText("\(localizedName(for: job.targetLanguage)) preview was added as a separate library book.")
-            }
+            phaseText("Added to your library.")
         case .failed:
             if let errorMessage = job.errorMessage {
                 phaseText(verbatim: errorMessage)
@@ -573,6 +414,19 @@ struct TranslationSheet: View {
                 phaseText("Translation failed.")
             }
         }
+    }
+
+    /// "12/40 sections", localized. Only once the backend reports chunks.
+    private var sectionsText: String? {
+        guard let done = job.translatedChunks,
+              let total = job.totalChunks,
+              total > 0
+        else { return nil }
+        return String.localizedStringWithFormat(
+            String(localized: "%lld/%lld sections", locale: locale),
+            done,
+            total
+        )
     }
 
     private func phaseText(_ text: LocalizedStringKey) -> some View {
@@ -620,16 +474,7 @@ struct TranslationSheet: View {
 
     private var purchaseOptions: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            if let quote = fullQuote?.quote {
-                HStack {
-                    Text("Source characters")
-                    Spacer()
-                    Text(quote.sourceCharacters.formatted())
-                        .monospacedDigit()
-                }
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
-
+            if fullQuote?.quote != nil {
                 // No price means the backend is not selling this book — a
                 // self-hosted deployment with entitlements turned off. Nothing
                 // to buy, so the translation is simply available.
@@ -940,23 +785,20 @@ struct TranslationSheet: View {
 }
 
 private struct TranslationClickwrapCopy {
-    let title: String
     let attestation: String
     let termsLink: String
     let accepted: String
     let notAccepted: String
 
     static let english = TranslationClickwrapCopy(
-        title: "Your book, your rights",
-        attestation: "I confirm that I lawfully acquired this book and have the necessary permission or another lawful basis to translate it. I will use the translation only for my own personal, non-commercial reading and will not publish, distribute, sell, or share it. I accept the Terms of Use (22 July 2026).",
+        attestation: "I accept the Terms of Use.",
         termsLink: "Read the Terms of Use",
         accepted: "Accepted",
         notAccepted: "Not accepted"
     )
 
     static let hungarian = TranslationClickwrapCopy(
-        title: "Saját könyv, saját jogosultság",
-        attestation: "Kijelentem, hogy a könyvet jogszerűen szereztem be, és rendelkezem a fordításhoz szükséges engedéllyel vagy más jogalappal. A fordítást kizárólag saját, személyes, nem kereskedelmi olvasásra használom; nem teszem közzé, nem terjesztem, nem adom el és nem osztom meg. Elfogadom a Felhasználási feltételeket (2026. július 22.).",
+        attestation: "Elfogadom a Felhasználási feltételeket.",
         termsLink: "Felhasználási feltételek elolvasása",
         accepted: "Elfogadva",
         notAccepted: "Nincs elfogadva"
@@ -976,24 +818,6 @@ private extension TranslationJob {
 
     var hasFullTranslation: Bool {
         fullCompletedAt != nil
-    }
-
-    var activeProgressMessage: String {
-        switch activeRequestKind {
-        case .full:
-            return "Translating whole book on the backend"
-        case .preview, nil:
-            return "Translating preview on the backend"
-        }
-    }
-
-    var activeResultName: String {
-        switch activeRequestKind {
-        case .full:
-            return "full translation"
-        case .preview, nil:
-            return "preview"
-        }
     }
 
     /// Only defined once the backend has reported chunk counts; until then the

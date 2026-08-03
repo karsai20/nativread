@@ -4,7 +4,9 @@ import NaturalLanguage
 enum TranslationTerms {
     /// Change this whenever the accepted terms change materially. Existing
     /// translations keep working, but a new upload asks for acceptance again.
-    static let currentVersion = "2026-07-22"
+    /// 2026-08-03: rights attestation folded into the Terms (v1.1); the sheet
+    /// checkbox now accepts the Terms as a whole.
+    static let currentVersion = "2026-08-03"
     static let rightsAttestationVersion = "2026-07-22"
 
     static let appleStandardEULAURL = URL(
@@ -21,15 +23,6 @@ struct TranslationTermsAcceptance: Equatable {
 enum DetectedBookLanguage: Equatable {
     case language(code: String, name: String, confidence: Double)
     case unknown
-
-    var displayText: String {
-        switch self {
-        case .language(_, let name, let confidence):
-            return "\(name) · \(Int((confidence * 100).rounded()))% confidence"
-        case .unknown:
-            return "Could not detect source language"
-        }
-    }
 
     static func detect(from sample: String) -> DetectedBookLanguage {
         let trimmed = sample.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -66,15 +59,6 @@ enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable, Hashab
     }
 
     var shortCode: String { rawValue.uppercased() }
-
-    var validationNote: String {
-        switch self {
-        case .hu:
-            return "Validated baseline language"
-        case .de, .es:
-            return "Needs full-novel quality validation before launch"
-        }
-    }
 }
 
 enum TranslationJobPhase: String, Codable, Equatable {
@@ -112,48 +96,6 @@ enum TranslationRequestKind: String, Codable, Equatable {
     case full
 }
 
-enum TranslationPriceTier: String, Codable, CaseIterable, Equatable {
-    case under100
-    case pages100To199
-    case pages200To349
-    case pages350To549
-    case pages550To799
-    case pages800Plus
-
-    var displayName: String {
-        switch self {
-        case .under100: return "Under 100 pages"
-        case .pages100To199: return "100-199 pages"
-        case .pages200To349: return "200-349 pages"
-        case .pages350To549: return "350-549 pages"
-        case .pages550To799: return "550-799 pages"
-        case .pages800Plus: return "800+ pages"
-        }
-    }
-
-    var priceText: String {
-        switch self {
-        case .under100: return "$2.99"
-        case .pages100To199: return "$3.99"
-        case .pages200To349: return "$4.99"
-        case .pages350To549: return "$6.99"
-        case .pages550To799: return "$8.99"
-        case .pages800Plus: return "$11.99"
-        }
-    }
-
-    static func tier(forEstimatedPages pages: Int) -> TranslationPriceTier {
-        switch pages {
-        case ..<100: return .under100
-        case 100..<200: return .pages100To199
-        case 200..<350: return .pages200To349
-        case 350..<550: return .pages350To549
-        case 550..<800: return .pages550To799
-        default: return .pages800Plus
-        }
-    }
-}
-
 struct TranslationJob: Codable, Equatable, Identifiable {
     var id: UUID { bookID }
 
@@ -166,8 +108,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
     var termsAcceptanceID: UUID?
     var termsAcceptanceLocale: String?
     var acceptedAIProcessingVersion: String?
-    var estimatedPages: Int
-    var priceTier: TranslationPriceTier
     var backendJobID: String?
     var activeRequestKind: TranslationRequestKind?
     var previewCompletedAt: Date?
@@ -181,7 +121,7 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         case bookID, bookTitle, targetLanguage, phase, attestedAt
         case acceptedTermsVersion, termsAcceptanceID, termsAcceptanceLocale
         case acceptedAIProcessingVersion
-        case estimatedPages, priceTier, backendJobID, activeRequestKind
+        case backendJobID, activeRequestKind
         case previewCompletedAt, fullCompletedAt, translatedChunks
         case totalChunks, errorMessage, updatedAt
     }
@@ -211,10 +151,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         )
         acceptedAIProcessingVersion = try c.decodeIfPresent(
             String.self, forKey: .acceptedAIProcessingVersion
-        )
-        estimatedPages = try c.decode(Int.self, forKey: .estimatedPages)
-        priceTier = try c.decode(
-            TranslationPriceTier.self, forKey: .priceTier
         )
         backendJobID = try c.decodeIfPresent(
             String.self, forKey: .backendJobID
@@ -248,8 +184,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         termsAcceptanceID: UUID? = nil,
         termsAcceptanceLocale: String? = nil,
         acceptedAIProcessingVersion: String? = nil,
-        estimatedPages: Int,
-        priceTier: TranslationPriceTier,
         backendJobID: String? = nil,
         activeRequestKind: TranslationRequestKind? = nil,
         previewCompletedAt: Date? = nil,
@@ -268,8 +202,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         self.termsAcceptanceID = termsAcceptanceID
         self.termsAcceptanceLocale = termsAcceptanceLocale
         self.acceptedAIProcessingVersion = acceptedAIProcessingVersion
-        self.estimatedPages = estimatedPages
-        self.priceTier = priceTier
         self.backendJobID = backendJobID
         self.activeRequestKind = activeRequestKind
         self.previewCompletedAt = previewCompletedAt
@@ -278,13 +210,5 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         self.totalChunks = totalChunks
         self.errorMessage = errorMessage
         self.updatedAt = updatedAt
-    }
-
-    var progressText: String? {
-        guard let translatedChunks,
-              let totalChunks,
-              totalChunks > 0
-        else { return nil }
-        return "\(translatedChunks)/\(totalChunks) sections"
     }
 }

@@ -1,9 +1,8 @@
 import SwiftUI
 import StoreKit
 
-/// App root: shows the tab shell and, on first launch, a three-beat walk
-/// through the core workflow. The app language follows the phone, so
-/// onboarding never asks for it.
+/// App root: shows the tab shell and, on first launch, the welcome screen.
+/// The app language follows the phone, so onboarding never asks for it.
 struct RootView: View {
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(LibraryStore.self) private var library
@@ -23,7 +22,7 @@ struct RootView: View {
                 .allowsHitTesting(!isOnboarding)
 
             if isOnboarding {
-                OnboardingWalkthroughView(onFinished: finishOnboarding)
+                WelcomeView(onFinished: finishOnboarding)
                     .transition(.opacity)
                     .zIndex(1)
             }
@@ -45,6 +44,7 @@ struct RootView: View {
 
     private func finishOnboarding() {
         settingsStore.markOnboardingSeen()
+        AppTips.hasCompletedOnboarding = true
         isOnboarding = false
     }
 }
