@@ -36,7 +36,7 @@ targets:
         # Xcode never requests a profile carrying the capability.
         CODE_SIGN_ENTITLEMENTS: NativRead/NativRead.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
         OTHER_LDFLAGS: "-lz -lsqlite3"
     info:
       path: NativRead/Info.plist
@@ -53,6 +53,13 @@ targets:
           UIColorName: "LaunchBackground"
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # iPad multitasking requires all four orientations (or an explicit
+        # full-screen opt-out); supporting them is the lighter path.
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIFileSharingEnabled: true

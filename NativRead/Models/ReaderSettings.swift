@@ -255,8 +255,8 @@ struct ReaderSettings: Codable, Equatable {
     // Persisted settings from earlier versions keep whatever the reader chose.
     var font: ReaderFont = .charter
     var fontSize: Double = 18
-    var lineHeight: Double = 1.55
-    var horizontalMargin: Double = 26
+    var lineHeight: Double = 1.45
+    var horizontalMargin: Double = 20
     var isJustified: Bool = true
 
     static let fontSizeRange: ClosedRange<Double> = 13...26
