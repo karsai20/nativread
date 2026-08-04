@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The Translate destination: what is running now and what is already done.
-/// Starting a translation lives where the books live — hold a book on the
-/// shelf — so this screen no longer mirrors the whole library.
+/// The Translate destination: what is running now, what can be translated
+/// next, and what is already done. The list is the primary way to start a
+/// translation; the library context menu is a shortcut to the same sheet.
 struct TranslateHomeView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settingsStore
@@ -10,6 +10,7 @@ struct TranslateHomeView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
 
+    @State private var translationBook: Book?
     @State private var openBook: Book?
 
     private var palette: BrandPalette {
@@ -23,6 +24,12 @@ struct TranslateHomeView: View {
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
+    private var translatableBooks: [Book] {
+        library.books
+            .filter(\.isTranslatableSource)
+            .sorted { $0.addedAt > $1.addedAt }
+    }
+
     private var translatedBooks: [Book] {
         library.books
             .filter(\.isTranslatedCopy)
@@ -30,7 +37,7 @@ struct TranslateHomeView: View {
     }
 
     private var isEmpty: Bool {
-        activeJobs.isEmpty && translatedBooks.isEmpty
+        activeJobs.isEmpty && translatableBooks.isEmpty && translatedBooks.isEmpty
     }
 
     var body: some View {
@@ -51,6 +58,7 @@ struct TranslateHomeView: View {
                         emptyState
                     } else {
                         if !activeJobs.isEmpty { activeSection }
+                        if !translatableBooks.isEmpty { readySection }
                         if !translatedBooks.isEmpty { completedSection }
                     }
                 }
@@ -58,6 +66,10 @@ struct TranslateHomeView: View {
                 .padding(.top, Spacing.md)
                 .padding(.bottom, Spacing.xl)
             }
+        }
+        .sheet(item: $translationBook) { book in
+            TranslationSheet(book: book)
+                .environment(translationStore)
         }
         .fullScreenCover(item: $openBook) { book in
             if book.format == .pdf {
@@ -129,6 +141,26 @@ struct TranslateHomeView: View {
         )
     }
 
+    private var readySection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            AppSectionLabel(title: "Ready to translate", palette: palette)
+
+            AppSettingsSection(palette: palette) {
+                ForEach(Array(translatableBooks.enumerated()), id: \.element.id) { index, book in
+                    AppSettingsRow(
+                        systemImage: "sparkles",
+                        title: LocalizedStringKey(book.title),
+                        value: book.author,
+                        hidesSeparator: index == translatableBooks.count - 1,
+                        action: { translationBook = book },
+                        palette: palette
+                    )
+                    .accessibilityIdentifier("translate.ready.\(book.title)")
+                }
+            }
+        }
+    }
+
     private var completedSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             AppSectionLabel(title: "Completed", palette: palette)
@@ -161,7 +193,7 @@ struct TranslateHomeView: View {
                 .font(Typography.control(20, weight: .bold))
                 .foregroundStyle(palette.text)
 
-            Text("Add an EPUB to your library, then hold it and choose Translate. Progress and finished translations show up here.")
+            Text("Add an EPUB to your library and it will show up here, ready for an AI translation into your language.")
                 .font(Typography.control(15))
                 .foregroundStyle(palette.secondaryText)
                 .multilineTextAlignment(.center)

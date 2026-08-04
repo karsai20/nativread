@@ -85,6 +85,12 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         expectation(for: hittable, evaluatedWith: continueButton)
         waitForExpectations(timeout: 10)
         capture(locale, 1, "onboarding-welcome")
+
+        continueButton.tap()
+        XCTAssertTrue(
+            app.staticTexts["welcome.mode.title"].waitForExistence(timeout: 8)
+        )
+        capture(locale, 2, "onboarding-reading-mode")
     }
 
     // MARK: - Library + EPUB reader
@@ -179,16 +185,16 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
             ]
         )
 
-        let book = primaryBook(locale)
-        XCTAssertTrue(book.waitForExistence(timeout: 30))
-        book.press(forDuration: 1.2)
+        XCTAssertTrue(
+            tab(.translate).waitForExistence(timeout: 30)
+        )
+        tab(.translate).tap()
 
-        let translateItem = app.buttons[
-            locale.code == "hu" ? "Könyv lefordítása" : "Translate book"
-        ]
-        XCTAssertTrue(translateItem.waitForExistence(timeout: 8))
-        capture(locale, 17, "translation-context-menu")
-        translateItem.tap()
+        let pickerBook =
+            app.buttons["translate.ready.\(locale.primaryTitle)"]
+        XCTAssertTrue(pickerBook.waitForExistence(timeout: 12))
+        capture(locale, 17, "translation-book-picker")
+        pickerBook.tap()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 12)

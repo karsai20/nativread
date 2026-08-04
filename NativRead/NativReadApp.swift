@@ -73,9 +73,6 @@ struct NativReadApp: App {
         let locStore = LocalizationStore()
         Self.applyLanguageArgument(to: locStore)
         _localizationStore = State(initialValue: locStore)
-
-        AppTips.configure()
-        AppTips.hasCompletedOnboarding = settings.hasSeenOnboarding
     }
 
     var body: some Scene {
@@ -106,6 +103,7 @@ struct NativReadApp: App {
     /// Decides whether the first-launch onboarding appears. Shown only the
     /// first time (until `hasSeenOnboarding`), overridable for tests via
     /// `-forceOnboarding` (always show) / `-skipOnboarding` (never show).
+    /// Settings can bring it back later via `replayOnboarding()`.
     private static func shouldShowLaunch(_ settings: SettingsStore) -> Bool {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-skipOnboarding") { return false }

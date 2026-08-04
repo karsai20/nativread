@@ -366,8 +366,6 @@ struct TranslationSheet: View {
         .clipShape(
             RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
         )
-        .popoverTip(AppTips.backgroundTranslation)
-        .tipViewStyle(AppTipStyle(palette: palette))
     }
 
     private var progressHeadline: LocalizedStringKey {

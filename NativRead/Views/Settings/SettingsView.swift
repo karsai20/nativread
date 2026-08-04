@@ -357,6 +357,14 @@ struct SettingsView: View {
             }
             .accessibilityIdentifier("settings.terms.link")
 
+            AppSettingsRow(
+                systemImage: "sparkles",
+                title: "Show Welcome Again",
+                action: { settingsStore.replayOnboarding() },
+                palette: palette
+            )
+            .accessibilityIdentifier("settings.replayOnboarding")
+
             AppSettingsLink(
                 systemImage: "chevron.left.forwardslash.chevron.right",
                 title: "Licenses",

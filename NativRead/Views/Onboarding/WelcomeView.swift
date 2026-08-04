@@ -1,22 +1,30 @@
 import SwiftUI
 
-/// The first-launch welcome: one screen, one promise, one action. The shelf
-/// art, headline, value line, and button land in sequence so the screen feels
-/// composed rather than dumped — and the three lessons the old walkthrough
-/// carried now appear as tips on the screens they describe (`AppTips`).
+/// The first-launch welcome: one promise, then one choice. Screen one is a
+/// staged-reveal introduction; screen two lets the reader pick how pages
+/// should move (slide, curl, or scroll) before landing on the shelf. The
+/// choice writes straight into `SettingsStore` and stays adjustable from
+/// the reader's typography panel.
 ///
 /// The app language is not asked for here — it follows the phone, and
 /// Settings can override it later.
 struct WelcomeView: View {
     var onFinished: () -> Void
 
+    @Environment(SettingsStore.self) private var settingsStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    /// How many reveal stages are visible. Stages: 0 nothing, 1 scene,
-    /// 2 headline, 3 value line, 4 button.
+    private enum Step {
+        case welcome, readingMode
+    }
+
+    /// How many reveal stages are visible on the welcome step. Stages:
+    /// 0 nothing, 1 scene, 2 headline, 3 value line, 4 button.
     @State private var revealedStage = 0
+    @State private var step: Step = .welcome
+    @State private var selectedMode: WelcomeReadingMode = .slide
 
     private static let stageCount = 4
 
@@ -35,26 +43,43 @@ struct WelcomeView: View {
                 OnboardingPaperBackground(palette: palette)
 
                 ScrollView(showsIndicators: false) {
-                    content
-                        .padding(Spacing.lg)
-                        .frame(maxWidth: 640, alignment: .leading)
-                        .frame(maxWidth: .infinity)
-                        // Minimum height, not exact: copy that outgrows the
-                        // screen (accessibility text, landscape) scrolls
-                        // instead of being clipped.
-                        .frame(minHeight: proxy.size.height, alignment: .center)
+                    Group {
+                        switch step {
+                        case .welcome:
+                            welcomeContent
+                        case .readingMode:
+                            readingModeContent
+                        }
+                    }
+                    .transition(stepTransition)
+                    .padding(Spacing.lg)
+                    .frame(maxWidth: 640, alignment: .leading)
+                    .frame(maxWidth: .infinity)
+                    // Minimum height, not exact: copy that outgrows the
+                    // screen (accessibility text, landscape) scrolls
+                    // instead of being clipped.
+                    .frame(minHeight: proxy.size.height, alignment: .center)
                 }
+                .animation(
+                    reduceMotion
+                        ? nil
+                        : .spring(response: 0.48, dampingFraction: 0.88),
+                    value: step
+                )
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { bottomBar }
-        // One soft tap when the button lands — the moment the screen is ready.
+        // One soft tap when the button lands and on each step change.
         .sensoryFeedback(.impact(weight: .light), trigger: revealedStage) {
             _, new in new == Self.stageCount
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: step)
         .onAppear(perform: reveal)
     }
 
-    private var content: some View {
+    // MARK: - Step 1: the promise
+
+    private var welcomeContent: some View {
         VStack(alignment: .leading, spacing: Spacing.xl) {
             if showsScene {
                 OnboardingShelfScene(palette: palette)
@@ -88,16 +113,106 @@ struct WelcomeView: View {
         }
     }
 
+    // MARK: - Step 2: how pages move
+
+    private var readingModeContent: some View {
+        VStack(alignment: .leading, spacing: Spacing.lg) {
+            Text("How do you like to read?")
+                .font(Typography.heading(titleSize))
+                .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+                .tracking(Typography.headingTracking(titleSize))
+                .foregroundStyle(palette.text)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("welcome.mode.title")
+
+            VStack(spacing: Spacing.sm) {
+                ForEach(WelcomeReadingMode.allCases) { mode in
+                    modeCard(mode)
+                }
+            }
+
+            Text("You can change this anytime from the reading menu.")
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: 560, alignment: .leading)
+    }
+
+    private func modeCard(_ mode: WelcomeReadingMode) -> some View {
+        let isSelected = mode == selectedMode
+        return Button {
+            selectedMode = mode
+        } label: {
+            HStack(spacing: Spacing.md) {
+                Image(systemName: mode.icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(isSelected ? palette.background : palette.accent)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        isSelected ? palette.accent : palette.accentSoft,
+                        in: Circle()
+                    )
+
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(mode.title)
+                        .font(Typography.control(17, weight: .semibold))
+                        .foregroundStyle(palette.text)
+
+                    Text(mode.subtitle)
+                        .font(Typography.meta())
+                        .foregroundStyle(palette.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(isSelected ? palette.accent : palette.hairline)
+            }
+            .padding(Spacing.md)
+            .background(palette.surface)
+            .clipShape(
+                RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? palette.accent : palette.hairline,
+                        lineWidth: isSelected ? 1.5 : Spacing.hairlineWidth
+                    )
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressScaleButtonStyle())
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+        .accessibilityIdentifier("welcome.mode.\(mode.rawValue)")
+    }
+
+    // MARK: - Chrome
+
     private var bottomBar: some View {
-        AppPrimaryButton(
-            title: "To my shelf",
-            systemImage: "arrow.right",
-            action: onFinished,
-            palette: palette
-        )
+        Group {
+            switch step {
+            case .welcome:
+                AppPrimaryButton(
+                    title: "Next",
+                    systemImage: "arrow.right",
+                    action: advanceToReadingMode,
+                    palette: palette
+                )
+                .accessibilityIdentifier("welcome.continue")
+                .opacity(revealedStage >= Self.stageCount ? 1 : 0)
+            case .readingMode:
+                AppPrimaryButton(
+                    title: "To my shelf",
+                    action: finish,
+                    palette: palette
+                )
+                .accessibilityIdentifier("welcome.finish")
+            }
+        }
         .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-        .accessibilityIdentifier("welcome.continue")
-        .opacity(revealedStage >= Self.stageCount ? 1 : 0)
         .frame(maxWidth: 592)
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
@@ -110,6 +225,31 @@ struct WelcomeView: View {
     private var titleSize: CGFloat {
         if dynamicTypeSize.isAccessibilitySize { return 44 }
         return dynamicTypeSize >= .xxLarge ? 40 : 38
+    }
+
+    private var stepTransition: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
+            insertion: .move(edge: .trailing).combined(with: .opacity),
+            removal: .move(edge: .leading).combined(with: .opacity)
+        )
+    }
+
+    private func advanceToReadingMode() {
+        selectedMode = WelcomeReadingMode.current(from: settingsStore.settings)
+        step = .readingMode
+    }
+
+    private func finish() {
+        settingsStore.update { current in
+            var next = current
+            next.pageFlow = selectedMode.flow
+            if let transition = selectedMode.transition {
+                next.pageTransition = transition
+            }
+            return next
+        }
+        onFinished()
     }
 
     private func reveal() {
@@ -125,5 +265,60 @@ struct WelcomeView: View {
                 revealedStage = stage
             }
         }
+    }
+}
+
+/// The three curated reading styles the welcome offers. A mode maps onto
+/// the reader's real `pageFlow` + `pageTransition` settings; the full
+/// matrix stays available in the typography panel.
+enum WelcomeReadingMode: String, CaseIterable, Identifiable {
+    case slide
+    case curl
+    case scroll
+
+    var id: String { rawValue }
+
+    var flow: PageFlow {
+        self == .scroll ? .scroll : .paged
+    }
+
+    /// `nil` leaves the persisted transition untouched (scroll ignores it).
+    var transition: PageTransition? {
+        switch self {
+        case .slide: return .slide
+        case .curl: return .curl
+        case .scroll: return nil
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .slide: return "arrow.left.and.right"
+        case .curl: return "book.pages"
+        case .scroll: return "arrow.up.and.down"
+        }
+    }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .slide: return "Turn pages"
+        case .curl: return "Page curl"
+        case .scroll: return "Scroll"
+        }
+    }
+
+    var subtitle: LocalizedStringKey {
+        switch self {
+        case .slide: return "Pages slide side to side."
+        case .curl: return "Pages curl like real paper."
+        case .scroll: return "One continuous column, like an article."
+        }
+    }
+
+    /// The mode matching what is already persisted, so reopening the
+    /// picker reflects reality instead of resetting to the default.
+    static func current(from settings: ReaderSettings) -> WelcomeReadingMode {
+        if settings.pageFlow == .scroll { return .scroll }
+        return settings.pageTransition == .curl ? .curl : .slide
     }
 }

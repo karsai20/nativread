@@ -392,18 +392,18 @@ final class ReaderJourneyUITests: XCTestCase {
         )
     }
 
-    /// Opens the translation sheet the way a user does now: hold the book on
-    /// the shelf and pick Translate from its context menu.
+    /// Opens the translation sheet from the Translate destination, which
+    /// lists every eligible book — the primary way in.
     private func openTranslationSheet(
         for title: String = "The Lantern of Aldebaran"
     ) {
-        let book = app.buttons["library.book.\(title)"]
-        XCTAssertTrue(book.waitForExistence(timeout: 10))
-        book.press(forDuration: 1.2)
+        let translateTab = tab(.translate)
+        XCTAssertTrue(translateTab.waitForExistence(timeout: 10))
+        translateTab.tap()
 
-        let translateItem = app.buttons["Translate book"]
-        XCTAssertTrue(translateItem.waitForExistence(timeout: 6))
-        translateItem.tap()
+        let readyBook = app.buttons["translate.ready.\(title)"]
+        XCTAssertTrue(readyBook.waitForExistence(timeout: 8))
+        readyBook.tap()
     }
 
     func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
@@ -499,12 +499,11 @@ final class ReaderJourneyUITests: XCTestCase {
         ]
         app.launch()
 
-        let book = app.buttons["library.book.The Lantern of Aldebaran"]
-        XCTAssertTrue(book.waitForExistence(timeout: 10))
-        book.press(forDuration: 1.2)
-        let translateItem = app.buttons["Könyv lefordítása"]
-        XCTAssertTrue(translateItem.waitForExistence(timeout: 6))
-        translateItem.tap()
+        XCTAssertTrue(
+            tab(.translate).waitForExistence(timeout: 10)
+        )
+        tab(.translate).tap()
+        app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
 
         let terms = app.buttons["translation.termsAcceptance"]
         XCTAssertTrue(terms.waitForExistence(timeout: 6))

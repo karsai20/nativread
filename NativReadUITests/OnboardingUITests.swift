@@ -1,9 +1,9 @@
 import XCTest
 
-/// Verifies the single-screen welcome. The app language follows the phone —
-/// welcome never asks for it — so these tests assert that the device language
-/// reaches the copy and that the one action stays reachable, including in
-/// landscape and at accessibility text sizes.
+/// Verifies the two-step welcome: the promise, then the reading-mode choice.
+/// The app language follows the phone — welcome never asks for it — so these
+/// tests assert that the device language reaches the copy and that both
+/// actions stay reachable, including in landscape and at accessibility sizes.
 final class OnboardingUITests: XCTestCase {
 
     private var app: XCUIApplication!
@@ -45,6 +45,14 @@ final class OnboardingUITests: XCTestCase {
         button.tap()
     }
 
+    /// Walks both steps: promise -> reading mode -> shelf.
+    private func completeWelcome() {
+        tapContinue()
+        let finish = app.buttons["welcome.finish"]
+        XCTAssertTrue(finish.waitForExistence(timeout: 6))
+        finish.tap()
+    }
+
     private func keepScreenshot(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
@@ -66,7 +74,7 @@ final class OnboardingUITests: XCTestCase {
 
     func testContinueLandsInTheLibrary() {
         launchWelcome(extraArguments: ["-forceLanguage", "en"])
-        tapContinue()
+        completeWelcome()
 
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]
@@ -131,9 +139,78 @@ final class OnboardingUITests: XCTestCase {
         keepScreenshot("welcome-accessibility")
     }
 
+    /// Step two is a real choice: picking Scroll must reach the reader's
+    /// persisted settings, not merely decorate the welcome.
+    func testReadingModeChoiceReachesTheReader() {
+        launchWelcome(extraArguments: ["-forceLanguage", "en"])
+        tapContinue()
+
+        XCTAssertTrue(
+            app.staticTexts["welcome.mode.title"].waitForExistence(timeout: 6)
+        )
+        let scroll = app.buttons["welcome.mode.scroll"]
+        XCTAssertTrue(scroll.waitForExistence(timeout: 4))
+        keepScreenshot("welcome-reading-mode")
+        scroll.tap()
+        app.buttons["welcome.finish"].tap()
+
+        let book = app.buttons["library.book.The Lantern of Aldebaran"]
+        XCTAssertTrue(book.waitForExistence(timeout: 10))
+        book.tap()
+        XCTAssertTrue(
+            app.buttons["reader.position"].waitForExistence(timeout: 20)
+        )
+
+        let typography = app.buttons["reader.typography"]
+        if !typography.isHittable { app.buttons["reader.menu"].tap() }
+        XCTAssertTrue(typography.waitForExistence(timeout: 6))
+        typography.tap()
+
+        app.buttons["appearance.tab.layout"].tap()
+        let scrollFlow = app.buttons["flow.scroll"]
+        XCTAssertTrue(scrollFlow.waitForExistence(timeout: 6))
+        XCTAssertTrue(
+            scrollFlow.isSelected,
+            "the welcome's Scroll choice should be the reader's page flow"
+        )
+    }
+
+    /// Settings brings the welcome back without a relaunch.
+    func testSettingsCanReplayTheWelcome() {
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-resetLanguage",
+            "-skipOnboarding", "-seedSampleBook", "-forceLanguage", "en"
+        ]
+        app.launch()
+
+        XCTAssertTrue(
+            app.buttons["library.book.The Lantern of Aldebaran"]
+                .waitForExistence(timeout: 10)
+        )
+        app.tabBars.buttons.element(boundBy: 2).tap()
+
+        let replay = app.buttons["settings.replayOnboarding"]
+        XCTAssertTrue(replay.waitForExistence(timeout: 8))
+        // The row sits at the bottom of a long sheet.
+        for _ in 0..<6 where !replay.isHittable {
+            app.swipeUp(velocity: .fast)
+        }
+        replay.tap()
+
+        XCTAssertTrue(
+            app.staticTexts["welcome.title"].waitForExistence(timeout: 6),
+            "Show Welcome Again should re-present the flow in place"
+        )
+        completeWelcome()
+        XCTAssertTrue(
+            app.buttons["library.book.The Lantern of Aldebaran"]
+                .waitForExistence(timeout: 10)
+        )
+    }
+
     func testRelaunchWithoutForceSkipsWelcome() {
         launchWelcome()
-        tapContinue()
+        completeWelcome()
 
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]

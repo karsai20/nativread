@@ -1,5 +1,4 @@
 import SwiftUI
-import TipKit
 import UniformTypeIdentifiers
 
 /// The shelf. Warm paper surface, serif wordmark, two-column cover grid.
@@ -77,9 +76,7 @@ struct LibraryView: View {
                 .contains("-autoOpenFirstBook") {
                 openBook = sortedBooks.first
             }
-            updateTipState()
         }
-        .onChange(of: library.books.count) { _, _ in updateTipState() }
         .fileImporter(
             isPresented: $isImporterPresented,
             allowedContentTypes: [
@@ -188,21 +185,8 @@ struct LibraryView: View {
             spacing: 30
         ) {
             ForEach(visibleBooks) { book in
-                bookCell(book)
+                bookButton(book)
             }
-        }
-    }
-
-    /// The translate tip anchors on the first translatable card only, so the
-    /// popover has one unambiguous home on the shelf.
-    @ViewBuilder
-    private func bookCell(_ book: Book) -> some View {
-        if book.id == firstTranslatableBookID {
-            bookButton(book)
-                .popoverTip(AppTips.translateBook)
-                .tipViewStyle(AppTipStyle(palette: palette))
-        } else {
-            bookButton(book)
         }
     }
 
@@ -367,8 +351,6 @@ struct LibraryView: View {
             }
             .accessibilityIdentifier("library.import")
             .disabled(isImporting)
-            .popoverTip(AppTips.addBook)
-            .tipViewStyle(AppTipStyle(palette: palette))
         }
     }
 
@@ -413,18 +395,6 @@ struct LibraryView: View {
         .background(palette.surface)
         .clipShape(Capsule(style: .continuous))
         .overlay(Capsule(style: .continuous).strokeBorder(palette.hairline))
-    }
-
-    /// The card the translate tip points at: the first book that can be sent
-    /// to the translator, in shelf order.
-    private var firstTranslatableBookID: UUID? {
-        visibleBooks.first(where: \.isTranslatableSource)?.id
-    }
-
-    private func updateTipState() {
-        AppTips.hasBooks = !library.books.isEmpty
-        AppTips.hasTranslatableBook =
-            library.books.contains(where: \.isTranslatableSource)
     }
 
     private var translationRecoveryID: String {

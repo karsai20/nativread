@@ -67,7 +67,6 @@
 		7711FECEC2976FB762599BB9 /* EPUBXMLDelegates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460053620CC1DE7B473BDD28 /* EPUBXMLDelegates.swift */; };
 		7774A973A4DFB45D6DFE2949 /* EPUBModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6144E62ED58E5E8641915B27 /* EPUBModels.swift */; };
 		77C20DBD788454E3B9FB8D7A /* SearchServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D6185C5816C08912362D43 /* SearchServiceTests.swift */; };
-		821097C76BAAE8E0C4DDFA09 /* AppTips.swift in Sources */ = {isa = PBXBuildFile; fileRef = A35DFE04346A233556BE8949 /* AppTips.swift */; };
 		838BB50A8C455A0F17F12197 /* ReaderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4070FDA74FC7D4E62B74BF47 /* ReaderViewModel.swift */; };
 		8935545FAEADCBEAEADE86DA /* TranslationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F70B6ACF70974969BFC1FD /* TranslationStore.swift */; };
 		8A3B16EF459323F119EE12D9 /* PrivacyPolicyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7F8CE07E4A4F7ACBE1F92 /* PrivacyPolicyView.swift */; };
@@ -215,7 +214,6 @@
 		9EB1E7EFC740D1288EB2DDB7 /* sample-nocover.epub */ = {isa = PBXFileReference; path = "sample-nocover.epub"; sourceTree = "<group>"; };
 		A12EBFC8F29368E79EF5A394 /* ReaderStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderStyle.swift; sourceTree = "<group>"; };
 		A1FB9D3321C07AD573B5F7FB /* PDFReaderSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReaderSheets.swift; sourceTree = "<group>"; };
-		A35DFE04346A233556BE8949 /* AppTips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTips.swift; sourceTree = "<group>"; };
 		A41020F1B417C212E4BD170E /* ReaderControlStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderControlStyle.swift; sourceTree = "<group>"; };
 		A5828C6CA5147F906FCE0AF5 /* PDFReaderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReaderViewModel.swift; sourceTree = "<group>"; };
 		A62273492171E9BF78F8FF14 /* NightInvertPDFPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightInvertPDFPage.swift; sourceTree = "<group>"; };
@@ -345,7 +343,6 @@
 		20EAA6E037AFA8E0005A498A /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				A35DFE04346A233556BE8949 /* AppTips.swift */,
 				69C90DF03786DD503F6F0D04 /* BookPurchaseStore.swift */,
 				B4F528275EF342C818D8CBE5 /* BundleLanguage.swift */,
 				5D69523F5D9CF07E236863CF /* Gunzip.swift */,
@@ -719,7 +716,6 @@
 				34FCCC0597579BADD5E79DF5 /* AppHeaders.swift in Sources */,
 				20744C67D50ED176FC47FA42 /* AppRows.swift in Sources */,
 				53BE124407C14B55550FC3D4 /* AppTabView.swift in Sources */,
-				821097C76BAAE8E0C4DDFA09 /* AppTips.swift in Sources */,
 				2FCC253188B79CF962509D48 /* Book.swift in Sources */,
 				CE9C3D5CBFB27125CD7E6981 /* BookCard.swift in Sources */,
 				5FD870D8B0638A678408E0C3 /* BookPurchaseStore.swift in Sources */,

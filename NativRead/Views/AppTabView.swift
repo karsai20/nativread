@@ -5,10 +5,12 @@ import SwiftUI
 /// as full-screen covers above this shell, so a book never loses the tab bar's
 /// place underneath it.
 struct AppTabView: View {
+    /// Owned by `RootView` so finishing the welcome can land on the shelf its
+    /// last button promises, whichever tab the reader started from.
+    @Binding var selection: Destination
+
     @Environment(LocalizationStore.self) private var localizationStore
     @Environment(\.colorScheme) private var colorScheme
-
-    @State private var selection: Destination = .library
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -59,7 +61,7 @@ struct AppTabView: View {
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
 
-    private enum Destination: Hashable {
+    enum Destination: Hashable {
         case library, translate, settings
     }
 }

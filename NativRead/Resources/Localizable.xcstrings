@@ -149,6 +149,7 @@
       }
     },
     "%lld/%lld sections": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -263,17 +264,6 @@
         }
       }
     },
-    "Add a book in a language you don't read.": {
-      "extractionState": "manual",
-      "localizations": {
-        "hu": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tedd fel az idegen nyelvű könyvedet."
-          }
-        }
-      }
-    },
     "Add a book you can't read — the first chapter is translated free.": {
       "localizations": {
         "hu": {
@@ -297,12 +287,12 @@
         }
       }
     },
-    "Add an EPUB to your library, then hold it and choose Translate. Progress and finished translations show up here.": {
+    "Add an EPUB to your library and it will show up here, ready for an AI translation into your language.": {
       "localizations": {
         "hu": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tegyél egy EPUB-ot a könyvtáradba, tartsd nyomva, és válaszd a fordítást. A folyamat és a kész fordítások itt jelennek meg."
+            "value": "Tölts be egy EPUB-ot a könyvtáradba, és itt megjelenik, készen az AI-fordításra a saját nyelvedre."
           }
         }
       }
@@ -332,6 +322,7 @@
       }
     },
     "Added to your library.": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -342,6 +333,7 @@
       }
     },
     "Adding to your library": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -469,6 +461,7 @@
       }
     },
     "Calculate exact quote": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -633,16 +626,6 @@
         }
       }
     },
-    "Dismiss tip": {
-      "localizations": {
-        "hu": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tipp bezárása"
-          }
-        }
-      }
-    },
     "Done": {
       "comment": "Confirmation toolbar button to dismiss sheets.",
       "extractionState": "stale",
@@ -680,6 +663,7 @@
       }
     },
     "Export translated EPUB": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -796,12 +780,12 @@
         }
       }
     },
-    "Hold a book to translate it.": {
+    "How do you like to read?": {
       "localizations": {
         "hu": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tartsd nyomva a könyvet a fordításhoz."
+            "value": "Hogyan szeretsz olvasni?"
           }
         }
       }
@@ -1078,6 +1062,16 @@
         }
       }
     },
+    "Next": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tovább"
+          }
+        }
+      }
+    },
     "Next chapter": {
       "comment": "Floating pill label at the end of a scroll-mode chapter.",
       "extractionState": "stale",
@@ -1232,6 +1226,16 @@
         }
       }
     },
+    "One continuous column, like an article.": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Egyetlen folyamatos hasáb, mint egy cikknél."
+          }
+        }
+      }
+    },
     "One purchase per book. Buy it once and it stays yours — reinstall the app and it comes back.": {
       "comment": "Restore guarantee shown under the purchase button.",
       "extractionState": "manual",
@@ -1280,6 +1284,16 @@
         }
       }
     },
+    "Page curl": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lapozás behajlással"
+          }
+        }
+      }
+    },
     "Page turn": {
       "comment": "Eyebrow label for the page transition selector in the typography panel.",
       "extractionState": "stale",
@@ -1288,6 +1302,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lapozás"
+          }
+        }
+      }
+    },
+    "Pages curl like real paper.": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Az oldalak úgy hajlanak, mint az igazi papír."
+          }
+        }
+      }
+    },
+    "Pages slide side to side.": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Az oldalak oldalra csúsznak."
           }
         }
       }
@@ -1395,11 +1429,22 @@
       }
     },
     "Ready to read": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
             "state": "translated",
             "value": "Olvasásra kész"
+          }
+        }
+      }
+    },
+    "Ready to translate": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fordításra kész"
           }
         }
       }
@@ -1417,6 +1462,7 @@
       }
     },
     "Reconnecting": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -1451,6 +1497,7 @@
       }
     },
     "Remove highlight": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -1479,6 +1526,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mentés"
+          }
+        }
+      }
+    },
+    "Scroll": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Görgetés"
           }
         }
       }
@@ -1682,16 +1739,6 @@
         }
       }
     },
-    "The first chapter is free.": {
-      "localizations": {
-        "hu": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Az első fejezet ingyenes."
-          }
-        }
-      }
-    },
     "The translation arrives as a separate book on your shelf. Your original stays unchanged.": {
       "localizations": {
         "hu": {
@@ -1795,6 +1842,7 @@
       }
     },
     "Translate book": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -1852,6 +1900,7 @@
       }
     },
     "Translation failed.": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -1862,11 +1911,22 @@
       }
     },
     "Translation stopped": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
             "state": "translated",
             "value": "A fordítás leállt"
+          }
+        }
+      }
+    },
+    "Turn pages": {
+      "localizations": {
+        "hu": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lapozás"
           }
         }
       }
@@ -1907,6 +1967,7 @@
       }
     },
     "Uploading EPUB to translator...": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
@@ -1965,16 +2026,6 @@
         }
       }
     },
-    "We keep translating in the background and add the result to your shelf.": {
-      "localizations": {
-        "hu": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A háttérben tovább fordítunk, és az eredményt a polcodra tesszük."
-          }
-        }
-      }
-    },
     "Welcome": {
       "comment": "Eyebrow on the onboarding welcome screen.",
       "extractionState": "stale",
@@ -2022,17 +2073,18 @@
         }
       }
     },
-    "You can close the app.": {
+    "You can change this anytime from the reading menu.": {
       "localizations": {
         "hu": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bezárhatod az appot."
+            "value": "Ezt bármikor módosíthatod az olvasás menüben."
           }
         }
       }
     },
     "You can close the app. We keep translating.": {
+      "extractionState": "stale",
       "localizations": {
         "hu": {
           "stringUnit": {
