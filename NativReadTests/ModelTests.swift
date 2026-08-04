@@ -217,9 +217,12 @@ final class ModelTests: XCTestCase {
             safeAreaRight: 21
         )
 
-        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 71.0px"))
-        XCTAssertTrue(css.contains("column-width: 739.0px"))
-        XCTAssertTrue(css.contains("column-gap: 135.0px"))
+        // Safe-area insets set the floor; the measure cap then widens both
+        // margins equally, so 739pt of available width becomes a 612pt
+        // column (34em at the 18pt default) with the surplus split evenly.
+        XCTAssertTrue(css.contains("padding: 64.0px 127.5px 44.0px 134.5px"))
+        XCTAssertTrue(css.contains("column-width: 612.0px"))
+        XCTAssertTrue(css.contains("column-gap: 262.0px"))
         XCTAssertTrue(css.contains("max-height: 294.0px"))
     }
 
@@ -232,8 +235,34 @@ final class ModelTests: XCTestCase {
             safeAreaRight: 0
         )
 
-        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 64.0px"))
-        XCTAssertTrue(css.contains("column-width: 746.0px"))
+        XCTAssertTrue(css.contains("padding: 64.0px 131.0px 44.0px 131.0px"))
+        XCTAssertTrue(css.contains("column-width: 612.0px"))
+    }
+
+    func testReaderStyleCapsTheMeasureOnWideScreens() {
+        // An 11-inch iPad in portrait: without a cap the column would run
+        // the full 834pt, about 110 characters a line.
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 834, pageHeight: 1194
+        )
+
+        let cap = ReaderSettings().fontSize * ReaderStyle.maximumMeasureEm
+        XCTAssertTrue(css.contains("column-width: \(cap)px"))
+        // Paged flow pages by whole viewports, so the column plus its gap
+        // must still add up to the page width.
+        XCTAssertTrue(css.contains("column-gap: \(834 - cap)px"))
+    }
+
+    func testReaderStyleLeavesNarrowScreensUncapped() {
+        // A phone is nowhere near the cap: margins stay exactly as set.
+        var settings = ReaderSettings()
+        settings.horizontalMargin = 20
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844
+        )
+
+        XCTAssertTrue(css.contains("column-width: 350.0px"))
+        XCTAssertTrue(css.contains("column-gap: 40.0px"))
     }
 
     func testReaderStyleNeutralizesPublisherMediaSizing() {

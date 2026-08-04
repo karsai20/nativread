@@ -187,7 +187,7 @@ final class OnboardingUITests: XCTestCase {
             app.buttons["library.book.The Lantern of Aldebaran"]
                 .waitForExistence(timeout: 10)
         )
-        app.tabBars.buttons.element(boundBy: 2).tap()
+        app.tabButton(.settings).tap()
 
         let replay = app.buttons["settings.replayOnboarding"]
         XCTAssertTrue(replay.waitForExistence(timeout: 8))

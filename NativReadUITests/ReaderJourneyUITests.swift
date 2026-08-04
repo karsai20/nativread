@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 /// End-to-end journey over the seeded sample book: shelf → open →
@@ -6,15 +7,8 @@ final class ReaderJourneyUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
-    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
-    /// `tabItem`, and the labels are localised, so tabs are addressed by their
-    /// fixed position: 0 Library, 1 Translate, 2 Settings.
-    private enum Tab: Int {
-        case library, translate, settings
-    }
-
-    private func tab(_ tab: Tab) -> XCUIElement {
-        app.tabBars.buttons.element(boundBy: tab.rawValue)
+    private func tab(_ tab: AppTab) -> XCUIElement {
+        app.tabButton(tab)
     }
 
     override func setUp() {
@@ -141,27 +135,49 @@ final class ReaderJourneyUITests: XCTestCase {
             text.waitForExistence(timeout: 10),
             "chapter text should be repaginated and visible in landscape"
         )
-        // The viewport update is intentionally debounced while rotation
-        // settles; wait for the new CSS rather than sampling the portrait
-        // frame that can remain visible for the first animation frame.
-        let clearsSensorHousing = NSPredicate { object, _ in
-            guard let element = object as? XCUIElement else { return false }
-            return element.frame.minX > 55
+        // Only a phone has a sensor housing to clear; an iPad's correct
+        // landscape inset is the ordinary reading margin.
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            // The viewport update is intentionally debounced while rotation
+            // settles; wait for the new CSS rather than sampling the portrait
+            // frame that can remain visible for the first animation frame.
+            let clearsSensorHousing = NSPredicate { object, _ in
+                guard let element = object as? XCUIElement else { return false }
+                return element.frame.minX > 55
+            }
+            expectation(for: clearsSensorHousing, evaluatedWith: text)
+            waitForExpectations(timeout: 10)
+            XCTAssertGreaterThan(
+                text.frame.minX, 55,
+                "chapter text must clear the landscape sensor housing"
+            )
         }
-        expectation(for: clearsSensorHousing, evaluatedWith: text)
-        waitForExpectations(timeout: 10)
-        XCTAssertGreaterThan(
-            text.frame.minX, 55,
-            "chapter text must clear the landscape sensor housing"
-        )
 
+        // A swipe turns a page within the chapter on a phone, and advances
+        // the chapter on a screen tall enough to hold this short chapter in
+        // one page. The web view's own text cannot tell them apart — CSS
+        // columns keep every paragraph in the DOM — so both chrome labels
+        // are watched and either moving counts as the page having turned.
         let pagesLeft = app.staticTexts["reader.chapterPagesLeft"]
+        let chapterTitle = app.staticTexts["reader.chapterTitle"]
         XCTAssertTrue(pagesLeft.waitForExistence(timeout: 4))
-        let landscapeLabel = pagesLeft.label
+        let pagesLeftBefore = pagesLeft.label
+        let chapterBefore = chapterTitle.label
         app.webViews.firstMatch.swipeLeft(velocity: .fast)
-        let changed = NSPredicate(format: "label != %@", landscapeLabel)
-        expectation(for: changed, evaluatedWith: pagesLeft)
-        waitForExpectations(timeout: 10)
+
+        let moved = expectation(description: "the swipe moves the reader")
+        let deadline = Date().addingTimeInterval(10)
+        DispatchQueue.global().async {
+            while Date() < deadline {
+                if pagesLeft.label != pagesLeftBefore
+                    || chapterTitle.label != chapterBefore {
+                    moved.fulfill()
+                    return
+                }
+                Thread.sleep(forTimeInterval: 0.25)
+            }
+        }
+        wait(for: [moved], timeout: 12)
     }
 
     func testPositionNavigatorUsesAnAccessibleSlider() {
@@ -290,11 +306,15 @@ final class ReaderJourneyUITests: XCTestCase {
                       "chapter end should offer the next chapter")
         pill.tap()
 
-        // Wait for the next chapter to load (the pill leaves the
-        // start of a chapter), then bring back the chrome.
-        let gone = NSPredicate(format: "exists == 0")
-        expectation(for: gone, evaluatedWith: pill)
-        waitForExpectations(timeout: 8)
+        // On a phone the next chapter starts taller than the viewport, so the
+        // pill leaves until the reader scrolls again. A short chapter on an
+        // iPad-sized screen is legitimately visible end to end, which keeps
+        // the affordance up — there, only the chapter change is asserted.
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            let gone = NSPredicate(format: "exists == 0")
+            expectation(for: gone, evaluatedWith: pill)
+            waitForExpectations(timeout: 8)
+        }
 
         let title = app.staticTexts["The Keeper's Son"]
         for _ in 0..<3 where !title.exists {

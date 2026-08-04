@@ -238,6 +238,7 @@ struct ReaderView: View {
                 .tracking(Typography.eyebrowTracking)
                 .textCase(.uppercase)
                 .lineLimit(1)
+                .accessibilityIdentifier("reader.chapterTitle")
                 .padding(.horizontal, Spacing.xl)
             Spacer()
             Text("\(viewModel.estimatedBookPagesRead)")

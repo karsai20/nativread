@@ -51,6 +51,7 @@
 		544BAD27DD8BF7F5C26D12E5 /* MOBIHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94400FAC7EA31B1D3DD9C8E4 /* MOBIHeader.swift */; };
 		58F1D9874E37F7B9538C0BDF /* PDFReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 999A22A5C2C48AF33C484A9A /* PDFReaderView.swift */; };
 		596556FB658C2C763F138695 /* TypographyPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF3718D66D73D3079B10E989 /* TypographyPanel.swift */; };
+		59FC6CE608C87D9207E8625B /* AppTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C375DC7EFBCBE7E198F72C6 /* AppTabs.swift */; };
 		59FDC72DD1ACA199BBC3E182 /* ReaderScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAC502B4C8483FD7332F0E24 /* ReaderScripts.swift */; };
 		5ACFEF49DEE2E69651C5B166 /* EPUBArchiveValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D816DEF95D64CD0D997D7FB /* EPUBArchiveValidator.swift */; };
 		5AE4A6A32CCD49470350EC2A /* SampleDocuments.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1EB437835ADE4440C44B99B /* SampleDocuments.swift */; };
@@ -187,6 +188,7 @@
 		6864F0AF543B427F26EFE3BC /* KF8ConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KF8ConverterTests.swift; sourceTree = "<group>"; };
 		6973A0658B222854210AF6D3 /* PalmDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PalmDatabase.swift; sourceTree = "<group>"; };
 		69C90DF03786DD503F6F0D04 /* BookPurchaseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookPurchaseStore.swift; sourceTree = "<group>"; };
+		6C375DC7EFBCBE7E198F72C6 /* AppTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTabs.swift; sourceTree = "<group>"; };
 		6E606134B7B8F30E367F91A4 /* pal-utcai-fiuk-gutenberg-hu.epub */ = {isa = PBXFileReference; path = "pal-utcai-fiuk-gutenberg-hu.epub"; sourceTree = "<group>"; };
 		743BCB6AC687298A44D6AB41 /* CormorantGaramond-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantGaramond-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		75D03E4D1200C73A83619A03 /* CREDITS.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CREDITS.txt; sourceTree = "<group>"; };
@@ -442,6 +444,7 @@
 			isa = PBXGroup;
 			children = (
 				A919EE1E4F6BA96D721FDF1E /* AppShowcaseScreenshotUITests.swift */,
+				6C375DC7EFBCBE7E198F72C6 /* AppTabs.swift */,
 				F6C7AB5DB7D76129E39F0CBB /* OnboardingLaunchUITests.swift */,
 				0AC0BF3780724C07D4DD9206 /* OnboardingUITests.swift */,
 				A71A417C7DD4484C45ED2DDB /* PDFReaderUITests.swift */,
@@ -790,6 +793,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2C0A75E22C832DC1F10C1340 /* AppShowcaseScreenshotUITests.swift in Sources */,
+				59FC6CE608C87D9207E8625B /* AppTabs.swift in Sources */,
 				5C01CA1931AF8D098CBA02FF /* OnboardingLaunchUITests.swift in Sources */,
 				AFB660D6145618BCF13249EE /* OnboardingUITests.swift in Sources */,
 				02D842519704BF5382D4917F /* PDFReaderUITests.swift in Sources */,

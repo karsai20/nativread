@@ -28,15 +28,8 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
-    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
-    /// `tabItem`, and the labels are localised, so tabs are addressed by their
-    /// fixed position: 0 Library, 1 Translate, 2 Settings.
-    private enum Tab: Int {
-        case library, translate, settings
-    }
-
-    private func tab(_ tab: Tab) -> XCUIElement {
-        app.tabBars.buttons.element(boundBy: tab.rawValue)
+    private func tab(_ tab: AppTab) -> XCUIElement {
+        app.tabButton(tab)
     }
 
     override func setUp() {

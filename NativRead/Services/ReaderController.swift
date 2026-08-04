@@ -79,6 +79,14 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         webView.scrollView.isScrollEnabled =
             !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
+        // A chapter that fits one page (short chapter, or any chapter on a
+        // large screen) leaves content the same size as the bounds, and a
+        // scroll view with nothing to scroll never rubber-bands — so the
+        // chapter-edge pull that advances chapters would never register.
+        // Forcing the bounce along the reading axis keeps the gesture alive
+        // whatever the chapter's length.
+        webView.scrollView.alwaysBounceHorizontal = flow == .paged
+        webView.scrollView.alwaysBounceVertical = flow == .scroll
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.showsHorizontalScrollIndicator = false
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
@@ -187,6 +195,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         webView.scrollView.isScrollEnabled =
             !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
+        webView.scrollView.alwaysBounceHorizontal = flow == .paged
+        webView.scrollView.alwaysBounceVertical = flow == .scroll
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
         installUserScripts()
         webView.evaluateJavaScript(ReaderScripts.applyStyle(css: css))

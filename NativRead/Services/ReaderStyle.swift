@@ -19,6 +19,12 @@ enum ReaderStyle {
     static let landscapeMinimumHorizontalMargin: Double = 64
     /// Extra whitespace between the text and a sensor/home-indicator inset.
     static let safeAreaGutter: Double = 12
+    /// Longest comfortable line, in multiples of the reading font size —
+    /// roughly 70 characters. Past that the eye loses its place travelling
+    /// back to the next line's start, which an iPad (or a landscape phone)
+    /// would otherwise force: the column takes the whole width. Surplus
+    /// width becomes margin instead of measure.
+    static let maximumMeasureEm: Double = 34
 
     /// Memoised base64 `data:` URIs for bundled fonts, keyed by resource
     /// name. The WKWebView runs out-of-process and does not inherit the
@@ -79,8 +85,18 @@ enum ReaderStyle {
         let compactHeight = pageHeight < 500
         let minimumMargin = compactHeight
             ? max(margin, landscapeMinimumHorizontalMargin) : margin
-        let leftMargin = max(minimumMargin, safeAreaLeft + safeAreaGutter)
-        let rightMargin = max(minimumMargin, safeAreaRight + safeAreaGutter)
+        let baseLeftMargin = max(minimumMargin, safeAreaLeft + safeAreaGutter)
+        let baseRightMargin = max(minimumMargin, safeAreaRight + safeAreaGutter)
+        // Split any width beyond a readable measure evenly into the margins.
+        // Paged flow depends on column-width + column-gap == pageWidth, and
+        // widening both margins by the same amount preserves that.
+        let measureOverflow = max(
+            0,
+            (pageWidth - baseLeftMargin - baseRightMargin)
+                - settings.fontSize * maximumMeasureEm
+        )
+        let leftMargin = baseLeftMargin + measureOverflow / 2
+        let rightMargin = baseRightMargin + measureOverflow / 2
         let horizontalGutter = leftMargin + rightMargin
         let contentWidth = pageWidth - horizontalGutter
         let resolvedTopPadding = compactHeight
