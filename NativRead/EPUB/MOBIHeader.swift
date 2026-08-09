@@ -7,11 +7,15 @@ struct MOBIHeader {
     // EXTH record types this converter reads.
     static let exthAuthor = 100
     static let exthCoverOffset = 201
+    /// The record where the KF8 half of a hybrid MOBI6+KF8 file starts.
+    static let exthKF8Boundary = 121
     static let exthTitle = 503
 
     let compression: Int
     let encryption: Int
     let textRecordCount: Int
+    /// Codepage of the text records: 1252 (CP1252) or 65001 (UTF-8).
+    let textEncoding: Int
     let version: Int
     let firstImageIndex: Int
     let trailingFlags: Int
@@ -32,6 +36,7 @@ struct MOBIHeader {
             throw MOBIError.notMOBI
         }
         let headerLength = record0.be32(20)
+        textEncoding = record0.be32(28)
         version = record0.be32(36)
         firstImageIndex = record0.be32(0x6C)
         // KF8 index record numbers live at fixed offsets in the MOBI header.
@@ -71,6 +76,22 @@ struct MOBIHeader {
             pos += size
         }
         return result
+    }
+
+    /// Anything that is not an explicit CP1252 codepage is read as UTF-8,
+    /// which is also what a missing/garbage encoding field degrades to.
+    var stringEncoding: String.Encoding {
+        textEncoding == 1252 ? .windowsCP1252 : .utf8
+    }
+
+    /// Record number of the KF8 boundary, or `nil` when this book has no KF8
+    /// half. The sentinel `0xFFFFFFFF` is Kindle's "no KF8 part" marker.
+    var kf8BoundaryIndex: Int? {
+        guard let raw = exth[MOBIHeader.exthKF8Boundary], raw.count >= 4 else {
+            return nil
+        }
+        let index = raw.be32(0)
+        return index == 0xFFFF_FFFF ? nil : index
     }
 
     func exthString(_ type: Int) -> String? {
