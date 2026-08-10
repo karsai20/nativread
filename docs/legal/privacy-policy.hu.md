@@ -1,7 +1,7 @@
 # NativRead Adatkezelési Tájékoztató
 
 **VÁZLAT — jogi átvizsgálásra vár.**
-Hatályos: 2026. július 22. · 1.2 verzió
+Hatályos: 2026. augusztus 5. · 1.3 verzió
 
 Az olvasás alapból magánügy. A könyveid a készülékeden maradnak, hacsak
 tudatosan nem indítasz AI-fordítást. Ez a tájékoztató elmagyarázza, milyen
@@ -44,6 +44,12 @@ Google visszaélés-felismerés és kötelező jogi adatszolgáltatás céljáb�
 korlátozott ideig megőrizheti őket. Részletek: [Google Gemini API
 feltételek](https://ai.google.dev/gemini-api/terms).
 
+A Gemini API-t a Google LLC üzemelteti az Egyesült Államokban, így a kérés
+elhagyja az EGT-t. A továbbítás jogalapja a Google adatfeldolgozási
+feltételeiben szereplő általános szerződési feltételek (SCC), valamint a
+Google EU–USA adatvédelmi keret (Data Privacy Framework) szerinti
+tanúsítása. A könyv szövege ezen kívül nem kerül az EGT-n kívülre.
+
 Az Apple a saját feltételei szerint kezeli a bejelentkezési és alkalmazáson
 belüli vásárlási adatokat. A NativRead tárhely- és futtatási szolgáltatója a
 **Cloudflare**. A könyvfájlok R2-tárhelye, a D1-metaadatbázis és a
@@ -85,14 +91,20 @@ semmissé; egy későbbi fordítás előtt az app újra engedélyt kér.
 
 Az alkalmazandó jogtól függően kérhetsz hozzáférést, helyesbítést, törlést,
 korlátozást és adathordozhatóságot, illetve tiltakozhatsz az adatkezelés ellen
-a [[CONTACT_EMAIL]] címen. Panaszt a lakóhelyed szerinti felügyeleti
-hatóságnál tehetsz; Magyarországon ez a NAIH.
+a [[CONTACT_EMAIL]] címen. A megkeresésekre 30 napon belül válaszolunk.
+Panaszt a lakóhelyed szerinti felügyeleti hatóságnál tehetsz; Magyarországon
+ez a NAIH.
+
+Ha Kaliforniában élsz: a NativRead nem adja el és nem osztja meg a személyes
+adataidat, így nincs miről leiratkoznod. A fent leírt megismerési, törlési és
+helyesbítési jogok ugyanazon a kapcsolattartási címen gyakorolhatók.
 
 ## 8. Biztonság és életkor
 
 A munkamenet az iOS Kulcskarikában tárolódik, a fordítási kérések
-hitelesített kapcsolaton mennek. A fordítószolgáltatás felnőtteknek szól, és
-tudatosan nem hoz létre fordítási fiókot 18 év alattiaknak.
+hitelesített kapcsolaton mennek. Az offline olvasásnak nincs korhatára. A
+fordítószolgáltatás felnőtteknek szól, és tudatosan nem hoz létre fordítási
+fiókot 18 év alattiaknak.
 
 ## 9. Változások
 

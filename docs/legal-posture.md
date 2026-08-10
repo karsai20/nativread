@@ -5,16 +5,26 @@ EU AI Act section added 2026-07-06 (/ship compliance pass).
 **Not formal legal advice — get a qualified attorney's sign-off before
 commercial launch.**
 
-> **Verdict (2026-06-29):** The architecture is App-Store-compatible and
-> legally defensible *as designed*. The product does NOT need a redesign.
-> Survivability at App Review hinges on executing the MUST-FIX items below —
+> **Verdict (2026-06-29, corrected 2026-08-05):** The architecture is
+> App-Store-compatible, and the *user-facing* posture is defensible as
+> designed. The product does NOT need a redesign to reach App Review.
+> Survivability there hinges on executing the MUST-FIX items below —
 > especially the ones a reviewer actually sees (#1 ownership attestation,
 > #2 metadata scrub, #4 privacy disclosure, #5 account deletion) — plus the
-> DeepSeek terms answer (#3). The residual legal exposure that survives even a
-> perfect implementation is the personal-use-derivative position under an
-> *operator-stores-the-copy* fact pattern: it is a fair-use-flavored
-> risk-tolerance stance, not a guaranteed statutory defense. Acceptable for
-> launch given the conduit posture; have counsel pressure-test it.
+> DeepSeek terms answer (#3).
+>
+> The residual legal exposure that survives even a perfect implementation is
+> the **operator's own act of adaptation**: the server, not the user, creates
+> the derivative work, for money. The original wording called this a
+> "fair-use-flavored risk-tolerance stance" — that framing is a US import and
+> is **wrong for an EU/HU operator**. There is no fair use here, only the
+> closed exception list of InfoSoc Art 5 plus national adaptation law; no
+> listed exception covers a commercial provider performing the adaptation.
+> Attestation, ephemerality, and per-user isolation lower enforcement
+> probability and provable damages; they do not create a legal basis.
+> **Chosen posture (2026-08-04): accept that exposure and shift responsibility
+> to the user by contract.** That choice is only as strong as its carriers —
+> a limited-liability entity and the counsel read (still open, TODOS P1).
 
 ## The model this covers
 
@@ -35,6 +45,23 @@ none of that protection carries over. The constraints below replace it.
    or sideload of books. The app translates an EPUB the user already has. No
    feature that helps obtain copyrighted books → avoids App Store Guideline 5.2
    (intellectual property) rejection and facilitation claims.
+
+0. **Two things missing from the original analysis (added 2026-08-05).**
+   - **The three-step test (InfoSoc Art 5(5), Berne 9(2)).** Even where a
+     national reading of private adaptation is favourable, the use must not
+     conflict with the normal exploitation of the work. That conflict is
+     **title-dependent**: where a licensed Hungarian edition exists, the
+     output substitutes it directly and the test bites hardest; where none
+     exists (long tail, out of print, never translated), the argument largely
+     falls away. Consequence: do not position or market the product on
+     bestsellers that already have a licensed translation in the target
+     language, and give counsel this segmentation rather than a single
+     yes/no question.
+   - **No hosting safe harbour (DSA Art 6).** The service does not merely
+     store files at a user's request — it creates the translation. The
+     rightsholder-notice route is therefore a voluntary good-faith process,
+     not statutory immunity, and must not be described as if it were. Terms
+     clause 7.7 now says so explicitly.
 
 2. **Translation is a derivative work — keep it private and per-user.**
    - Personal translation of a user's own legally-owned book, for their own
@@ -177,6 +204,12 @@ see and are the make-or-break for getting on the store.
    this book and have the right to translate it for personal use" gate before
    the first upload/translation — NOT buried in the ToS. Primary 5.2 survival
    artifact; reviewers must see it.
+   **Regressed and restored:** Terms v1.1 (2026-08-03) folded the statement
+   into clause 7.1 and left the screen reading only "I accept the Terms of
+   Use", while the acceptance record kept asserting a rights statement
+   (`statementVersion`). v1.2 (2026-08-05) puts the sentence back on the
+   checkbox. Any future shortening of that copy re-opens this gate — the
+   wording is pinned in `docs/legal/in-app-legal-copy.md` §1.
 2. ★ **Scrub all App Store metadata + in-app copy** of any wording implying
    users can obtain, find, or read books they don't own. Position strictly as
    "translate books you already own." Marketing copy is reviewed under 5.2.

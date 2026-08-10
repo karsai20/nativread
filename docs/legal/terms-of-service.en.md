@@ -2,13 +2,17 @@
 
 **PRE-RELEASE DRAFT — legal review and completed operator details are required.**
 
-Effective 3 August 2026 · Version 1.1
-Archived web version: https://nativread.com/terms/2026-08-03/
+Effective 5 August 2026 · Version 1.3
+Archived web version: https://nativread.com/terms/2026-08-05/
 
-Version 1.1 folds the previously separate in-app rights attestation into
-clause 7.1: accepting these terms and starting a translation now carries the
-rights confirmation, so the app shows a single "I accept the Terms of Use"
-checkbox instead of a standalone statement.
+Version 1.3 adds clause 4.4 (we do not train AI models on your books), clause
+6.3 (no resale or automated access), and clause 8.3 (a liability cap that
+leaves mandatory consumer rights untouched).
+Version 1.2 added clause 7.4 (who owns the translation) and clause 10
+(NativRead's own intellectual property), and put the rights statement back on
+the acceptance screen: the checkbox now reads "I own this book and have the
+right to translate it for my personal use", with the Terms linked inline.
+Version 1.1 had folded that statement into clause 7.1 alone.
 
 These terms govern the NativRead app and its optional AI translation service,
 operated by **[[OPERATOR_NAME]]**, registered/home address
@@ -69,6 +73,11 @@ of these Terms. Declining it does not affect the offline reader.
 4.3 The AI provider’s rules may refuse some content. A free preview is not
 treated as consumed after that kind of technical or provider refusal.
 
+4.4 We do not use your books, your translations, or your reading data to train
+artificial-intelligence models, and we require the same of the AI provider we
+use: the terms of its paid API prohibit using your text to improve its
+products or models. The Privacy Policy sets out the detail.
+
 ## 5. Data processing
 
 5.1 A book stays on your device until you start a translation. The purposes,
@@ -87,6 +96,10 @@ another user’s data.
 6.2 We apply rate, size, concurrency, and spend limits. Serious or repeated
 abuse may lead to account restriction or termination.
 
+6.3 You must not resell the translation service, sublicense it, or make it
+available to other people, and you must not access it by automated means other
+than the app itself.
+
 ## 7. User content and copyright responsibility
 
 7.1 By accepting these terms and starting a translation, you confirm that the
@@ -103,21 +116,31 @@ intellectual-property right.
 does not conduct advance or retrospective legal review of uploaded books.
 Technical acceptance of a file does not approve or certify its lawfulness.
 
-7.4 The translation is supplied only for your personal, non-commercial
+7.4 The translation is made for you and we claim no ownership of it: whatever
+rights we hold in the machine output pass to you for your personal use.
+Because a translation is an adaptation of the original work, the author's and
+publisher's rights in that work continue to cover the translation — it gives
+you no right you did not already have. A machine translation may also not
+qualify for copyright protection in every jurisdiction.
+
+7.5 The translation is supplied only for your personal, non-commercial
 reading. Except for copies reasonably necessary on devices or private storage
 you control, you must not reproduce, publish, sell, distribute, make
 available, or share it or any extract with another person.
 
-7.5 To the extent permitted by applicable law, if your intentional or
-negligent breach of clauses 7.1–7.4 causes a substantiated third-party claim,
+7.6 To the extent permitted by applicable law, if your intentional or
+negligent breach of clauses 7.1–7.5 causes a substantiated third-party claim,
 you are responsible for the documented direct loss reasonably resulting from
 that breach. This does not remove a mandatory consumer right or transfer to
 you any legal duty that the law places on NativRead.
 
-7.6 After a credible rightsholder notice, we may suspend the disputed
+7.7 After a credible rightsholder notice, we may suspend the disputed
 processing while we investigate. Repeated or serious infringement may lead to
 account restriction or termination. Notices:
-https://nativread.com/rightsholders/.
+https://nativread.com/rightsholders/. Reviewing a notice is a voluntary
+good-faith process; NativRead creates the translation rather than merely
+storing user files, so it does not claim the hosting-service liability
+exemption under Article 6 of the Digital Services Act.
 
 ## 8. Liability
 
@@ -126,6 +149,13 @@ planned or necessary maintenance.
 
 8.2 Nothing in these terms excludes or limits liability, guarantees, remedies,
 or consumer rights that cannot lawfully be excluded or limited.
+
+8.3 Subject to clause 8.2 and to the extent applicable law permits, our total
+liability for all claims connected with the translation service is limited to
+the amount you paid for that service in the twelve months before the event
+giving rise to the claim. This limit does not apply to loss caused
+intentionally or by gross negligence, or to harm to life, bodily integrity, or
+health.
 
 ## 9. Changes and termination
 
@@ -136,12 +166,21 @@ translation. An empty or preselected checkbox is never treated as acceptance.
 app. We may discontinue the service with reasonable notice, without affecting
 mandatory rights attached to completed purchases.
 
-## 10. Governing law and remedies
+## 10. NativRead's own intellectual property
 
-10.1 Hungarian law applies without reducing mandatory consumer protection in
+10.1 The app, its name, interface, design, and source code belong to the
+operator. These terms grant you a personal licence to use the app; they
+transfer none of that to you.
+
+10.2 They do not affect your rights in your own books, translations,
+highlights, or notes.
+
+## 11. Governing law and remedies
+
+11.1 Hungarian law applies without reducing mandatory consumer protection in
 your country of residence.
 
-10.2 You may use the courts and any competent consumer alternative-dispute-
+11.2 You may use the courts and any competent consumer alternative-dispute-
 resolution forum available to you. Complaints and support:
 **[[CONTACT_EMAIL]]**.
 

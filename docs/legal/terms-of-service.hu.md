@@ -3,14 +3,19 @@
 **KIADÁS ELŐTTI VÁZLAT — ügyvédi felülvizsgálat és az üzemeltetői adatok
 kitöltése szükséges.**
 
-Hatályos: 2026. augusztus 3. · 1.1 verzió
-Archivált webes változat: https://nativread.com/terms/2026-08-03/
+Hatályos: 2026. augusztus 5. · 1.3 verzió
+Archivált webes változat: https://nativread.com/terms/2026-08-05/
 
-Az 1.1 verzió a korábban külön álló, alkalmazáson belüli jogosultsági
-nyilatkozatot a 7.1 pontba olvasztja: a feltételek elfogadása és a fordítás
-elindítása egyben a jogosultság megerősítése, így az alkalmazásban egyetlen
-„Elfogadom a Felhasználási feltételeket” jelölőnégyzet szerepel önálló
-nyilatkozat helyett.
+Az 1.3 verzió beemeli a 4.4 pontot (a könyveiddel nem tanítunk AI-modellt), a
+6.3 pontot (továbbértékesítés és automatizált hozzáférés tilalma) és a 8.3
+pontot (felelősségkorlátozás, a kötelező fogyasztói jogok érintetlenül
+hagyásával).
+Az 1.2 verzió emelte be a 7.4 pontot (kié a fordítás) és a 10. pontot (a
+NativRead saját szellemi tulajdona), a jogosultsági nyilatkozatot pedig
+visszateszi az elfogadó képernyőre: a jelölőnégyzet szövege „Sajátom ez a
+könyv, és jogosult vagyok személyes használatra lefordíttatni”, a Feltételek
+soron belüli hivatkozással. Az 1.1 verzió ezt a nyilatkozatot még kizárólag a
+7.1 pontba olvasztotta.
 
 E feltételek a NativRead alkalmazásra és választható AI-fordítószolgáltatására
 vonatkoznak. Üzemeltető: **[[OPERATOR_NAME]]**, székhely/lakcím:
@@ -73,6 +78,12 @@ olvasót.
 Az ingyenes próba ilyen technikai vagy szolgáltatói elutasítás esetén nem
 tekintendő felhasználtnak.
 
+4.4 A könyveidet, a fordításaidat és az olvasási adataidat nem használjuk
+mesterséges intelligencia betanítására, és ugyanezt várjuk el az igénybe vett
+AI-szolgáltatótól is: fizetős API-jának feltételei tiltják, hogy a szövegedet
+termékei vagy modelljei fejlesztésére használja. A részleteket az Adatkezelési
+tájékoztató tartalmazza.
+
 ## 5. Adatkezelés
 
 5.1 A könyv a készülékeden marad, amíg nem indítasz fordítást. A fordítási
@@ -93,6 +104,10 @@ illetve más felhasználó adataihoz hozzáférést kísérelni.
 6.2 Sebesség-, méret-, párhuzamossági és költségkorlátokat alkalmazunk. Súlyos
 vagy ismétlődő visszaélés esetén a fiókot korlátozhatjuk vagy megszüntethetjük.
 
+6.3 A fordítószolgáltatást nem értékesítheted tovább, nem adhatod tovább
+licencbe, és nem teheted mások számára elérhetővé; az alkalmazáson kívüli
+automatizált eszközzel nem férhetsz hozzá.
+
 ## 7. Felhasználói tartalom és szerzői jogi felelősség
 
 7.1 E feltételek elfogadásával és a fordítás elindításával megerősíted, hogy a
@@ -110,22 +125,33 @@ végez előzetes vagy utólagos jogi vizsgálatot a feltöltött könyveken. A f
 technikai elfogadása nem jelenti annak jogszerűségi jóváhagyását vagy
 tanúsítását.
 
-7.4 A fordítást kizárólag saját, személyes, nem kereskedelmi olvasásra kapod.
+7.4 A fordítás neked készül, és nem tartunk rá igényt: a gépi kimeneten
+fennálló jogainkat személyes használatra átengedjük. Mivel a fordítás az
+eredeti mű átdolgozása, a mű szerzőjének és kiadójának jogai a fordításra is
+kiterjednek — a fordítás nem ad olyan jogot, amellyel korábban nem
+rendelkeztél. A gépi fordítás emellett nem minden joghatóságban részesül
+szerzői jogi védelemben.
+
+7.5 A fordítást kizárólag saját, személyes, nem kereskedelmi olvasásra kapod.
 A saját ellenőrzésed alatt álló eszközökön vagy privát tárhelyen észszerűen
 szükséges példányokon túl nem másolhatod, nem teheted közzé, nem adhatod el,
 nem terjesztheted, nem teheted hozzáférhetővé és nem oszthatod meg mással a
 fordítást vagy annak részletét.
 
-7.5 Az alkalmazandó jog által megengedett mértékben, ha a 7.1–7.4 pontban
+7.6 Az alkalmazandó jog által megengedett mértékben, ha a 7.1–7.5 pontban
 vállaltak szándékos vagy gondatlan megszegése igazolt harmadik fél általi
 igényt okoz, az ebből észszerűen eredő, dokumentált közvetlen kárért felelsz.
 Ez nem von el kötelező fogyasztói jogot, és nem hárít át rád olyan jogi
 kötelezettséget, amelyet a jog a NativReadre telepít.
 
-7.6 Hitelt érdemlő jogtulajdonosi bejelentés után a kifogásolt feldolgozást a
+7.7 Hitelt érdemlő jogtulajdonosi bejelentés után a kifogásolt feldolgozást a
 vizsgálat idejére felfüggeszthetjük. Ismétlődő vagy súlyos jogsértés a fiók
 korlátozásához vagy megszüntetéséhez vezethet. Bejelentés:
-https://nativread.com/rightsholders/.
+https://nativread.com/rightsholders/. A bejelentés vizsgálata önkéntes,
+jóhiszemű eljárás: a NativRead nem pusztán tárolja a felhasználó fájljait,
+hanem létrehozza a fordítást, ezért a digitális szolgáltatásokról szóló
+rendelet (DSA) 6. cikke szerinti tárhelyszolgáltatói felelősségkorlátozásra
+nem hivatkozik.
 
 ## 8. Felelősség
 
@@ -136,6 +162,13 @@ tervezett vagy szükséges karbantartás miatt szünetelhet.
 kellékszavatosságot, jogorvoslatot vagy fogyasztói jogot, amely jogszerűen nem
 zárható ki vagy nem korlátozható.
 
+8.3 A 8.2 pont fenntartásával és az alkalmazandó jog által megengedett
+mértékben a fordítószolgáltatással összefüggő valamennyi igényért fennálló
+felelősségünk legfeljebb az igény alapjául szolgáló eseményt megelőző tizenkét
+hónapban e szolgáltatásért fizetett összeg mértékéig terjed. A korlátozás nem
+vonatkozik a szándékosan vagy súlyosan gondatlanul okozott kárra, sem az
+emberi életet, testi épséget vagy egészséget megkárosító szerződésszegésre.
+
 ## 9. Módosítás és megszűnés
 
 9.1 Lényeges módosítás után egy új fordítás előtt ismételt, aktív elfogadást
@@ -145,12 +178,21 @@ kérünk. Üres vagy előre kijelölt jelölőnégyzetet nem tekintünk elfogad�
 törölheted. A szolgáltatást észszerű értesítéssel megszüntethetjük, a
 teljesített vásárlásokhoz kapcsolódó kötelező jogaid sérelme nélkül.
 
-## 10. Irányadó jog és jogorvoslat
+## 10. A NativRead szellemi tulajdona
 
-10.1 A magyar jog irányadó, a lakóhelyed szerinti kötelező fogyasztóvédelmi
+10.1 Az alkalmazás, a neve, a felülete, a formaterve és a forráskódja az
+üzemeltetőé. E feltételek személyes használati engedélyt adnak az
+alkalmazásra; ezekből semmit nem ruháznak át rád.
+
+10.2 Nem érintik a saját könyveiden, fordításaidon, kiemeléseiden és
+jegyzeteiden fennálló jogaidat.
+
+## 11. Irányadó jog és jogorvoslat
+
+11.1 A magyar jog irányadó, a lakóhelyed szerinti kötelező fogyasztóvédelmi
 szabályok sérelme nélkül.
 
-10.2 Jogvita esetén igénybe veheted a hatáskörrel rendelkező bíróságot és a
+11.2 Jogvita esetén igénybe veheted a hatáskörrel rendelkező bíróságot és a
 számodra elérhető fogyasztói alternatív vitarendezési fórumot. Panasz és
 támogatás: **[[CONTACT_EMAIL]]**.
 
