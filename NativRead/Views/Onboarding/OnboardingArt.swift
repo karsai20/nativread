@@ -32,77 +32,136 @@ struct OnboardingPaperBackground: View {
 
 // MARK: - The shelf
 
-/// The library grid as it looks with a couple of books on it, next to the
-/// "Add a book" action that owns the empty shelf.
+/// A shelf that never ends: two rows of covers drifting in opposite
+/// directions, fading out at both edges. It shows what the app is for — books
+/// in languages you do and do not read — without putting anything tappable on
+/// a screen whose only action is Continue. An earlier version drew the
+/// library's real "Add a book" tile here; testers tried to press it.
 struct OnboardingShelfScene: View {
     let palette: BrandPalette
 
-    /// Covers sized to the 2:3 ratio the shelf grid uses, large enough that
-    /// the beat carries visual weight rather than floating in whitespace.
-    private static let tileWidth: CGFloat = 104
-    private static let tileHeight: CGFloat = 156
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(alignment: .top, spacing: Spacing.sm) {
-            cover(OnboardingSampleJob.book)
-            cover(OnboardingSampleJob.companion)
-            addTile
+        VStack(spacing: Spacing.sm) {
+            DriftingShelfRow(
+                books: OnboardingSampleJob.topRow,
+                reversed: false,
+                reduceMotion: reduceMotion
+            )
+            DriftingShelfRow(
+                books: OnboardingSampleJob.bottomRow,
+                reversed: true,
+                reduceMotion: reduceMotion
+            )
         }
         .frame(maxWidth: .infinity)
+        // Fading the ends is what makes the rows read as a shelf running past
+        // the screen rather than a strip that was cut off.
+        .mask {
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.10),
+                    .init(color: .black, location: 0.90),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+    }
+}
+
+/// One row of covers, looping seamlessly. The row holds two copies of its
+/// books and travels exactly one copy's width, so the moment the animation
+/// repeats the second copy is standing where the first began.
+private struct DriftingShelfRow: View {
+    let books: [OnboardingSampleJob.Book]
+    /// Drifts right instead of left, so the two rows move against each other.
+    let reversed: Bool
+    let reduceMotion: Bool
+
+    @State private var travelled = false
+
+    private static let coverWidth: CGFloat = 76
+    private static let spacing = Spacing.sm
+    /// Slow enough to read as ambient rather than as something to look at.
+    private static let secondsPerCover: Double = 4.5
+
+    private var cycle: CGFloat {
+        CGFloat(books.count) * (Self.coverWidth + Self.spacing)
+    }
+
+    private var offset: CGFloat {
+        let progress = travelled ? cycle : 0
+        return reversed ? progress - cycle : -progress
+    }
+
+    var body: some View {
+        // The row is an overlay on an empty box of the right height, so its
+        // full natural width — eight covers, far wider than the screen — never
+        // reaches the layout. Sizing the parent off it instead pushed the
+        // headline and value line off the right edge.
+        Color.clear
+            .frame(height: Self.coverWidth * 1.5)
+            .overlay(alignment: .leading) {
+                HStack(spacing: Self.spacing) {
+                    // Two passes: the row must never run out of covers mid-loop.
+                    ForEach(0 ..< 2, id: \.self) { copy in
+                        ForEach(Array(books.enumerated()), id: \.offset) { index, book in
+                            cover(book).id("\(copy)-\(index)")
+                        }
+                    }
+                }
+                .fixedSize()
+                .offset(x: offset)
+            }
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(
+                    .linear(duration: Double(books.count) * Self.secondsPerCover)
+                        .repeatForever(autoreverses: false)
+                ) {
+                    travelled = true
+                }
+            }
     }
 
     private func cover(_ book: OnboardingSampleJob.Book) -> some View {
-        Image(book.coverAsset)
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .frame(width: Self.tileWidth, height: Self.tileHeight)
-            .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
-            .overlay(
-                RoundedRectangle(cornerRadius: Spacing.radiusSmall)
-                    .strokeBorder(.black.opacity(0.08))
-            )
-            .shadow(color: .black.opacity(0.18), radius: 10, y: 6)
-            .accessibilityLabel(Text(verbatim: book.title))
-    }
-
-    /// The empty slot the reader is about to fill — drawn as the dashed
-    /// placeholder rather than a real cover, so the gesture is unmistakable.
-    private var addTile: some View {
-        VStack(spacing: Spacing.xs) {
-            Image(systemName: "plus")
-                .font(.system(size: 22, weight: .semibold))
-            // The library's own call to action, verbatim, so the gesture the
-            // reader is about to make already has its real name here.
-            Text("Add a book")
-                .font(.system(size: 11, weight: .semibold))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
-                .padding(.horizontal, Spacing.xxs)
+        Group {
+            if let asset = book.coverAsset {
+                Image(asset)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                // The shelf's own generated cover, so a scene book and a real
+                // book without artwork are drawn by the same code.
+                GeneratedCover(title: book.title, author: book.author)
+            }
         }
-        .foregroundStyle(palette.accent)
-        .frame(width: Self.tileWidth, height: Self.tileHeight)
-        .background(palette.accentSoft)
+        .frame(width: Self.coverWidth, height: Self.coverWidth * 1.5)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
         .overlay(
             RoundedRectangle(cornerRadius: Spacing.radiusSmall)
-                .strokeBorder(
-                    palette.accent.opacity(0.55),
-                    style: StrokeStyle(lineWidth: 1.5, dash: [5, 4])
-                )
+                .strokeBorder(.black.opacity(0.08))
         )
+        .shadow(color: .black.opacity(0.18), radius: 8, y: 5)
     }
 }
 
 // MARK: - Sample data
 
-/// The two covers on the welcome shelf. Public-domain titles only; both are
-/// real jackets lifted straight out of the EPUBs in `Resources/Fixtures`.
+/// The shelf's books. Public domain only, and deliberately mixed: titles the
+/// Hungarian reader can read sit beside ones they cannot, which is the whole
+/// reason the app exists. The two with real jackets are lifted straight out of
+/// the EPUBs in `Resources/Fixtures`; the rest use the app's generated cover.
 enum OnboardingSampleJob {
     struct Book {
         let title: String
         let author: String
-        let coverAsset: String
+        /// `nil` falls back to `GeneratedCover`.
+        let coverAsset: String?
     }
 
     static let book = Book(
@@ -115,4 +174,18 @@ enum OnboardingSampleJob {
         author: "Molnár Ferenc",
         coverAsset: "SampleCoverPal"
     )
+
+    static let topRow: [Book] = [
+        book,
+        Book(title: "Pride and Prejudice", author: "Jane Austen", coverAsset: nil),
+        Book(title: "Egri csillagok", author: "Gárdonyi Géza", coverAsset: nil),
+        Book(title: "Moby-Dick", author: "Herman Melville", coverAsset: nil)
+    ]
+
+    static let bottomRow: [Book] = [
+        companion,
+        Book(title: "Great Expectations", author: "Charles Dickens", coverAsset: nil),
+        Book(title: "Az arany ember", author: "Jókai Mór", coverAsset: nil),
+        Book(title: "Robinson Crusoe", author: "Daniel Defoe", coverAsset: nil)
+    ]
 }

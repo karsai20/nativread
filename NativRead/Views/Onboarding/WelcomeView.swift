@@ -83,14 +83,17 @@ struct WelcomeView: View {
         VStack(alignment: .leading, spacing: Spacing.xl) {
             if showsScene {
                 OnboardingShelfScene(palette: palette)
-                    .frame(maxWidth: 420)
+                    .frame(maxWidth: .infinity)
+                    // Cancels the step's own inset so the shelf runs past both
+                    // edges; a shelf that stops short of them reads as a strip.
+                    .padding(.horizontal, -Spacing.lg)
                     .accessibilityHidden(true)
                     .opacity(revealedStage >= 1 ? 1 : 0)
                     .offset(y: revealedStage >= 1 ? 0 : 24)
             }
 
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Text("Read in any language.")
+                Text("Any book. Your language.")
                     .font(Typography.heading(titleSize))
                     .dynamicTypeSize(...DynamicTypeSize.accessibility3)
                     .tracking(Typography.headingTracking(titleSize))
@@ -100,7 +103,7 @@ struct WelcomeView: View {
                     .opacity(revealedStage >= 2 ? 1 : 0)
                     .offset(y: revealedStage >= 2 ? 0 : 16)
 
-                Text("Add a book you can't read — the first chapter is translated free.")
+                Text("Bring a book you can't read. We translate the first chapter free.")
                     .font(Typography.control(17, weight: .semibold))
                     .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                     .foregroundStyle(palette.accent)
@@ -125,13 +128,20 @@ struct WelcomeView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("welcome.mode.title")
 
-            VStack(spacing: Spacing.sm) {
-                ForEach(WelcomeReadingMode.allCases) { mode in
-                    modeCard(mode)
-                }
+            OnboardingModePreview(mode: selectedMode, palette: palette)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                modePicker
+
+                Text(selectedMode.subtitle)
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .animation(.easeInOut(duration: 0.2), value: selectedMode)
             }
 
-            Text("You can change this anytime from the reading menu.")
+            Text("Change this later in the reading menu.")
                 .font(Typography.meta())
                 .foregroundStyle(palette.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -139,39 +149,33 @@ struct WelcomeView: View {
         .frame(maxWidth: 560, alignment: .leading)
     }
 
-    private func modeCard(_ mode: WelcomeReadingMode) -> some View {
+    /// Three segments under the sample page. Picking one plays that turn on
+    /// the page above, so the choice is made by watching, not by reading.
+    private var modePicker: some View {
+        HStack(spacing: Spacing.xs) {
+            ForEach(WelcomeReadingMode.allCases) { mode in
+                modeSegment(mode)
+            }
+        }
+    }
+
+    private func modeSegment(_ mode: WelcomeReadingMode) -> some View {
         let isSelected = mode == selectedMode
         return Button {
             selectedMode = mode
         } label: {
-            HStack(spacing: Spacing.md) {
+            VStack(spacing: Spacing.xxs) {
                 Image(systemName: mode.icon)
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(isSelected ? palette.background : palette.accent)
-                    .frame(width: 44, height: 44)
-                    .background(
-                        isSelected ? palette.accent : palette.accentSoft,
-                        in: Circle()
-                    )
-
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(mode.title)
-                        .font(Typography.control(17, weight: .semibold))
-                        .foregroundStyle(palette.text)
-
-                    Text(mode.subtitle)
-                        .font(Typography.meta())
-                        .foregroundStyle(palette.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(isSelected ? palette.accent : palette.hairline)
+                    .font(.system(size: 17, weight: .semibold))
+                Text(mode.title)
+                    .font(Typography.control(13, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            .padding(Spacing.md)
-            .background(palette.surface)
+            .foregroundStyle(isSelected ? palette.background : palette.text)
+            .padding(.vertical, Spacing.xs)
+            .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget)
+            .background(isSelected ? palette.accent : palette.surface)
             .clipShape(
                 RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
             )
@@ -217,6 +221,8 @@ struct WelcomeView: View {
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.sm)
         .padding(.bottom, Spacing.sm)
+        // Bar spans the full width on iPad; only the button is capped.
+        .frame(maxWidth: .infinity)
         .background(palette.background)
     }
 
@@ -311,7 +317,7 @@ enum WelcomeReadingMode: String, CaseIterable, Identifiable {
         switch self {
         case .slide: return "Pages slide side to side."
         case .curl: return "Pages curl like real paper."
-        case .scroll: return "One continuous column, like an article."
+        case .scroll: return "One column, no page turns."
         }
     }
 

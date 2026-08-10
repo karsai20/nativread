@@ -8,8 +8,8 @@ final class OnboardingUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
-    private static let headline = "Read in any language."
-    private static let hungarianHeadline = "Olvass bármilyen nyelven."
+    private static let headline = "Any book. Your language."
+    private static let hungarianHeadline = "Bármelyik könyv. A te nyelveden."
 
     override func setUp() {
         continueAfterFailure = false
