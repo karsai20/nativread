@@ -14,6 +14,8 @@ struct TypographyPanel: View {
         settings.effectiveTheme(systemDark: viewModel.systemDark)
     }
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var brightness = UIScreen.main.brightness
     @State private var tab: AppearanceTab = Self.initialTab
 
@@ -90,6 +92,15 @@ struct TypographyPanel: View {
             flowGroup
             if settings.pageFlow == .paged {
                 transitionRow
+                // Without this row the picker above looks broken: iOS is
+                // quietly overriding it and nothing on screen said so.
+                if reduceMotion {
+                    reduceMotionRow
+                }
+                // Only a regular-width device can ever show two columns.
+                if horizontalSizeClass == .regular {
+                    spreadToggle
+                }
             }
         }
     }
@@ -228,6 +239,42 @@ struct TypographyPanel: View {
                 .font(Typography.body(15))
         }
         .tint(palette.accent)
+    }
+
+    private var spreadToggle: some View {
+        Toggle(isOn: Binding(
+            get: { settings.twoPageSpread },
+            set: { newValue in updateSettings { $0.twoPageSpread = newValue } }
+        )) {
+            Label("Two pages in landscape", systemImage: "book")
+                .font(Typography.body(15))
+        }
+        .tint(palette.accent)
+        .accessibilityIdentifier("layout.spread")
+    }
+
+    /// Shown only while iOS Reduce Motion is on, where it explains why the
+    /// page-turn picker has no effect and offers the way back.
+    private var reduceMotionRow: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Toggle(isOn: Binding(
+                get: { settings.allowsMotionWhenReduced },
+                set: { newValue in
+                    updateSettings { $0.allowsMotionWhenReduced = newValue }
+                }
+            )) {
+                Label("Animate page turns anyway",
+                      systemImage: "figure.walk.motion")
+                    .font(Typography.body(15))
+            }
+            .tint(palette.accent)
+            .accessibilityIdentifier("layout.allowsMotion")
+
+            Text("Reduce Motion is on in iOS Settings, so page turns are instant.")
+                .font(Typography.meta(12))
+                .foregroundStyle(palette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var autoThemeToggle: some View {

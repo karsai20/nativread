@@ -51,7 +51,14 @@ final class ReaderViewModel {
     private(set) var hasSearched = false
 
     private var extractedRoot: URL
-    private var suppressProgressSave = false
+
+    /// Where the reader is inside the current chapter, 0…1, as the engine
+    /// last reported it. Finer than `page` in scroll flow, which rounds to
+    /// whole screens — and it is this value that gets persisted and
+    /// restored. Unobserved on purpose: it updates several times a second
+    /// while scrolling, and re-rendering the reader that often stutters
+    /// the glide. The chrome follows `page` instead.
+    @ObservationIgnored private var pageFraction: Double = 0
 
     var settings: ReaderSettings { settingsStore.settings }
     var book: Book? { library.book(id: bookID) }
@@ -94,8 +101,8 @@ final class ReaderViewModel {
             flow: settingsStore.settings.pageFlow,
             transition: settingsStore.settings.pageTransition
         )
-        controller.onState = { [weak self] page, pageCount in
-            self?.handleState(page: page, pageCount: pageCount)
+        controller.onState = { [weak self] state in
+            self?.handleState(state)
         }
         controller.onTap = { [weak self] zone in
             self?.handleTap(zone: zone)
@@ -206,6 +213,9 @@ final class ReaderViewModel {
         beginChapterLoading()
         spineIndex = index
         lastState = nil
+        // Seed the position we asked for: a rotation before the engine
+        // reports back would otherwise reload the chapter at the top.
+        pageFraction = fraction
         controller.loadChapter(
             at: parsed.spineURLs[index],
             readAccessRoot: extractedRoot,
@@ -240,20 +250,22 @@ final class ReaderViewModel {
     /// chapter still persists its new spine index.
     private var lastState: (page: Int, pageCount: Int)?
 
-    private func handleState(page: Int, pageCount: Int) {
-        guard lastState == nil
-            || lastState! != (page: page, pageCount: pageCount) else {
-            return
+    private func handleState(_ state: ReaderEngineState) {
+        pageFraction = state.fraction
+        if lastState == nil
+            || lastState! != (page: state.page, pageCount: state.pageCount) {
+            lastState = (page: state.page, pageCount: state.pageCount)
+            page = state.page
+            pageCount = state.pageCount
         }
-        lastState = (page: page, pageCount: pageCount)
-        self.page = page
-        self.pageCount = pageCount
-        guard !suppressProgressSave else { return }
+        // Mid-scroll samples and the not-yet-landed restore are not
+        // reading positions; persisting either is how a saved scroll
+        // position used to end up back at the top of the chapter.
+        guard state.isPersistable else { return }
         library.updateProgress(
             bookID: bookID,
             spineIndex: spineIndex,
-            pageFraction: pageCount > 1
-                ? Double(page) / Double(pageCount - 1) : 0
+            pageFraction: state.fraction
         )
     }
 
@@ -420,9 +432,7 @@ final class ReaderViewModel {
 
     // MARK: - Bookmarks
 
-    private var currentPageFraction: Double {
-        pageCount > 1 ? Double(page) / Double(pageCount - 1) : 0
-    }
+    private var currentPageFraction: Double { pageFraction }
 
     var currentBookmark: Bookmark? {
         book?.bookmarks.first {
@@ -582,7 +592,9 @@ final class ReaderViewModel {
             ),
             backgroundColor: UIColor(palette.background),
             flow: settings.pageFlow,
-            transition: reduceMotion ? .instant : settings.pageTransition
+            transition: settings.effectiveTransition(
+                reduceMotion: reduceMotion
+            )
         )
     }
 }

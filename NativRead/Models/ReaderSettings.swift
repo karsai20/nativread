@@ -250,6 +250,33 @@ struct ReaderSettings: Codable, Equatable {
     var warmth: Double = 0
     var pageFlow: PageFlow = .paged
     var pageTransition: PageTransition = .slide
+    /// Stored optional on purpose: settings saved before this shipped have
+    /// no such key, and a missing non-optional key makes the whole blob fail
+    /// to decode — which would reset every reader setting on upgrade.
+    private var twoPageSpreadStored: Bool?
+    /// Two facing columns per page on a wide screen (iPad in landscape),
+    /// the way an open book reads. Narrower screens ignore it — see
+    /// `ReaderStyle.spreadMinimumWidth`.
+    var twoPageSpread: Bool {
+        get { twoPageSpreadStored ?? true }
+        set { twoPageSpreadStored = newValue }
+    }
+    /// Stored optional for the same upgrade-safety reason as the spread.
+    private var allowsMotionWhenReducedStored: Bool?
+    /// iOS Reduce Motion switches page turns to an instant cut, which silently
+    /// overrides whatever the reader picked here. A reader who wants their
+    /// page turn back says so with this, and their choice wins.
+    var allowsMotionWhenReduced: Bool {
+        get { allowsMotionWhenReducedStored ?? false }
+        set { allowsMotionWhenReducedStored = newValue }
+    }
+
+    /// The page turn actually used. Reduce Motion cuts it to an instant jump
+    /// unless the reader has asked for their animation back — which is why the
+    /// picker alone never decides this.
+    func effectiveTransition(reduceMotion: Bool) -> PageTransition {
+        reduceMotion && !allowsMotionWhenReduced ? .instant : pageTransition
+    }
     // Defaults to Charter ('Charter' / 'Iowan Old Style' / Georgia) so a
     // fresh reader matches the warm book serif used across the app chrome.
     // Persisted settings from earlier versions keep whatever the reader chose.
@@ -320,7 +347,8 @@ extension ReaderSettings {
     private enum CodingKeys: String, CodingKey {
         case theme, darkTheme, themeMode, warmth, pageFlow,
              pageTransition, font, fontSize, lineHeight,
-             horizontalMargin, isJustified
+             horizontalMargin, isJustified, twoPageSpreadStored,
+             allowsMotionWhenReducedStored
     }
 
     /// Tolerant decoding: settings persisted by older versions are
@@ -348,6 +376,12 @@ extension ReaderSettings {
         pageTransition = (try? container.decodeIfPresent(
             PageTransition.self, forKey: .pageTransition
         )) ?? defaults.pageTransition
+        twoPageSpreadStored = try container.decodeIfPresent(
+            Bool.self, forKey: .twoPageSpreadStored
+        )
+        allowsMotionWhenReducedStored = try container.decodeIfPresent(
+            Bool.self, forKey: .allowsMotionWhenReducedStored
+        )
         font = try container.decodeIfPresent(
             ReaderFont.self, forKey: .font) ?? defaults.font
         fontSize = try container.decodeIfPresent(
