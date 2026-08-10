@@ -10,6 +10,7 @@ struct TranslationSheet: View {
     @Environment(TranslationStore.self) private var translations
     @Environment(TranslationAuthStore.self) private var auth
     @Environment(BookPurchaseStore.self) private var purchases
+    @Environment(PricingStore.self) private var pricing
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
@@ -27,6 +28,13 @@ struct TranslationSheet: View {
     @State private var showsTermsOfUse = false
     /// Fraction of the book sent so far, or `nil` when no upload is running.
     @State private var uploadProgress: Double?
+    /// StoreKit products for every price band, keyed by identifier.
+    @State private var bandProducts: [String: Product] = [:]
+    /// The book's own character count, resolved once when the sheet opens.
+    /// Held here rather than read from `book` because a book shelved before
+    /// counts existed is counted on the spot, and `book` is this sheet's own
+    /// copy — it would not see the number the library just wrote down.
+    @State private var sourceCharacters: Int?
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -104,7 +112,14 @@ struct TranslationSheet: View {
                 selectedPlan = .wholeBook
             }
         }
-        .task { await restoreCachedPrice() }
+        .task {
+            // Awaited: pricing the book needs the table, and reading it before
+            // the fetch lands is what put "See price" on a card that could
+            // already have shown the price.
+            await pricing.refreshIfStale()
+            await resolvePriceWithoutUpload()
+            await loadBandProducts()
+        }
     }
 
     /// The book being translated, shown the way the shelf shows it: cover,
@@ -169,6 +184,23 @@ struct TranslationSheet: View {
                 action: { select(.wholeBook) }
             )
             .accessibilityIdentifier("translation.plan.wholeBook")
+
+            if let table = pricing.usablePricing {
+                TranslationPriceBands(
+                    tiers: table.tiers,
+                    products: bandProducts,
+                    highlightedProductID: bookProduct?.id,
+                    palette: palette
+                )
+            }
+
+            if exceedsLongestTier {
+                Text("This book is longer than we can translate.")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.danger)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("translation.tooLong")
+            }
         }
     }
 
@@ -193,7 +225,7 @@ struct TranslationSheet: View {
     /// `requestCode` already discards it, so naming it here would put a source
     /// on screen that the translation is not actually going to use.
     private var languagePairText: String {
-        let target = localizedName(for: job.targetLanguage)
+        let target = job.targetLanguage.localizedName(in: locale)
         guard case .language(let code, let fallbackName, _) = detectedLanguage,
               detectedLanguage.isTrusted
         else { return "→ \(target)" }
@@ -474,14 +506,6 @@ struct TranslationSheet: View {
         }
     }
 
-    private func localizedName(
-        for language: TranslationTargetLanguage
-    ) -> String {
-        let name = locale.localizedString(forLanguageCode: language.rawValue)
-            ?? language.displayName
-        return name.capitalized
-    }
-
     /// One card carries the whole run: a headline for where the job stands, a
     /// determinate track once the backend reports chunk counts, and the
     /// phase's own sentence underneath.
@@ -703,26 +727,79 @@ struct TranslationSheet: View {
         requestTranslation(kind: kind, preparedUpload: preparedUpload)
     }
 
-    /// Shows the price the backend quoted for this exact file last time,
-    /// without sending the book anywhere.
+    /// Puts a price on screen without sending the book anywhere, so the reader
+    /// decides on a number instead of on a progress bar.
     ///
-    /// Display only. Entitlement is deliberately *not* restored from the cache:
-    /// a book bought on another device would otherwise still look unowned here,
-    /// and the reader could be charged for it twice. Ownership is always read
-    /// from the upload that has to happen before a purchase anyway.
-    private func restoreCachedPrice() async {
-        guard book.format == .epub,
-              fullQuote == nil, bookProduct == nil,
-              let cachedHash = book.quotedSourceHash,
+    /// Two sources, in order of authority: the price the backend quoted for
+    /// these exact bytes last time, then the tier this build counts the book
+    /// into itself. Both are display only — the upload inside `buyFullBook`
+    /// re-derives the tier server-side before anything is charged.
+    ///
+    /// Entitlement is deliberately *not* restored from either: a book bought on
+    /// another device would otherwise still look unowned here, and the reader
+    /// could be charged for it twice. Ownership is always read from the upload
+    /// that has to happen before a purchase anyway.
+    private func resolvePriceWithoutUpload() async {
+        guard book.format == .epub, fullQuote == nil, bookProduct == nil else {
+            return
+        }
+        if let productId = await cachedQuotedProductID() {
+            bookProduct = try? await purchases.product(for: productId)
+            return
+        }
+        guard let productId = locallyPricedProductID() else { return }
+        bookProduct = try? await purchases.product(for: productId)
+    }
+
+    /// Prices for every band. One StoreKit round trip for the whole table, and
+    /// it is what makes the bands appear at the same time as the book's own
+    /// price rather than after a second wait.
+    private func loadBandProducts() async {
+        guard let table = pricing.usablePricing, bandProducts.isEmpty else {
+            return
+        }
+        let loaded = await purchases.products(for: table.productIDs)
+        bandProducts = Dictionary(
+            uniqueKeysWithValues: loaded.map { ($0.id, $0) }
+        )
+    }
+
+    /// The product the backend named for this file, if the file still is the
+    /// one it was quoted for.
+    private func cachedQuotedProductID() async -> String? {
+        guard let cachedHash = book.quotedSourceHash,
               let productId = book.quotedProductId
-        else { return }
+        else { return nil }
         let sourceURL = library.storedFileURL(for: book)
         let currentHash = await Task.detached(priority: .utility) {
             LibraryStore.sourceHash(ofFileAt: sourceURL)
         }.value
         // A different file under the same book is a different quote.
-        guard currentHash == cachedHash else { return }
-        bookProduct = try? await purchases.product(for: productId)
+        return currentHash == cachedHash ? productId : nil
+    }
+
+    /// The product this build's own character count puts the book in, or nil
+    /// when there is nothing trustworthy to price with — no table fetched yet,
+    /// a table published for counting rules this build does not implement, or a
+    /// book too long to be sold at all.
+    private func locallyPricedProductID() -> String? {
+        // Counting a book shelved before counts existed writes to the library,
+        // so it happens here — inside a task — and never while a body is being
+        // evaluated.
+        sourceCharacters = library.sourceCharacters(for: book)
+        guard let table = pricing.usablePricing,
+              let characters = sourceCharacters
+        else { return nil }
+        return table.tier(forSourceCharacters: characters)?.productId
+    }
+
+    /// True when the book is longer than the backend sells, which is worth
+    /// saying before the reader waits through an upload that ends in a refusal.
+    private var exceedsLongestTier: Bool {
+        guard let table = pricing.usablePricing,
+              let characters = sourceCharacters ?? book.sourceCharacters
+        else { return false }
+        return table.exceedsLongestTier(sourceCharacters: characters)
     }
 
     /// The upload this flow cannot skip: StoreKit binds a purchase to a backend
@@ -790,6 +867,28 @@ struct TranslationSheet: View {
         }
     }
 
+    /// The product the server's own count says this book is sold as.
+    ///
+    /// Normally the one already on screen: the on-device counter is a port of
+    /// the server's, pinned character-for-character by `QuoteGoldenTests`. When
+    /// they do disagree the reader is shown the real price and asked again
+    /// rather than being charged an amount the button never displayed — one
+    /// extra tap, in a case that should not happen.
+    private func confirmedProduct(
+        for upload: TranslationBackendClient.UploadResponse,
+        shown: Product
+    ) async throws -> Product {
+        guard let serverProductID = upload.price?.productId,
+              serverProductID != shown.id
+        else { return shown }
+        let corrected = try await purchases.product(for: serverProductID)
+        bookProduct = corrected
+        pricingError = String(
+            localized: "This book's price is \(corrected.displayPrice). Tap again to buy it."
+        )
+        return corrected
+    }
+
     private func buyFullBook(_ product: Product) {
         guard let appAccountToken = auth.appAccountToken else { return }
         pricingError = nil
@@ -819,6 +918,15 @@ struct TranslationSheet: View {
                     beginTranslation(kind: .full, preparedUpload: upload)
                     return
                 }
+                // The upload just produced the server's own character count,
+                // and that is the only tier `POST /api/purchase` will accept.
+                // If the price on screen came from this device's count and
+                // lands in a different tier, charging for `product` would take
+                // the reader's money and then be refused.
+                let confirmed = try await confirmedProduct(
+                    for: upload, shown: product
+                )
+                guard confirmed.id == product.id else { return }
                 switch try await purchases.purchase(
                     product,
                     jobID: upload.id,

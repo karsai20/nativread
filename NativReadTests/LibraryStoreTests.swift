@@ -46,6 +46,63 @@ final class LibraryStoreTests: XCTestCase {
         ))
     }
 
+    /// Counted at import so the translation sheet can price the book without
+    /// sending it anywhere.
+    func testImportCountsSourceCharacters() throws {
+        let store = makeStore()
+
+        let book = try store.importBook(from: epubURL)
+
+        let counted = try XCTUnwrap(book.sourceCharacters)
+        XCTAssertGreaterThan(counted, 0)
+        XCTAssertEqual(
+            counted,
+            try SourceCharacterCounter
+                .quote(for: store.parsedEPUB(for: book)).sourceCharacters,
+            "the stored count must be the one the counter produces"
+        )
+    }
+
+    /// Books shelved before the count existed carry nil, and must not be left
+    /// on the upload-to-see-a-price path forever.
+    func testCountsAndRemembersForABookShelvedBeforeCountsExisted() throws {
+        let store = makeStore()
+        let imported = try store.importBook(from: epubURL)
+        let expected = try XCTUnwrap(imported.sourceCharacters)
+
+        // Rename the key so the persisted index decodes the way one written
+        // before counts existed does: without it.
+        let indexURL = root.appendingPathComponent("store/library.json")
+        try String(contentsOf: indexURL, encoding: .utf8)
+            .replacingOccurrences(of: "\"sourceCharacters\"", with: "\"legacyCount\"")
+            .write(to: indexURL, atomically: true, encoding: .utf8)
+
+        let reloaded = makeStore()
+        let legacy = try XCTUnwrap(reloaded.books.first)
+        XCTAssertNil(legacy.sourceCharacters)
+
+        let counted = reloaded.sourceCharacters(for: legacy)
+
+        XCTAssertEqual(counted, expected)
+        XCTAssertEqual(
+            reloaded.books.first?.sourceCharacters, expected,
+            "the count is written back so it is paid for once"
+        )
+    }
+
+    func testHasNoSourceCharacterCountForANonEPUBBook() throws {
+        let store = makeStore()
+        let textURL = root.appendingPathComponent("note.txt")
+        try "Egy rövid jegyzet.".write(
+            to: textURL, atomically: true, encoding: .utf8
+        )
+
+        let book = try store.importBook(from: textURL)
+
+        XCTAssertNil(book.sourceCharacters)
+        XCTAssertNil(store.sourceCharacters(for: book))
+    }
+
     func testImportTranslationPreviewMarksSeparateVariant() throws {
         let store = makeStore()
         let original = try store.importBook(from: epubURL)

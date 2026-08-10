@@ -215,6 +215,16 @@ struct TranslationBackendClient: Sendable {
         }
     }
 
+    /// The price table, so a book can be priced on device instead of by
+    /// uploading it. Deliberately unauthenticated: the reader is shown what a
+    /// translation costs before there is an account to sign in to.
+    func pricing() async throws -> TranslationPricing {
+        let (data, response) = try await session.data(
+            for: makeRequest(path: "api/pricing")
+        )
+        return try decode(TranslationPricing.self, from: data, response: response)
+    }
+
     func status(jobID: String) async throws -> StatusResponse {
         var components = URLComponents(
             url: endpoint("api/status"), resolvingAgainstBaseURL: false

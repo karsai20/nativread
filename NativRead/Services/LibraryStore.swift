@@ -105,12 +105,6 @@ final class LibraryStore {
         )
     }
 
-    /// Front matter — cover, copyright page, table of contents, dedication —
-    /// is proper nouns and boilerplate, and `NLLanguageRecognizer` guesses
-    /// wildly on it (an English novel came back as Dutch). Directory order puts
-    /// exactly those files first, so this samples the *largest* documents, and
-    /// from the *middle* of each: the big files are the chapters, and the
-    /// middle is prose even when the whole book is one document.
     /// What the EPUB says it is written in, or nil if it says nothing.
     ///
     /// Books shelved before `declaredLanguage` was recorded carry nil, so the
@@ -123,6 +117,35 @@ final class LibraryStore {
         return try? parsedEPUB(for: book).declaredLanguage
     }
 
+    /// Source characters the translator would charge for, counting the book now
+    /// if it was shelved before this was recorded and remembering the result.
+    ///
+    /// Books already carry the number from import, so this normally returns
+    /// without touching the disk. Counting is tens of milliseconds even on a
+    /// long book, but it is not free, and nothing about a stored file changes
+    /// its count — so it is worth writing down once.
+    @discardableResult
+    func sourceCharacters(for book: Book) -> Int? {
+        if let counted = book.sourceCharacters { return counted }
+        guard book.format == .epub else { return nil }
+        guard let counted = try? SourceCharacterCounter
+            .quote(for: parsedEPUB(for: book)).sourceCharacters
+        else { return nil }
+        if let index = books.firstIndex(where: { $0.id == book.id }) {
+            var stored = books[index]
+            stored.sourceCharacters = counted
+            books[index] = stored
+            save()
+        }
+        return counted
+    }
+
+    /// Front matter — cover, copyright page, table of contents, dedication —
+    /// is proper nouns and boilerplate, and `NLLanguageRecognizer` guesses
+    /// wildly on it (an English novel came back as Dutch). Directory order puts
+    /// exactly those files first, so this samples the *largest* documents, and
+    /// from the *middle* of each: the big files are the chapters, and the
+    /// middle is prose even when the whole book is one document.
     func languageDetectionSample(for book: Book, maxCharacters: Int = 4_000) -> String {
         let root = extractedRoot(for: book)
         guard let enumerator = fileManager.enumerator(
@@ -311,7 +334,12 @@ final class LibraryStore {
                 sourceBookID: sourceBookID,
                 translatedFraction: translatedFraction,
                 translatedLanguage: translatedLanguage,
-                declaredLanguage: parsed.declaredLanguage
+                declaredLanguage: parsed.declaredLanguage,
+                // Tens of milliseconds even on a long book, and it buys the
+                // translation sheet a price without an upload. `try?`: a book
+                // that cannot be counted is still a book worth shelving.
+                sourceCharacters: try? SourceCharacterCounter
+                    .quote(for: parsed).sourceCharacters
             )
             books.insert(book, at: 0)
             save()

@@ -143,6 +143,13 @@ struct Book: Codable, Equatable, Identifiable {
     /// and for books shelved before this was recorded — all of which fall back
     /// to text detection.
     var declaredLanguage: String?
+    /// Source characters the translator would charge for, counted on device at
+    /// import by `SourceCharacterCounter`. Lets the translation sheet name the
+    /// price straight away instead of uploading the book to ask for it.
+    ///
+    /// `nil` for TXT/PDF, for books shelved before this was recorded, and
+    /// whenever the count failed — all of which fall back to a server quote.
+    var sourceCharacters: Int?
 
     init(
         id: UUID = UUID(),
@@ -163,7 +170,8 @@ struct Book: Codable, Equatable, Identifiable {
         translatedLanguage: TranslationTargetLanguage? = nil,
         quotedSourceHash: String? = nil,
         quotedProductId: String? = nil,
-        declaredLanguage: String? = nil
+        declaredLanguage: String? = nil,
+        sourceCharacters: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -184,6 +192,7 @@ struct Book: Codable, Equatable, Identifiable {
         self.quotedSourceHash = quotedSourceHash
         self.quotedProductId = quotedProductId
         self.declaredLanguage = declaredLanguage
+        self.sourceCharacters = sourceCharacters
     }
 
     /// Tolerant decoding: libraries persisted before highlights existed
@@ -225,6 +234,8 @@ struct Book: Codable, Equatable, Identifiable {
             String.self, forKey: .quotedProductId)
         declaredLanguage = try container.decodeIfPresent(
             String.self, forKey: .declaredLanguage)
+        sourceCharacters = try container.decodeIfPresent(
+            Int.self, forKey: .sourceCharacters)
     }
 
     var percentText: String {
