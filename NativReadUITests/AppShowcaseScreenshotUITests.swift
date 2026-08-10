@@ -199,11 +199,15 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(localAccount.waitForExistence(timeout: 10))
         localAccount.tap()
 
-        let disclosure = app.buttons["translation.fullBookDisclosure"]
-        scrollUntilHittable(disclosure, direction: .up, attempts: 6)
-        XCTAssertTrue(disclosure.isHittable)
-        disclosure.tap()
+        let wholeBookPlan = app.buttons["translation.plan.wholeBook"]
+        scrollUntilHittable(wholeBookPlan, direction: .up, attempts: 6)
+        XCTAssertTrue(wholeBookPlan.isHittable)
+        wholeBookPlan.tap()
         capture(locale, 20, "translation-whole-book-options")
+
+        let freeChapterPlan = app.buttons["translation.plan.freeChapter"]
+        scrollUntilHittable(freeChapterPlan, direction: .up, attempts: 4)
+        freeChapterPlan.tap()
 
         let freeChapter = app.buttons["translation.freeChapter"]
         scrollUntilHittable(freeChapter, direction: .down, attempts: 7)

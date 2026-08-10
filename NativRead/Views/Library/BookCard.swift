@@ -14,8 +14,13 @@ struct BookCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Self.cover(book: book, coverURL: coverURL)
+            // The empty shape owns the 2:3 slot and the artwork fills it as an
+            // overlay. Sizing the card off the cover instead lets a source
+            // image that is not already 2:3 overflow the slot — the crop then
+            // follows the image, not the shelf.
+            Color.clear
                 .aspectRatio(2 / 3, contentMode: .fit)
+                .overlay { Self.cover(book: book, coverURL: coverURL) }
                 .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
                 .overlay(
                     RoundedRectangle(cornerRadius: Spacing.radiusSmall)
@@ -142,12 +147,16 @@ struct GeneratedCover: View {
         ("#2C4248", "#142226", "#C5DBD8")
     ]
 
-    private var palette: (Color, Color, Color) {
+    private var palette: (Color, Color, Color) { Self.palette(for: title) }
+
+    /// The deterministic (top, bottom, ink) triple for a title. Exposed so
+    /// coverless books can still tint a row with their own artwork colours.
+    static func palette(for title: String) -> (Color, Color, Color) {
         var hash = 5381
         for scalar in title.unicodeScalars {
             hash = (hash &* 33) &+ Int(scalar.value)
         }
-        let chosen = Self.palettes[abs(hash) % Self.palettes.count]
+        let chosen = palettes[abs(hash) % palettes.count]
         return (
             Color(hex: chosen.0), Color(hex: chosen.1), Color(hex: chosen.2)
         )

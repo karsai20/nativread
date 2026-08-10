@@ -145,18 +145,16 @@ struct TranslateHomeView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             AppSectionLabel(title: "Ready to translate", palette: palette)
 
-            AppSettingsSection(palette: palette) {
-                ForEach(Array(translatableBooks.enumerated()), id: \.element.id) { index, book in
-                    AppSettingsRow(
-                        systemImage: "sparkles",
-                        title: LocalizedStringKey(book.title),
-                        value: book.author,
-                        hidesSeparator: index == translatableBooks.count - 1,
-                        action: { translationBook = book },
-                        palette: palette
-                    )
-                    .accessibilityIdentifier("translate.ready.\(book.title)")
-                }
+            ForEach(translatableBooks) { book in
+                TranslateBookRow(
+                    book: book,
+                    coverURL: library.coverURL(for: book),
+                    languageLabel: nil,
+                    systemImage: "sparkles",
+                    palette: palette,
+                    action: { translationBook = book }
+                )
+                .accessibilityIdentifier("translate.ready.\(book.title)")
             }
         }
     }
@@ -165,17 +163,18 @@ struct TranslateHomeView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             AppSectionLabel(title: "Completed", palette: palette)
 
-            AppSettingsSection(palette: palette) {
-                ForEach(Array(translatedBooks.enumerated()), id: \.element.id) { index, book in
-                    AppSettingsRow(
-                        systemImage: "checkmark.seal",
-                        title: LocalizedStringKey(book.title),
-                        value: book.author,
-                        hidesSeparator: index == translatedBooks.count - 1,
-                        action: { openBook = book },
-                        palette: palette
-                    )
-                }
+            ForEach(translatedBooks) { book in
+                TranslateBookRow(
+                    book: book,
+                    coverURL: library.coverURL(for: book),
+                    languageLabel: localizedTargetName(
+                        book.translatedLanguage ?? .hu
+                    ),
+                    systemImage: "checkmark.seal",
+                    palette: palette,
+                    action: { openBook = book }
+                )
+                .accessibilityIdentifier("translate.done.\(book.title)")
             }
         }
     }
@@ -212,12 +211,10 @@ struct TranslateHomeView: View {
         return Double(done) / Double(total)
     }
 
-    /// "Hungarian" reads as "Magyar" once the app is in Hungarian.
     private func localizedTargetName(
         _ language: TranslationTargetLanguage
     ) -> String {
-        (locale.localizedString(forLanguageCode: language.rawValue)
-            ?? language.displayName).capitalized
+        language.localizedName(in: locale)
     }
 
     private func phaseTitle(_ phase: TranslationJobPhase) -> String {

@@ -438,7 +438,8 @@ final class ReaderJourneyUITests: XCTestCase {
 
         let termsAcceptance = app.buttons["translation.termsAcceptance"]
         XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
-        XCTAssertTrue(app.buttons["translation.terms.link"].exists)
+        // The Terms link now lives inline in the attestation sentence.
+        XCTAssertTrue(app.staticTexts["translation.terms.link"].exists)
         XCTAssertFalse(app.buttons["translation.signInWithApple"].exists)
         termsAcceptance.tap()
         XCTAssertFalse(freeChapter.isEnabled)
@@ -475,10 +476,9 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         localAccount.tap()
 
-        let fullBookDisclosure =
-            app.buttons["translation.fullBookDisclosure"]
-        XCTAssertTrue(fullBookDisclosure.waitForExistence(timeout: 6))
-        fullBookDisclosure.tap()
+        let wholeBookPlan = app.buttons["translation.plan.wholeBook"]
+        XCTAssertTrue(wholeBookPlan.waitForExistence(timeout: 6))
+        wholeBookPlan.tap()
 
         let quote = app.buttons["translation.calculateQuote"]
         for _ in 0..<4 where !quote.exists {
