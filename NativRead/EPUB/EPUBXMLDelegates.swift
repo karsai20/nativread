@@ -31,6 +31,9 @@ final class ContainerXMLDelegate: XMLDelegateBase {
 final class OPFDelegate: XMLDelegateBase {
     private(set) var title: String?
     private(set) var author: String?
+    /// First `<dc:language>`; EPUB allows several for multilingual editions and
+    /// the first is the primary one.
+    private(set) var language: String?
     private(set) var manifest: [EPUBManifestItem] = []
     private(set) var spineIDRefs: [String] = []
     /// `toc` attribute of <spine> (NCX id, EPUB 2).
@@ -41,6 +44,7 @@ final class OPFDelegate: XMLDelegateBase {
     private var currentText = ""
     private var capturingTitle = false
     private var capturingCreator = false
+    private var capturingLanguage = false
 
     func parser(
         _ parser: XMLParser, didStartElement elementName: String,
@@ -53,6 +57,9 @@ final class OPFDelegate: XMLDelegateBase {
             currentText = ""
         case "creator" where author == nil:
             capturingCreator = true
+            currentText = ""
+        case "language" where language == nil:
+            capturingLanguage = true
             currentText = ""
         case "item":
             guard let id = attributeDict["id"],
@@ -83,7 +90,9 @@ final class OPFDelegate: XMLDelegateBase {
     }
 
     func parser(_ parser: XMLParser, foundCharacters string: String) {
-        if capturingTitle || capturingCreator { currentText += string }
+        if capturingTitle || capturingCreator || capturingLanguage {
+            currentText += string
+        }
     }
 
     func parser(
@@ -98,6 +107,10 @@ final class OPFDelegate: XMLDelegateBase {
         if elementName == "creator", capturingCreator {
             capturingCreator = false
             if !text.isEmpty { author = text }
+        }
+        if elementName == "language", capturingLanguage {
+            capturingLanguage = false
+            if !text.isEmpty { language = text }
         }
     }
 }

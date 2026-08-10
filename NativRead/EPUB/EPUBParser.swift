@@ -71,7 +71,8 @@ enum EPUBParser {
             spineHrefs: spineHrefs,
             coverImageURL: coverImageURL,
             toc: toc,
-            spineWeights: weights
+            spineWeights: weights,
+            declaredLanguage: opf.language
         )
     }
 

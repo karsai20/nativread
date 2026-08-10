@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Observation
 import ZIPFoundation
@@ -104,24 +105,61 @@ final class LibraryStore {
         )
     }
 
+    /// Front matter — cover, copyright page, table of contents, dedication —
+    /// is proper nouns and boilerplate, and `NLLanguageRecognizer` guesses
+    /// wildly on it (an English novel came back as Dutch). Directory order puts
+    /// exactly those files first, so this samples the *largest* documents, and
+    /// from the *middle* of each: the big files are the chapters, and the
+    /// middle is prose even when the whole book is one document.
+    /// What the EPUB says it is written in, or nil if it says nothing.
+    ///
+    /// Books shelved before `declaredLanguage` was recorded carry nil, so the
+    /// OPF is re-read for them rather than leaving every existing book on the
+    /// guessing path. Cheaper than the text sample this backs up: a few KB of
+    /// XML against up to 60 KB of markup and four regex passes.
+    func declaredLanguage(for book: Book) -> String? {
+        if let declared = book.declaredLanguage { return declared }
+        guard book.format == .epub else { return nil }
+        return try? parsedEPUB(for: book).declaredLanguage
+    }
+
     func languageDetectionSample(for book: Book, maxCharacters: Int = 4_000) -> String {
         let root = extractedRoot(for: book)
         guard let enumerator = fileManager.enumerator(
             at: root,
-            includingPropertiesForKeys: [.isRegularFileKey],
+            includingPropertiesForKeys: [.fileSizeKey],
             options: [.skipsHiddenFiles]
         ) else { return "" }
 
-        var sample = ""
+        var documents: [(url: URL, size: Int)] = []
         for case let url as URL in enumerator {
             guard ["xhtml", "html", "htm", "txt"].contains(
                 url.pathExtension.lowercased()
             ) else { continue }
-            guard let raw = try? String(contentsOf: url) else { continue }
-            sample += " " + Self.plainTextSample(from: raw)
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey])
+                .fileSize) ?? 0
+            documents.append((url, size))
+        }
+
+        var sample = ""
+        for document in documents.sorted(by: { $0.size > $1.size }).prefix(3) {
+            guard let raw = try? String(contentsOf: document.url) else { continue }
+            sample += " " + Self.plainTextSample(from: Self.middleWindow(of: raw))
             if sample.count >= maxCharacters { break }
         }
         return String(sample.prefix(maxCharacters))
+    }
+
+    /// Middle slice of a document: past the title page, and small enough that
+    /// tag-stripping a one-file book stays cheap on the main thread.
+    private static func middleWindow(
+        of raw: String, characters: Int = 20_000
+    ) -> String {
+        guard raw.count > characters else { return raw }
+        let start = raw.index(
+            raw.startIndex, offsetBy: (raw.count - characters) / 2
+        )
+        return String(raw[start...].prefix(characters))
     }
 
     private static func plainTextSample(from raw: String) -> String {
@@ -272,7 +310,8 @@ final class LibraryStore {
                 variant: variant,
                 sourceBookID: sourceBookID,
                 translatedFraction: translatedFraction,
-                translatedLanguage: translatedLanguage
+                translatedLanguage: translatedLanguage,
+                declaredLanguage: parsed.declaredLanguage
             )
             books.insert(book, at: 0)
             save()
@@ -454,6 +493,39 @@ final class LibraryStore {
 
     func storedFileURL(for book: Book) -> URL {
         booksDirectory.appendingPathComponent(book.fileName)
+    }
+
+    // MARK: - Quote cache
+
+    /// SHA256 of the stored source file, hex-encoded to match the hash the
+    /// backend computes over the same bytes. Read in chunks: a 32 MB book must
+    /// not land in memory whole just to be fingerprinted.
+    ///
+    /// Takes a URL rather than a `Book` so callers can hash off the main
+    /// thread without carrying the store across the hop.
+    static func sourceHash(ofFileAt url: URL) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while let chunk = try? handle.read(upToCount: 1 << 20), !chunk.isEmpty {
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize()
+            .map { String(format: "%02x", $0) }
+            .joined()
+    }
+
+    /// Remembers which price the backend quoted for exactly these bytes, so
+    /// reopening the sheet can show it without uploading the book again.
+    func recordQuote(bookID: UUID, sourceHash: String, productId: String) {
+        guard let index = books.firstIndex(where: { $0.id == bookID }) else {
+            return
+        }
+        var book = books[index]
+        book.quotedSourceHash = sourceHash
+        book.quotedProductId = productId
+        books[index] = book
+        save()
     }
 
     func parsedEPUB(for book: Book) throws -> ParsedEPUB {

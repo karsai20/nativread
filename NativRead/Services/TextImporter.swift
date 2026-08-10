@@ -61,7 +61,9 @@ enum TextImporter {
             toc: [TOCEntry(
                 title: title, href: chapterFileName, spineIndex: 0, depth: 0
             )],
-            spineWeights: [1.0]
+            spineWeights: [1.0],
+            // A plain .txt import declares nothing; detection has to guess.
+            declaredLanguage: nil
         )
     }
 

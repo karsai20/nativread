@@ -128,6 +128,21 @@ struct Book: Codable, Equatable, Identifiable {
     /// Target language for AI-translated variants. `nil` for original books and
     /// for legacy translated imports from before multi-language metadata existed.
     var translatedLanguage: TranslationTargetLanguage?
+    /// SHA256 of the stored source file at the moment its quote was taken.
+    /// The quote is a pure function of those bytes, so an unchanged hash means
+    /// the cached price is still the one the backend would return — and a
+    /// changed hash invalidates it without asking anyone.
+    var quotedSourceHash: String?
+    /// StoreKit product the backend picked from the source length. Display
+    /// only: what the reader is actually charged is decided server-side from
+    /// its own inspection at purchase time, never from this.
+    var quotedProductId: String?
+    /// `<dc:language>` as the EPUB itself declares it, captured at import so
+    /// the translation sheet never has to re-parse the OPF to name the source
+    /// language. `nil` for TXT/PDF imports, for EPUBs that omit the element,
+    /// and for books shelved before this was recorded — all of which fall back
+    /// to text detection.
+    var declaredLanguage: String?
 
     init(
         id: UUID = UUID(),
@@ -145,7 +160,10 @@ struct Book: Codable, Equatable, Identifiable {
         variant: BookVariant = .original,
         sourceBookID: UUID? = nil,
         translatedFraction: Double? = nil,
-        translatedLanguage: TranslationTargetLanguage? = nil
+        translatedLanguage: TranslationTargetLanguage? = nil,
+        quotedSourceHash: String? = nil,
+        quotedProductId: String? = nil,
+        declaredLanguage: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -163,6 +181,9 @@ struct Book: Codable, Equatable, Identifiable {
         self.sourceBookID = sourceBookID
         self.translatedFraction = translatedFraction
         self.translatedLanguage = translatedLanguage
+        self.quotedSourceHash = quotedSourceHash
+        self.quotedProductId = quotedProductId
+        self.declaredLanguage = declaredLanguage
     }
 
     /// Tolerant decoding: libraries persisted before highlights existed
@@ -198,6 +219,12 @@ struct Book: Codable, Equatable, Identifiable {
             Double.self, forKey: .translatedFraction)
         translatedLanguage = try container.decodeIfPresent(
             TranslationTargetLanguage.self, forKey: .translatedLanguage)
+        quotedSourceHash = try container.decodeIfPresent(
+            String.self, forKey: .quotedSourceHash)
+        quotedProductId = try container.decodeIfPresent(
+            String.self, forKey: .quotedProductId)
+        declaredLanguage = try container.decodeIfPresent(
+            String.self, forKey: .declaredLanguage)
     }
 
     var percentText: String {

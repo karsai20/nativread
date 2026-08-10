@@ -6,7 +6,14 @@ enum TranslationTerms {
     /// translations keep working, but a new upload asks for acceptance again.
     /// 2026-08-03: rights attestation folded into the Terms (v1.1); the sheet
     /// checkbox now accepts the Terms as a whole.
-    static let currentVersion = "2026-08-03"
+    /// 2026-08-05 (v1.2): the rights statement is back on screen beside the
+    /// checkbox, and the Terms gained the translation-ownership and NativRead
+    /// IP clauses.
+    static let currentVersion = "2026-08-05"
+    /// Identifies the *wording* of the rights statement, which v1.2 restores
+    /// unchanged from 22 July — so this stays put. It is also the one field the
+    /// backend validates (`RIGHTS_ATTESTATION_VERSION`), so changing it here
+    /// without redeploying the Worker would reject every translation.
     static let rightsAttestationVersion = "2026-07-22"
 
     static let appleStandardEULAURL = URL(
@@ -24,7 +31,49 @@ enum DetectedBookLanguage: Equatable {
     case language(code: String, name: String, confidence: Double)
     case unknown
 
-    static func detect(from sample: String) -> DetectedBookLanguage {
+    /// What the backend assumes when the app cannot name a source language.
+    /// It re-detects server-side anyway; this only keeps the request well formed.
+    static let defaultSourceCode = "en"
+
+    /// Below this the recogniser is guessing, and a guess is worse than the
+    /// default: it both mislabels the book on screen and sends a wrong source
+    /// language the backend would have got right on its own.
+    static let minimumConfidence = 0.5
+
+    /// True once the detection is worth acting on. `unknown` and every
+    /// low-confidence guess answer false, so the pill and the request agree.
+    var isTrusted: Bool {
+        switch self {
+        case .language(_, _, let confidence): confidence >= Self.minimumConfidence
+        case .unknown: false
+        }
+    }
+
+    /// BCP-47 code to send with a translation request, or the default when
+    /// detection had too little text to be confident.
+    var requestCode: String {
+        guard case .language(let code, _, _) = self, isTrusted else {
+            return Self.defaultSourceCode
+        }
+        return code
+    }
+
+    /// The publisher's own `<dc:language>` when the EPUB carries one, and the
+    /// text recogniser only as a fallback.
+    ///
+    /// The metadata wins because the recogniser is a statistical guess over a
+    /// text sample and the declaration is a statement of fact: an English book
+    /// whose sample happened to read as Dutch or Indonesian was being labelled
+    /// — and sent — as such, while `<dc:language>en</dc:language>` sat unread in
+    /// the OPF the app had already parsed.
+    static func detect(
+        from sample: String, declared: String? = nil
+    ) -> DetectedBookLanguage {
+        if let declared = primaryCode(of: declared) {
+            return .language(
+                code: declared, name: displayName(of: declared), confidence: 1
+            )
+        }
         let trimmed = sample.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 80 else { return .unknown }
         let recognizer = NLLanguageRecognizer()
@@ -33,8 +82,32 @@ enum DetectedBookLanguage: Equatable {
         let hypotheses = recognizer.languageHypotheses(withMaximum: 1)
         let confidence = hypotheses[language] ?? 0
         let code = language.rawValue
-        let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
-        return .language(code: code, name: name.capitalized, confidence: confidence)
+        return .language(
+            code: code, name: displayName(of: code), confidence: confidence
+        )
+    }
+
+    /// "en-GB" -> "en". The backend's registry keys on the bare language, and a
+    /// region subtag it does not know would be rejected as an unknown language.
+    /// Returns nil for anything that is not a usable language subtag, so a
+    /// malformed declaration falls through to the recogniser instead of
+    /// poisoning the request.
+    private static func primaryCode(of declared: String?) -> String? {
+        guard let declared else { return nil }
+        let subtag = declared
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: "-", maxSplits: 1).first
+            .map { $0.lowercased() } ?? ""
+        guard (2...3).contains(subtag.count),
+              subtag.allSatisfy({ $0.isASCII && $0.isLetter })
+        else { return nil }
+        return subtag
+    }
+
+    private static func displayName(of code: String) -> String {
+        let name = Locale.current.localizedString(forLanguageCode: code)
+            ?? code.uppercased()
+        return name.capitalized
     }
 }
 
@@ -59,6 +132,12 @@ enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable, Hashab
     }
 
     var shortCode: String { rawValue.uppercased() }
+
+    /// "Hungarian" reads as "Magyar" once the app is in Hungarian.
+    func localizedName(in locale: Locale) -> String {
+        (locale.localizedString(forLanguageCode: rawValue) ?? displayName)
+            .capitalized
+    }
 }
 
 enum TranslationJobPhase: String, Codable, Equatable {

@@ -213,6 +213,125 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(store.book(id: book.id)?.highlights.count, 0)
     }
 
+    func testLanguageDetectionSampleSkipsFrontMatterForChapterProse() throws {
+        // Front matter sorts first in directory order and is the boilerplate
+        // that made the recogniser call an English novel Dutch. The sample has
+        // to come from the chapters instead, which are the largest documents.
+        let store = makeStore()
+        let book = try store.importBook(from: epubURL)
+        let extracted = store.extractedRoot(for: book)
+            .appendingPathComponent("OEBPS")
+        try "<html><body><p>Copyright Van der Berg Uitgeverij ISBN 978</p>"
+            .write(
+                to: extracted.appendingPathComponent("aa-copyright.xhtml"),
+                atomically: true, encoding: .utf8
+            )
+        let prose = String(
+            repeating: "<p>She had waited by the window all that evening, "
+                + "and when the light went out of the garden she knew.</p>",
+            count: 80
+        )
+        try "<html><body>\(prose)".write(
+            to: extracted.appendingPathComponent("zz-chapter.xhtml"),
+            atomically: true, encoding: .utf8
+        )
+
+        let sample = store.languageDetectionSample(for: book)
+
+        XCTAssertTrue(sample.contains("waited by the window"))
+        XCTAssertFalse(sample.contains("Uitgeverij"))
+    }
+
+    func testLanguageDetectionSampleReadsPastTheOpeningOfASingleDocumentBook()
+        throws
+    {
+        // A one-file EPUB puts the title page at the top of the only document,
+        // so sampling its prefix reproduces the front-matter bug.
+        let store = makeStore()
+        let book = try store.importBook(from: epubURL)
+        let extracted = store.extractedRoot(for: book)
+            .appendingPathComponent("OEBPS")
+        let body = String(
+            repeating: "<p>She had waited by the window all that evening.</p>",
+            count: 600
+        )
+        try ("<html><body><h1>Titelpagina Uitgeverij</h1>" + body).write(
+            to: extracted.appendingPathComponent("whole-book.xhtml"),
+            atomically: true, encoding: .utf8
+        )
+
+        let sample = store.languageDetectionSample(for: book)
+
+        XCTAssertTrue(sample.contains("waited by the window"))
+        XCTAssertFalse(sample.contains("Titelpagina"))
+    }
+
+    func testSourceHashIsStableAndTracksFileContent() throws {
+        let store = makeStore()
+        let book = try store.importBook(from: epubURL)
+
+        let first = LibraryStore.sourceHash(
+            ofFileAt: store.storedFileURL(for: book)
+        )
+        let second = LibraryStore.sourceHash(
+            ofFileAt: store.storedFileURL(for: book)
+        )
+
+        XCTAssertNotNil(first)
+        XCTAssertEqual(first?.count, 64, "hex-encoded SHA256")
+        XCTAssertEqual(first, second, "hashing must be deterministic")
+
+        try Data("a different book entirely".utf8).write(
+            to: store.storedFileURL(for: book)
+        )
+        XCTAssertNotEqual(
+            first,
+            LibraryStore.sourceHash(ofFileAt: store.storedFileURL(for: book)),
+            "a changed file must invalidate the cached quote"
+        )
+    }
+
+    func testSourceHashIsNilForAMissingFile() {
+        XCTAssertNil(
+            LibraryStore.sourceHash(
+                ofFileAt: root.appendingPathComponent("nothing-here.epub")
+            )
+        )
+    }
+
+    func testRecordQuotePersistsAcrossStoreInstances() throws {
+        let store = makeStore()
+        let book = try store.importBook(from: epubURL)
+
+        store.recordQuote(
+            bookID: book.id,
+            sourceHash: String(repeating: "a", count: 64),
+            productId: "com.karsai.nativread.book.t2"
+        )
+
+        let reloaded = makeStore().book(id: book.id)
+        XCTAssertEqual(
+            reloaded?.quotedSourceHash, String(repeating: "a", count: 64)
+        )
+        XCTAssertEqual(
+            reloaded?.quotedProductId, "com.karsai.nativread.book.t2"
+        )
+    }
+
+    func testDeleteRemovesTheCachedQuoteWithTheBook() throws {
+        let store = makeStore()
+        let book = try store.importBook(from: epubURL)
+        store.recordQuote(
+            bookID: book.id,
+            sourceHash: String(repeating: "b", count: 64),
+            productId: "com.karsai.nativread.book.t1"
+        )
+
+        store.delete(book)
+
+        XCTAssertNil(makeStore().book(id: book.id))
+    }
+
     func testDeleteRemovesAllArtifacts() throws {
         let store = makeStore()
         let book = try store.importBook(from: epubURL)

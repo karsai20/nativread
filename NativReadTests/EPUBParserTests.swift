@@ -37,6 +37,26 @@ final class EPUBParserTests: XCTestCase {
         XCTAssertTrue(parsed.spineWeights.allSatisfy { $0 > 0 })
     }
 
+    /// The declaration the translation sheet trusts instead of guessing the
+    /// source language from a text sample.
+    func testCapturesDeclaredLanguage() throws {
+        try EPUBFixtures.writeEPUB3(to: tempDirectory, chapterCount: 1)
+
+        let parsed = try EPUBParser.parse(extractedRoot: tempDirectory)
+
+        XCTAssertEqual(parsed.declaredLanguage, "en")
+    }
+
+    func testDeclaredLanguageIsNilWhenTheOPFOmitsIt() throws {
+        // The EPUB 2 fixture carries no <dc:language>, so detection has to
+        // fall back to the text sample rather than invent a language.
+        try EPUBFixtures.writeEPUB2(to: tempDirectory)
+
+        let parsed = try EPUBParser.parse(extractedRoot: tempDirectory)
+
+        XCTAssertNil(parsed.declaredLanguage)
+    }
+
     func testParsesEPUB3NavTOC() throws {
         try EPUBFixtures.writeEPUB3(to: tempDirectory, chapterCount: 3)
 
