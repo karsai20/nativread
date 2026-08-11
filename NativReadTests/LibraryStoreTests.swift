@@ -150,6 +150,29 @@ final class LibraryStoreTests: XCTestCase {
         XCTAssertEqual(translated.variantBadgeText, "AI · HU")
     }
 
+    /// The delete prompt warns that a purchase is bound to the original file,
+    /// but only for an original that has actually been translated.
+    func testKnowsWhichOriginalsHaveATranslatedCopy() throws {
+        let store = makeStore()
+        let original = try store.importBook(from: epubURL)
+        XCTAssertFalse(store.hasTranslatedCopy(of: original))
+
+        let translated = try store.importFullTranslation(
+            from: epubURL,
+            originalBook: original
+        )
+
+        XCTAssertTrue(store.hasTranslatedCopy(of: original))
+        XCTAssertFalse(
+            store.hasTranslatedCopy(of: translated),
+            "a translation of a translation is not a thing"
+        )
+
+        store.delete(translated)
+
+        XCTAssertFalse(store.hasTranslatedCopy(of: original))
+    }
+
     func testImportTranslationPersistsTargetLanguageMetadata() throws {
         let store = makeStore()
         let original = try store.importBook(from: epubURL)

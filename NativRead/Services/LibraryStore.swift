@@ -383,6 +383,15 @@ final class LibraryStore {
         if let copyError { throw copyError }
     }
 
+    /// Whether a translated copy of this book is on the shelf.
+    ///
+    /// A purchase is bound to the exact bytes of the original, so deleting an
+    /// original that has been translated is what ends the ability to have it
+    /// translated again — the delete prompt says so.
+    func hasTranslatedCopy(of book: Book) -> Bool {
+        books.contains { $0.sourceBookID == book.id }
+    }
+
     func delete(_ book: Book) {
         try? fileManager.removeItem(
             at: booksDirectory.appendingPathComponent(book.fileName)

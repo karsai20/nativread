@@ -148,6 +148,19 @@ Source: /plan-design-review 2026-06-28.
 
 - [ ] Editable character-name glossary for translation (keep names consistent
   across chapters; user-facing list).
+- [ ] **A second free chapter for a book whose preview was deleted.** Asked for
+  2026-08-11 as a weekly/monthly reset; deferred deliberately. `preview_claims`
+  is keyed `(user_id, source_hash)` with no expiry, so today a reader gets one
+  free chapter per book, ever — and the per-book key already fails to bound
+  total volume (a shelf of 100 books is 100 free chapters). A recurring reset
+  turns that one-off into 100/week, forever, with the global daily AI budget as
+  the only remaining backstop — meaning a farming account crowds out paying
+  customers, not just costs $0.05–0.15 a sample. If complaints do arrive, the
+  cheap version is a **lifetime allowance of two** rather than a timer: let
+  `claimPreview` re-claim once per `(user, source_hash)` when the earlier claim's
+  job no longer has a `result_key`. Covers the one accidental deletion, needs no
+  window arithmetic, and cannot be farmed in a loop. The accident itself is
+  already addressed by the two-step delete confirmation (2026-08-11).
 
 ## Deferred engineering debt
 

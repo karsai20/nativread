@@ -1,6 +1,114 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Delete" : {
+      "comment" : "Destructive button on the second confirmation for a translated book.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Törlés"
+          }
+        }
+      }
+    },
+    "Delete the translation for good?" : {
+      "comment" : "Title of the second delete confirmation, shown only for translated books.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Végleg törlöd a fordítást?"
+          }
+        }
+      }
+    },
+    "Keep" : {
+      "comment" : "Cancel button on the delete confirmations; leaves the book alone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mégsem"
+          }
+        }
+      }
+    },
+    "The book and your place in it are removed from this device." : {
+      "comment" : "Delete warning for an ordinary book.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A könyv és a benne tartott helyed eltűnik erről a készülékről."
+          }
+        }
+      }
+    },
+    "The free chapter for this book is already used up. Deleting it leaves nothing to go back to." : {
+      "comment" : "Delete warning for a free preview translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az ingyenes fejezetet ehhez a könyvhöz már felhasználtad. Ha törlöd, nem marad mihez visszatérni."
+          }
+        }
+      }
+    },
+    "The translation stays on your shelf. The purchase is bound to this exact file, though: without it, the book cannot be translated again." : {
+      "comment" : "Delete warning for an original that has already been translated.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordítás a polcodon marad. A vásárlás viszont pont ehhez a fájlhoz kötődik: nélküle a könyvet nem lehet újra lefordítani."
+          }
+        }
+      }
+    },
+    "This book has no free chapter left. Once this copy is gone, translating it again costs the full price." : {
+      "comment" : "Second delete confirmation message for a free preview translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ehhez a könyvhöz nincs több ingyenes fejezet. Ha ez a példány elveszik, az újrafordítás már teljes áras."
+          }
+        }
+      }
+    },
+    "This is the only copy. Translating it again needs the original file, unchanged." : {
+      "comment" : "Second delete confirmation message for a purchased translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez az egyetlen példány. Az újrafordításhoz az eredeti fájl kell, változatlanul."
+          }
+        }
+      }
+    },
+    "We do not keep translations on our servers. You can have this one translated again at no charge — but only from the same original file." : {
+      "comment" : "Delete warning for a purchased full translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordításokat nem tároljuk a szervereinken. Ezt újra lefordíthatod ingyen, de csak ugyanabból az eredeti fájlból."
+          }
+        }
+      }
+    },
     "Books cost %@ to %@, by length." : {
       "comment" : "Summary above the collapsed price bands. First argument is the cheapest band, second the dearest.",
       "extractionState" : "manual",
