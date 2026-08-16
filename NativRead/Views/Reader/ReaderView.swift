@@ -207,8 +207,14 @@ struct ReaderView: View {
     /// eyebrow up top, and a floating settings card down below.
     private var chrome: some View {
         ZStack {
-            restingLabels
-                .opacity(viewModel.isChromeVisible ? 0 : 1)
+            // A scrolled chapter runs through the whole screen, so ambient
+            // labels there would have text sliding across them. Scroll flow
+            // keeps the page bare and shows those numbers only on a tap,
+            // each on its own floating island.
+            if !isScrollFlow {
+                restingLabels
+                    .opacity(viewModel.isChromeVisible ? 0 : 1)
+            }
             VStack(spacing: 0) {
                 if viewModel.isChromeVisible {
                     topChrome.transition(
@@ -227,6 +233,32 @@ struct ReaderView: View {
             reduceMotion ? nil : .easeOut(duration: 0.22),
             value: viewModel.isChromeVisible
         )
+    }
+
+    private var isScrollFlow: Bool { viewModel.settings.pageFlow == .scroll }
+
+    /// Wraps an ambient label in a floating capsule — the chrome's circles
+    /// as a pill — so a chapter scrolling underneath never runs into it.
+    /// Paged flow keeps the label bare: its text stops at the margin.
+    @ViewBuilder
+    private func island(_ label: some View) -> some View {
+        if isScrollFlow {
+            label
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
+                .background {
+                    // No border: the pill should read as paper lifted off
+                    // the page, and an outline round a two-word label looks
+                    // like a control. A wide, soft shadow does the lifting.
+                    Capsule()
+                        .fill(palette.background.opacity(
+                            reduceTransparency ? 1 : 0.94
+                        ))
+                        .shadow(color: .black.opacity(0.10), radius: 14, y: 3)
+                }
+        } else {
+            label
+        }
     }
 
     /// Ambient labels that stay up while reading. They never intercept
@@ -253,15 +285,17 @@ struct ReaderView: View {
 
     private var topChrome: some View {
         ZStack {
-            Text(String.localizedStringWithFormat(
-                String(localized: "%lld pages left in chapter"),
-                viewModel.pagesLeftInChapter
-            ))
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.secondaryText)
-                .lineLimit(1)
+            island(
+                Text(String.localizedStringWithFormat(
+                    String(localized: "%lld pages left in chapter"),
+                    viewModel.pagesLeftInChapter
+                ))
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
+                    .foregroundStyle(palette.secondaryText)
+                    .lineLimit(1)
+            )
                 .padding(.horizontal, 64)
                 .accessibilityIdentifier("reader.chapterPagesLeft")
 
@@ -339,10 +373,12 @@ struct ReaderView: View {
         Button {
             viewModel.activeSheet = .position
         } label: {
-            Text(pageLabel)
-                .font(Typography.meta(13))
-                .monospacedDigit()
-                .foregroundStyle(palette.secondaryText)
+            island(
+                Text(pageLabel)
+                    .font(Typography.meta(13))
+                    .monospacedDigit()
+                    .foregroundStyle(palette.secondaryText)
+            )
                 .frame(minHeight: Spacing.minTapTarget)
                 .contentShape(Rectangle())
         }
