@@ -54,7 +54,7 @@ enum KF8EPUBWriter {
         var spine = ""
         for (index, part) in book.parts.enumerated() {
             manifest += "\n    <item id=\"p\(index)\" href=\"\(part.name)\" "
-                + "media-type=\"application/xhtml+xml\"/>"
+                + "media-type=\"\(mediaType(for: part.name))\"/>"
             spine += "\n    <itemref idref=\"p\(index)\"/>"
         }
         for (index, style) in book.styles.enumerated() {
@@ -83,6 +83,14 @@ enum KF8EPUBWriter {
           </spine>
         </package>
         """
+    }
+
+    /// Legacy MOBI6 markup cannot be made XML-valid without rewriting the
+    /// book, so those parts ship as `.html` and are declared as such. WebKit
+    /// picks its parser from the extension, and the tolerant HTML parser is
+    /// the only one that opens them at all.
+    private static func mediaType(for name: String) -> String {
+        name.hasSuffix(".html") ? "text/html" : "application/xhtml+xml"
     }
 
     private static func escape(_ text: String) -> String {

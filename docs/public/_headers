@@ -9,11 +9,10 @@
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
 
-/terms/*
-  X-Robots-Tag: noindex, nofollow
+# The legal pages stay indexable: App Review, directory listings, and
+# rightsholders all need to reach them, and there is nothing to hide here.
+# Only superseded Terms versions are kept out of search results, so the
+# current version is the one people find.
 
-/privacy/*
-  X-Robots-Tag: noindex, nofollow
-
-/rightsholders/*
-  X-Robots-Tag: noindex, nofollow
+/terms/2026-07-22/*
+  X-Robots-Tag: noindex, follow

@@ -1,5 +1,24 @@
 import WebKit
 
+/// One position report from the reading engine.
+struct ReaderEngineState: Equatable {
+    let page: Int
+    let pageCount: Int
+    /// How far into the chapter the reader is, 0…1. Continuous in scroll
+    /// flow, so it is finer than `page` — which rounds to whole screens.
+    let fraction: Double
+    /// True while the engine is still landing on a restored position.
+    /// The fraction is provisional until then: the document is still
+    /// growing under late images and fonts.
+    let isRestoring: Bool
+    /// False for a mid-scroll sample. Those keep the chrome honest but
+    /// are not where the reader stopped reading.
+    let isAtRest: Bool
+
+    /// Whether this report is a reading position worth persisting.
+    var isPersistable: Bool { isAtRest && !isRestoring }
+}
+
 /// Owns the WKWebView and speaks to the JS reading engine.
 /// SwiftUI only ever wraps `webView`; all commands go through here.
 @MainActor
@@ -9,12 +28,15 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     let webView: HighlightingWebView
     private(set) var pageSize: CGSize
 
-    /// (page, pageCount) after every page change or relayout.
-    var onState: ((Int, Int) -> Void)?
+    /// Fired after every page change, scroll sample or relayout.
+    var onState: ((ReaderEngineState) -> Void)?
     /// Fired once per chapter when the engine finished measuring.
     var onChapterReady: (() -> Void)?
     /// Tap zones reported by the page: "left", "right", "center".
     var onTap: ((String) -> Void)?
+
+    /// A tap landed on an existing highlight: (text, occurrence).
+    var onHighlightTap: ((String, Int) -> Void)?
     /// The user picked Highlight in the selection menu.
     var onHighlightRequested: (() -> Void)? {
         get { webView.onHighlightSelection }
@@ -76,6 +98,14 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         webView.scrollView.isScrollEnabled =
             !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
+        // A chapter that fits one page (short chapter, or any chapter on a
+        // large screen) leaves content the same size as the bounds, and a
+        // scroll view with nothing to scroll never rubber-bands — so the
+        // chapter-edge pull that advances chapters would never register.
+        // Forcing the bounce along the reading axis keeps the gesture alive
+        // whatever the chapter's length.
+        webView.scrollView.alwaysBounceHorizontal = flow == .paged
+        webView.scrollView.alwaysBounceVertical = flow == .scroll
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.showsHorizontalScrollIndicator = false
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
@@ -184,6 +214,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         webView.scrollView.isScrollEnabled =
             !(flow == .paged && transition == .curl)
         webView.scrollView.isPagingEnabled = flow == .paged
+        webView.scrollView.alwaysBounceHorizontal = flow == .paged
+        webView.scrollView.alwaysBounceVertical = flow == .scroll
         webView.scrollView.showsVerticalScrollIndicator = flow == .scroll
         installUserScripts()
         webView.evaluateJavaScript(ReaderScripts.applyStyle(css: css))
@@ -212,8 +244,13 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
 
     func goToFraction(_ fraction: Double) {
         navigationGeneration += 1
+        // A jump the reader asked for: their new position is theirs to
+        // keep, so it is persistable immediately.
         webView.evaluateJavaScript(
-            "window.lumen && window.lumen.goToFraction(\(fraction), false)"
+            """
+            window.lumen \
+            && window.lumen.goToFraction(\(fraction), false, false)
+            """
         )
     }
 
@@ -358,6 +395,11 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     /// production finding); capped, the overlay mounts tens of ms after
     /// the tap. `snapshotWidth` is in POINTS (image px = points × screen
     /// scale), so shrink the point width on >2× screens.
+    /// The sheet is bent, shaded and moving, so it hides compression
+    /// artefacts; a lower quality means a smaller payload to encode and
+    /// hand across the bridge, which is the latency the reader feels.
+    private nonisolated static let curlJPEGQuality: CGFloat = 0.7
+
     private var curlSnapshotConfiguration: WKSnapshotConfiguration {
         let configuration = WKSnapshotConfiguration()
         let scale = UIScreen.main.scale
@@ -397,26 +439,50 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
             guard let self else { return }
             self.curlCaptureInFlight = false
             guard generation == self.navigationGeneration else { return }
-            guard let image,
-                  let data = image.jpegData(compressionQuality: 0.85) else {
-                // Capture failed: let the engine fall back to the spring
-                // slide so the turn still animates.
-                self.evaluate(
-                    "window.lumen && window.lumen.curlFailed(\(targetX))"
-                )
+            guard let image else {
+                self.curlFallback(targetX: targetX)
                 return
             }
-            // JPEG, not PNG: a text page encodes ~5× smaller, and the
-            // whole bitmap crosses the JS bridge as base64.
-            let dataURL = "data:image/jpeg;base64,"
-                + data.base64EncodedString()
-            self.evaluate(
-                """
-                window.lumen && window.lumen.curlBegin(\
-                '\(dataURL)', \(forward), \(targetX))
-                """
-            )
+            // Encoding a full-screen bitmap and base64-ing it is tens of
+            // milliseconds of CPU, and it lands exactly while the finger
+            // is dragging the curl — on the main thread that costs touch
+            // samples, which is what made the turn feel rough. Off it.
+            Task.detached(priority: .userInitiated) {
+                // JPEG, not PNG: a text page encodes ~5× smaller, and the
+                // whole bitmap crosses the JS bridge as base64.
+                let dataURL = image
+                    .jpegData(compressionQuality: Self.curlJPEGQuality)
+                    .map { "data:image/jpeg;base64," + $0.base64EncodedString() }
+                await self.deliverCurlCapture(
+                    dataURL: dataURL, targetX: targetX,
+                    forward: forward, generation: generation
+                )
+            }
         }
+    }
+
+    /// A page bitmap is ~0.5MB of base64. Interpolating it into a script
+    /// string would make WebKit tokenise the whole thing as JS source;
+    /// `callAsyncJavaScript` passes it as an argument value instead.
+    private func deliverCurlCapture(
+        dataURL: String?, targetX: Double, forward: Bool, generation: Int
+    ) {
+        guard generation == navigationGeneration else { return }
+        guard let dataURL else {
+            curlFallback(targetX: targetX)
+            return
+        }
+        webView.callAsyncJavaScript(
+            "window.lumen && window.lumen.curlBegin(url, forward, x)",
+            arguments: ["url": dataURL, "forward": forward, "x": targetX],
+            in: nil, in: .page, completionHandler: nil
+        )
+    }
+
+    /// No usable snapshot: let the engine finish the pending turn as a
+    /// spring slide so the page still moves.
+    private func curlFallback(targetX: Double) {
+        evaluate("window.lumen && window.lumen.curlFailed(\(targetX))")
     }
 
     // MARK: - Engine messages
@@ -440,6 +506,14 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
               let type = body["type"] as? String else { return }
         let page = body["page"] as? Int ?? 0
         let pageCount = body["pageCount"] as? Int ?? 1
+        let state = ReaderEngineState(
+            page: page,
+            pageCount: pageCount,
+            fraction: body["fraction"] as? Double
+                ?? (pageCount > 1 ? Double(page) / Double(pageCount - 1) : 0),
+            isRestoring: body["restoring"] as? Bool ?? false,
+            isAtRest: body["atRest"] as? Bool ?? true
+        )
         let zone = body["zone"] as? String
         let scrollX = body["x"] as? Double
         let scrollY = body["y"] as? Double
@@ -467,8 +541,11 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                 } else {
                     let fraction = self.pendingFraction ?? 0
                     self.pendingFraction = nil
+                    // The saved position: hold it against the late
+                    // re-measures, and do not write it back until it
+                    // has actually landed.
                     self.evaluate(
-                        "window.lumen.goToFraction(\(fraction), false)"
+                        "window.lumen.goToFraction(\(fraction), false, true)"
                     )
                 }
                 self.onChapterReady?()
@@ -483,9 +560,15 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                         self.webView.alpha = 1
                     }
                 }
-                self.onState?(page, pageCount)
+                self.onState?(state)
             case "tap":
                 if let zone { self.onTap?(zone) }
+            case "highlightTap":
+                if let text = body["text"] as? String, !text.isEmpty {
+                    self.onHighlightTap?(
+                        text, body["occurrence"] as? Int ?? 0
+                    )
+                }
             case "scroll":
                 // The engine requests a horizontal page move; drive the
                 // native scroll view directly (reliable, unlike a JS

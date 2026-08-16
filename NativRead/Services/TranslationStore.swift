@@ -255,22 +255,8 @@ final class TranslationStore {
         upsert(job)
     }
 
-    static func estimatedPageCount(for book: Book) -> Int {
-        let totalWeight = book.spineWeights.reduce(0, +)
-        guard totalWeight > 0 else {
-            return max(1, book.spineWeights.count * 12)
-        }
-        return max(1, Int((totalWeight / 1_800).rounded(.up)))
-    }
-
     private func draftJob(for book: Book) -> TranslationJob {
-        let pages = Self.estimatedPageCount(for: book)
-        return TranslationJob(
-            bookID: book.id,
-            bookTitle: book.title,
-            estimatedPages: pages,
-            priceTier: .tier(forEstimatedPages: pages)
-        )
+        TranslationJob(bookID: book.id, bookTitle: book.title)
     }
 
     private func upsert(_ job: TranslationJob) {

@@ -30,13 +30,13 @@ targets:
         PRODUCT_NAME: NativRead
         SWIFT_VERSION: "5.9"
         MARKETING_VERSION: "3.4.0"
-        CURRENT_PROJECT_VERSION: "8"
+        CURRENT_PROJECT_VERSION: "10"
         INFOPLIST_FILE: NativRead/Info.plist
         # Sign in with Apple. Without this the entitlements file is inert and
         # Xcode never requests a profile carrying the capability.
         CODE_SIGN_ENTITLEMENTS: NativRead/NativRead.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        TARGETED_DEVICE_FAMILY: "1"
+        TARGETED_DEVICE_FAMILY: "1,2"
         OTHER_LDFLAGS: "-lz -lsqlite3"
     info:
       path: NativRead/Info.plist
@@ -45,10 +45,21 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleAllowMixedLocalizations: YES
+        # No custom crypto — only HTTPS to the Worker, which is exempt. Without
+        # this every TestFlight upload parks in "Missing Compliance" until the
+        # export question is answered by hand in App Store Connect.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
           UIColorName: "LaunchBackground"
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # iPad multitasking requires all four orientations (or an explicit
+        # full-screen opt-out); supporting them is the lighter path.
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIFileSharingEnabled: true

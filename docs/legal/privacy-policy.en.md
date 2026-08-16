@@ -1,7 +1,7 @@
 # NativRead Privacy Policy
 
 **DRAFT — pending legal review.**
-Effective July 22, 2026 · Version 1.2
+Effective August 5, 2026 · Version 1.3
 
 Reading is private by default. Your books stay on your device unless you
 deliberately start an AI translation. This policy explains what data we
@@ -44,6 +44,12 @@ retain them for a limited period for abuse detection and required legal
 disclosures. See the [Google Gemini API
 terms](https://ai.google.dev/gemini-api/terms).
 
+The Gemini API is operated by Google LLC in the United States, so the request
+leaves the EEA. The transfer relies on the Standard Contractual Clauses in
+Google's data processing terms, together with Google's certification under the
+EU–US Data Privacy Framework. No other transfer of book text outside the EEA
+takes place.
+
 Apple processes sign-in and in-app purchase data under its own terms.
 NativRead uses **Cloudflare** for hosting and compute. Book-file storage in
 R2, the D1 metadata database, and translation containers are restricted to
@@ -83,14 +89,20 @@ translation.
 
 Depending on applicable law, you may request access, correction, deletion,
 restriction, or portability, and may object to processing by writing to
-[[CONTACT_EMAIL]]. You may complain to your local supervisory authority; in
-Hungary this is the NAIH.
+[[CONTACT_EMAIL]]. We answer within 30 days. You may complain to your local
+supervisory authority; in Hungary this is the NAIH.
+
+If you live in California: NativRead does not sell and does not share your
+personal information, and there is nothing to opt out of. You have the same
+rights to know, delete, and correct as described above, exercised through the
+same contact address.
 
 ## 8. Security and age
 
 Sessions are stored in the iOS Keychain and translation requests use
-authenticated connections. The translation service is for adults and does
-not knowingly create accounts for people under 18.
+authenticated connections. Reading offline has no age requirement. The
+translation service is for adults and does not knowingly create accounts for
+people under 18.
 
 ## 9. Changes
 

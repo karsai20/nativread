@@ -21,6 +21,14 @@ final class SettingsStore {
     private(set) var translationBackendURLString: String
     private(set) var translationUserID: String
 
+    /// Whether the complete first-launch onboarding has been finished.
+    /// Stored under its own UserDefaults key so it never bloats the codable
+    /// settings, and mirrored here so views observe changes to it.
+    private(set) var hasSeenOnboarding: Bool
+
+    /// Bumped by `replayOnboarding()`; see it for why this is a counter.
+    private(set) var onboardingReplayCount = 0
+
     private let defaults: UserDefaults
     private static let key = "lumenread.readerSettings.v2"
     private static let onboardingSeenKey = "nativread.onboarding.v1.seen"
@@ -57,6 +65,7 @@ final class SettingsStore {
         } else {
             settings = ReaderSettings()
         }
+        hasSeenOnboarding = defaults.bool(forKey: Self.onboardingSeenKey)
         appAppearance = defaults.string(forKey: Self.appearanceKey)
             .flatMap(AppAppearance.init) ?? .system
         isOrientationLocked = defaults.bool(
@@ -132,16 +141,21 @@ final class SettingsStore {
         }
     }
 
-    /// Whether the complete first-launch onboarding has been finished.
-    /// Stored under its own key so it never bloats the codable settings.
-    var hasSeenOnboarding: Bool {
-        defaults.bool(forKey: Self.onboardingSeenKey)
-    }
-
     /// Records that onboarding has been completed; subsequent launches
     /// go straight to the library.
     func markOnboardingSeen() {
+        hasSeenOnboarding = true
         defaults.set(true, forKey: Self.onboardingSeenKey)
+    }
+
+    /// Brings the welcome back for a reader who wants to see it again —
+    /// Settings offers this. `RootView` observes the counter rather than
+    /// `hasSeenOnboarding`, so a request re-presents the flow even when the
+    /// flag is already false, and a second request works as well as the first.
+    func replayOnboarding() {
+        hasSeenOnboarding = false
+        defaults.set(false, forKey: Self.onboardingSeenKey)
+        onboardingReplayCount += 1
     }
 
     /// Applies launch-argument overrides without persisting them, so

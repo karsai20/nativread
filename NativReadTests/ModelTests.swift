@@ -157,6 +157,20 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(decoded, settings)
     }
 
+    func testReaderSettingsPersistsTwoPageSpreadChoice() throws {
+        // The spread was missing from CodingKeys, so turning it off was
+        // silently forgotten on the next launch.
+        var settings = ReaderSettings()
+        settings.twoPageSpread = false
+
+        let data = try JSONEncoder().encode(settings)
+        let decoded = try JSONDecoder().decode(
+            ReaderSettings.self, from: data
+        )
+
+        XCTAssertFalse(decoded.twoPageSpread)
+    }
+
     func testSettingsStorePersistsAcrossInstances() {
         let suiteName = "lumen-tests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -208,6 +222,39 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(css.contains("text-align: left"))
     }
 
+    func testReaderStyleOverridesTheBooksOwnAlignment() {
+        // Books ship `p { text-align: justify }`, which beats an
+        // unflagged rule on body — the reader's choice must be
+        // !important and must reach the paragraphs themselves.
+        var settings = ReaderSettings()
+        settings.isJustified = false
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844
+        )
+
+        XCTAssertTrue(css.contains("body p"))
+        XCTAssertTrue(css.contains("text-align: left !important"))
+        // Ragged-right text reads better unbroken.
+        XCTAssertTrue(css.contains("hyphens: none !important"))
+    }
+
+    func testReaderStyleHyphenatesOnlyWhenJustified() {
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains("text-align: justify !important"))
+        XCTAssertTrue(css.contains("hyphens: auto !important"))
+    }
+
+    func testReaderStyleStopsImagesFromSwallowingTheTouch() {
+        // WebKit hands a drag starting on an image to iOS drag-and-drop,
+        // which killed both scrolling and the curl scrub over pictures.
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains("-webkit-user-drag: none"))
+    }
+
     func testReaderStyleClearsLandscapeSafeAreas() {
         let css = ReaderStyle.css(
             settings: ReaderSettings(),
@@ -217,9 +264,12 @@ final class ModelTests: XCTestCase {
             safeAreaRight: 21
         )
 
-        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 71.0px"))
-        XCTAssertTrue(css.contains("column-width: 739.0px"))
-        XCTAssertTrue(css.contains("column-gap: 135.0px"))
+        // Safe-area insets set the floor; the measure cap then widens both
+        // margins equally, so 739pt of available width becomes a 612pt
+        // column (34em at the 18pt default) with the surplus split evenly.
+        XCTAssertTrue(css.contains("padding: 64.0px 127.5px 44.0px 134.5px"))
+        XCTAssertTrue(css.contains("column-width: 612.0px"))
+        XCTAssertTrue(css.contains("column-gap: 262.0px"))
         XCTAssertTrue(css.contains("max-height: 294.0px"))
     }
 
@@ -232,8 +282,95 @@ final class ModelTests: XCTestCase {
             safeAreaRight: 0
         )
 
-        XCTAssertTrue(css.contains("padding: 64.0px 64.0px 44.0px 64.0px"))
-        XCTAssertTrue(css.contains("column-width: 746.0px"))
+        XCTAssertTrue(css.contains("padding: 64.0px 131.0px 44.0px 131.0px"))
+        XCTAssertTrue(css.contains("column-width: 612.0px"))
+    }
+
+    func testReaderStyleCapsTheMeasureOnWideScreens() {
+        // An 11-inch iPad in portrait: without a cap the column would run
+        // the full 834pt, about 110 characters a line.
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 834, pageHeight: 1194
+        )
+
+        let cap = ReaderSettings().fontSize * ReaderStyle.maximumMeasureEm
+        XCTAssertTrue(css.contains("column-width: \(cap)px"))
+        // Paged flow pages by whole viewports, so the column plus its gap
+        // must still add up to the page width.
+        XCTAssertTrue(css.contains("column-gap: \(834 - cap)px"))
+    }
+
+    func testReaderStyleSpreadsTwoColumnsOnAWideScreen() {
+        // An 11-inch iPad in landscape: two facing columns, each half the
+        // screen minus the gutters, so a turn moves both pages at once.
+        var settings = ReaderSettings()
+        settings.horizontalMargin = 20
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 1194, pageHeight: 834
+        )
+
+        XCTAssertEqual(
+            ReaderStyle.columnsPerPage(settings: settings, pageWidth: 1194), 2
+        )
+        // column-width + column-gap must still tile the page exactly:
+        // 557 + 40 == 597 == half of 1194.
+        XCTAssertTrue(css.contains("column-width: 557.0px"))
+        XCTAssertTrue(css.contains("column-gap: 40.0px"))
+    }
+
+    func testReaderStyleKeepsOneColumnWhenSpreadIsOff() {
+        var settings = ReaderSettings()
+        settings.horizontalMargin = 20
+        settings.twoPageSpread = false
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 1194, pageHeight: 834
+        )
+
+        // Single column, so the measure cap applies instead.
+        let cap = settings.fontSize * ReaderStyle.maximumMeasureEm
+        XCTAssertTrue(css.contains("column-width: \(cap)px"))
+    }
+
+    func testReaderStyleKeepsPhoneLandscapeSingleColumn() {
+        // The widest phone in landscape is still too narrow for a spread.
+        XCTAssertEqual(
+            ReaderStyle.columnsPerPage(
+                settings: ReaderSettings(), pageWidth: 932
+            ),
+            1
+        )
+    }
+
+    func testReaderStyleSpreadDoesNotSurviveScrollFlow() {
+        var settings = ReaderSettings()
+        settings.pageFlow = .scroll
+        XCTAssertEqual(
+            ReaderStyle.columnsPerPage(settings: settings, pageWidth: 1194), 1
+        )
+    }
+
+    func testReaderSettingsDefaultToSpreadWhenTheKeyIsMissing() {
+        // Settings saved before the spread shipped must still decode — and
+        // keep every other value — rather than resetting to factory.
+        let legacy = #"{"theme":"sepia","fontSize":22,"pageFlow":"paged","pageTransition":"curl","font":"georgia","lineHeight":1.5,"horizontalMargin":30,"isJustified":false,"warmth":0,"darkTheme":"ink","themeMode":"manual"}"#
+        let decoded = try? JSONDecoder().decode(
+            ReaderSettings.self, from: Data(legacy.utf8)
+        )
+
+        XCTAssertEqual(decoded?.fontSize, 22)
+        XCTAssertEqual(decoded?.twoPageSpread, true)
+    }
+
+    func testReaderStyleLeavesNarrowScreensUncapped() {
+        // A phone is nowhere near the cap: margins stay exactly as set.
+        var settings = ReaderSettings()
+        settings.horizontalMargin = 20
+        let css = ReaderStyle.css(
+            settings: settings, pageWidth: 390, pageHeight: 844
+        )
+
+        XCTAssertTrue(css.contains("column-width: 350.0px"))
+        XCTAssertTrue(css.contains("column-gap: 40.0px"))
     }
 
     func testReaderStyleNeutralizesPublisherMediaSizing() {
@@ -506,6 +643,37 @@ final class ModelTests: XCTestCase {
         XCTAssertTrue(decoded.highlights.isEmpty)
     }
 
+    func testBookDecodesLibraryWrittenBeforeQuoteCaching() throws {
+        // Shelves saved before the quote cache existed must load with no
+        // cached price rather than failing and resetting the library.
+        let legacyJSON = """
+        {"id":"\(UUID().uuidString)","title":"T","author":"A",
+         "fileName":"f.epub","addedAt":700000000,
+         "progress":{"spineIndex":0,"pageFraction":0,"bookFraction":0},
+         "bookmarks":[],"highlights":[],"spineWeights":[1]}
+        """
+        let decoded = try JSONDecoder().decode(
+            Book.self, from: Data(legacyJSON.utf8)
+        )
+        XCTAssertNil(decoded.quotedSourceHash)
+        XCTAssertNil(decoded.quotedProductId)
+    }
+
+    func testBookRoundTripsItsCachedQuote() throws {
+        let book = Book(
+            title: "T", author: "A", fileName: "f.epub",
+            quotedSourceHash: String(repeating: "c", count: 64),
+            quotedProductId: "com.karsai.nativread.book.t3"
+        )
+
+        let decoded = try JSONDecoder().decode(
+            Book.self, from: JSONEncoder().encode(book)
+        )
+
+        XCTAssertEqual(decoded.quotedSourceHash, book.quotedSourceHash)
+        XCTAssertEqual(decoded.quotedProductId, book.quotedProductId)
+    }
+
     func testHighlightCodableRoundTrip() throws {
         let highlight = Highlight(
             spineIndex: 2, text: "a soft amber pulse",
@@ -627,5 +795,138 @@ final class ModelTests: XCTestCase {
         ) as? [[String: Any]]
         XCTAssertEqual(parsed?.first?["text"] as? String, tricky.text)
         XCTAssertEqual(parsed?.first?["occurrence"] as? Int, 0)
+    }
+}
+
+/// The source language the app volunteers with a translation request. It is a
+/// hint the backend re-checks, so a low-confidence guess must not be sent.
+final class DetectedBookLanguageRequestCodeTests: XCTestCase {
+
+    func testUnknownDetectionFallsBackToEnglish() {
+        XCTAssertEqual(DetectedBookLanguage.unknown.requestCode, "en")
+    }
+
+    func testConfidentDetectionIsSent() {
+        let detected = DetectedBookLanguage.language(
+            code: "es", name: "Spanish", confidence: 0.94
+        )
+        XCTAssertEqual(detected.requestCode, "es")
+    }
+
+    func testLowConfidenceDetectionIsNotSent() {
+        let detected = DetectedBookLanguage.language(
+            code: "es", name: "Spanish", confidence: 0.2
+        )
+        XCTAssertEqual(detected.requestCode, "en")
+        // The pill reads the same flag, so a guess this weak names no source.
+        XCTAssertFalse(detected.isTrusted)
+    }
+}
+
+/// `<dc:language>` is the publisher's own statement and beats the statistical
+/// recogniser, which had been labelling English books Dutch and Indonesian.
+final class DetectedBookLanguageDeclarationTests: XCTestCase {
+
+    /// Long enough to clear the 80-character floor, and unambiguously English.
+    private let englishSample = String(
+        repeating: "She could not tell what the letter from the bank would say. ",
+        count: 4
+    )
+
+    func testDeclarationWinsOverTheTextSample() {
+        let detected = DetectedBookLanguage.detect(
+            from: englishSample, declared: "de"
+        )
+        XCTAssertEqual(detected.requestCode, "de")
+        XCTAssertTrue(detected.isTrusted)
+    }
+
+    func testRegionSubtagIsStrippedToTheBareLanguage() {
+        // The backend's registry keys on "en"; "en-GB" would be a 400.
+        XCTAssertEqual(
+            DetectedBookLanguage.detect(from: "", declared: "en-GB").requestCode,
+            "en"
+        )
+        XCTAssertEqual(
+            DetectedBookLanguage.detect(from: "", declared: "  HU  ").requestCode,
+            "hu"
+        )
+    }
+
+    func testMalformedDeclarationFallsBackToTheSample() {
+        // A junk declaration must not be forwarded as a language; the sample
+        // is English and has to carry the answer.
+        let detected = DetectedBookLanguage.detect(
+            from: englishSample, declared: "???"
+        )
+        XCTAssertEqual(detected.requestCode, "en")
+    }
+
+    func testMissingDeclarationAndNoSampleStaysUnknown() {
+        XCTAssertEqual(
+            DetectedBookLanguage.detect(from: "", declared: nil), .unknown
+        )
+    }
+
+    func testEnglishSampleIsRecognisedWhenNothingIsDeclared() {
+        let detected = DetectedBookLanguage.detect(
+            from: englishSample, declared: nil
+        )
+        XCTAssertEqual(detected.requestCode, "en")
+    }
+}
+
+/// Reduce Motion silently overrode the page-turn picker; these pin the
+/// rule that decides which turn the reader actually gets.
+final class ReaderMotionPreferenceTests: XCTestCase {
+
+
+    func testChosenTransitionSurvivesWhenMotionIsNotReduced() {
+        var settings = ReaderSettings()
+        settings.pageTransition = .curl
+
+        XCTAssertEqual(
+            settings.effectiveTransition(reduceMotion: false), .curl
+        )
+    }
+
+    func testReduceMotionCutsTheChosenTransitionToAnInstantTurn() {
+        var settings = ReaderSettings()
+        settings.pageTransition = .curl
+
+        XCTAssertEqual(
+            settings.effectiveTransition(reduceMotion: true), .instant
+        )
+    }
+
+    func testExplicitOverrideKeepsTheAnimationUnderReduceMotion() {
+        var settings = ReaderSettings()
+        settings.pageTransition = .curl
+        settings.allowsMotionWhenReduced = true
+
+        XCTAssertEqual(
+            settings.effectiveTransition(reduceMotion: true), .curl
+        )
+    }
+
+    func testMotionOverrideIsPersisted() throws {
+        var settings = ReaderSettings()
+        settings.allowsMotionWhenReduced = true
+
+        let data = try JSONEncoder().encode(settings)
+        let restored = try JSONDecoder().decode(ReaderSettings.self, from: data)
+
+        XCTAssertTrue(restored.allowsMotionWhenReduced)
+    }
+
+    func testSettingsSavedBeforeTheOverrideShippedDefaultToOff() throws {
+        let legacy = Data(#"{"pageTransition":"curl"}"#.utf8)
+
+        let restored = try JSONDecoder().decode(
+            ReaderSettings.self, from: legacy
+        )
+
+        XCTAssertFalse(restored.allowsMotionWhenReduced)
+        XCTAssertEqual(restored.pageTransition, .curl)
     }
 }

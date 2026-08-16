@@ -35,22 +35,35 @@ final class KF8RejectionTests: XCTestCase {
         fdstIndex: Int = 99,
         fdstCount: Int = 0,
         fragmentIndex: Int = 100,
-        skeletonIndex: Int = 101
+        skeletonIndex: Int = 101,
+        kf8Boundary: Int? = nil
     ) -> Data {
+        let headerLength = 0xF8
         var record = Data(count: 0x110)
         writeBE16(compression, at: 0, in: &record)
         writeBE16(textRecordCount, at: 8, in: &record)
         writeBE16(encryption, at: 12, in: &record)
         record.replaceSubrange(16 ..< 20, with: Data("MOBI".utf8))
-        writeBE32(0xF8, at: 20, in: &record)
+        writeBE32(headerLength, at: 20, in: &record)
         writeBE32(version, at: 36, in: &record)
         writeBE32(0, at: 0x6C, in: &record)
-        writeBE32(0, at: 0x80, in: &record)
+        writeBE32(kf8Boundary == nil ? 0 : 0x40, at: 0x80, in: &record)
         writeBE32(fdstIndex, at: 0xC0, in: &record)
         writeBE32(fdstCount, at: 0xC4, in: &record)
         writeBE32(fragmentIndex, at: 0xF8, in: &record)
         writeBE32(skeletonIndex, at: 0xFC, in: &record)
-        return record
+
+        guard let kf8Boundary else { return record }
+        // A one-entry EXTH block (type 121) placed where the parser expects
+        // it: immediately after the fixed MOBI header.
+        var exth = Data(count: 24)
+        exth.replaceSubrange(0 ..< 4, with: Data("EXTH".utf8))
+        writeBE32(24, at: 4, in: &exth)
+        writeBE32(1, at: 8, in: &exth)
+        writeBE32(MOBIHeader.exthKF8Boundary, at: 12, in: &exth)
+        writeBE32(12, at: 16, in: &exth)
+        writeBE32(kf8Boundary, at: 20, in: &exth)
+        return record.prefix(16 + headerLength) + exth
     }
 
     private func writeBE16(_ value: Int, at offset: Int, in data: inout Data) {
@@ -157,15 +170,62 @@ final class KF8RejectionTests: XCTestCase {
         )
     }
 
-    func testMakeBookRejectsLegacyMOBIVersion() {
+    func testMakeBookConvertsLegacyMOBI6() throws {
         let data = makeDatabase(records: [
-            makeMOBIRecord0(version: 7),
-            Data("text".utf8),
+            makeMOBIRecord0(version: 6),
+            Data("<html><body><p>Chapter one</p></body></html>".utf8),
+        ])
+
+        let book = try KF8Converter.makeBook(from: data)
+
+        XCTAssertEqual(book.parts.count, 1)
+        XCTAssertTrue(book.parts[0].xhtml.contains("<p>Chapter one</p>"))
+        // The wrapper replaces the blob's own document tags with one clean set.
+        XCTAssertEqual(
+            book.parts[0].xhtml.components(separatedBy: "<body>").count - 1, 1
+        )
+    }
+
+    func testMOBI6SplitsChaptersOnPagebreaksAndResolvesFileposLinks() throws {
+        // A filepos is a byte offset into the blob; point it at the byte where
+        // the second chapter starts. The placeholder keeps the offset stable
+        // because the real value is written back at the same width.
+        let placeholder = "0000000000"
+        let prefix = "<html><body><a filepos=\(placeholder)>Go</a>"
+        let separator = "<mbp:pagebreak/>"
+        let target = prefix.utf8.count + separator.utf8.count
+        let html = prefix.replacingOccurrences(
+            of: placeholder, with: String(format: "%010d", target)
+        ) + separator + "<p>Two</p></body></html>"
+
+        let book = try KF8Converter.makeBook(from: makeDatabase(records: [
+            makeMOBIRecord0(version: 6),
+            Data(html.utf8),
+        ]))
+
+        let anchor = String(format: "filepos%010d", target)
+        XCTAssertEqual(book.parts.count, 2)
+        XCTAssertTrue(
+            book.parts[0].xhtml.contains(#"href="part0001.html#\#(anchor)""#),
+            "cross-chapter filepos link should resolve, got \(book.parts[0].xhtml)"
+        )
+        XCTAssertTrue(
+            book.parts[1].xhtml.contains(#"<a id="\#(anchor)"></a>"#),
+            "the target chapter should carry the anchor, got \(book.parts[1].xhtml)"
+        )
+        XCTAssertFalse(book.parts.contains { $0.xhtml.contains("mbp:") },
+            "Kindle-private tags must not survive")
+    }
+
+    func testMOBI6RejectsBlobWithoutText() {
+        let data = makeDatabase(records: [
+            makeMOBIRecord0(textRecordCount: 0, version: 6),
+            Data("<html><body></body></html>".utf8),
         ])
 
         assertThrowsUnsupported(
             try KF8Converter.makeBook(from: data),
-            containing: "only KF8"
+            containing: "no readable text"
         )
     }
 
@@ -215,6 +275,50 @@ final class KF8RejectionTests: XCTestCase {
         XCTAssertEqual(entries.count, 0)
     }
 
+    func testMakeBookFollowsTheKF8BoundaryOfAHybridMOBI() {
+        // A KindleGen .mobi: MOBI6 record 0 with EXTH 121 pointing at the KF8
+        // boundary. Getting past the version guard (to the later no-text
+        // failure of these synthetic indices) proves the boundary was followed.
+        let data = makeDatabase(records: [
+            makeMOBIRecord0(version: 6, kf8Boundary: 2),
+            Data("mobi6 text".utf8),
+            makeMOBIRecord0(version: 8),
+            Data("<html><body>Text</body></html>".utf8),
+        ])
+
+        assertThrowsUnsupported(
+            try KF8Converter.makeBook(from: data),
+            containing: "no readable text"
+        )
+    }
+
+    func testMakeBookFallsBackToMOBI6WhenTheBoundaryIsOutOfRange() throws {
+        // A corrupt EXTH 121 must fall back to the MOBI6 header and its own
+        // text, not index past the end of the record list.
+        let book = try KF8Converter.makeBook(from: makeDatabase(records: [
+            makeMOBIRecord0(version: 6, kf8Boundary: 99),
+            Data("<html><body><p>Legacy</p></body></html>".utf8),
+        ]))
+
+        XCTAssertEqual(book.parts.count, 1)
+        XCTAssertTrue(book.parts[0].xhtml.contains("Legacy"))
+    }
+
+    func testRebasedDatabaseRenumbersRecordsFromTheBoundary() throws {
+        let db = try PalmDatabase(data: makeDatabase(records: [
+            Data("zero".utf8),
+            Data("one".utf8),
+            Data("two".utf8),
+        ]))
+
+        let rebased = try XCTUnwrap(db.rebased(at: 1))
+        XCTAssertEqual(rebased.recordCount, 2)
+        XCTAssertEqual(rebased.record(0), Data("one".utf8))
+        XCTAssertEqual(rebased.record(1), Data("two".utf8))
+        XCTAssertEqual(rebased.record(2), Data())
+        XCTAssertNil(db.rebased(at: 3), "out-of-range boundary must not rebase")
+    }
+
     func testMakeBookRejectsBogusKF8IndexRecordsWithoutReadableText() {
         let data = makeDatabase(records: [
             makeMOBIRecord0(
@@ -228,6 +332,32 @@ final class KF8RejectionTests: XCTestCase {
         assertThrowsUnsupported(
             try KF8Converter.makeBook(from: data),
             containing: "no readable text"
+        )
+    }
+
+    func testMOBI6StripsControlBytesAndShipsTolerantHTML() throws {
+        // A NUL between text runs is what made the strict XML parser abandon
+        // the document ("error on line 5 ... char 0x0").
+        let html = "<html><body><p>Chapter\u{0}\u{1} one</p><br></body></html>"
+        let book = try KF8Converter.makeBook(from: makeDatabase(records: [
+            makeMOBIRecord0(version: 6),
+            Data(html.utf8),
+        ]))
+
+        let part = book.parts[0]
+        XCTAssertEqual(part.name, "part0000.html",
+            "MOBI6 output must be parsed as HTML, not XHTML")
+        XCTAssertTrue(part.xhtml.contains("<p>Chapter one</p>"))
+        XCTAssertFalse(part.xhtml.unicodeScalars.contains { $0.value == 0 },
+            "no NUL may survive into a chapter")
+        // Tabs and newlines are real whitespace and must not be stripped.
+        XCTAssertTrue(
+            try XCTUnwrap(
+                KF8Converter.makeBook(from: makeDatabase(records: [
+                    makeMOBIRecord0(version: 6),
+                    Data("<html><body><p>a\tb\nc</p></body></html>".utf8),
+                ])).parts.first
+            ).xhtml.contains("a\tb\nc")
         )
     }
 }

@@ -19,6 +19,28 @@ enum ReaderStyle {
     static let landscapeMinimumHorizontalMargin: Double = 64
     /// Extra whitespace between the text and a sensor/home-indicator inset.
     static let safeAreaGutter: Double = 12
+    /// Longest comfortable line, in multiples of the reading font size —
+    /// roughly 70 characters. Past that the eye loses its place travelling
+    /// back to the next line's start, which an iPad (or a landscape phone)
+    /// would otherwise force: the column takes the whole width. Surplus
+    /// width becomes margin instead of measure.
+    static let maximumMeasureEm: Double = 34
+    /// Below this the page is too narrow for two facing columns to each
+    /// hold a readable measure, so the spread setting is ignored. An iPad
+    /// mini in landscape (1024pt) is the smallest screen that qualifies;
+    /// the widest phone in landscape (932pt) stays single-column.
+    static let spreadMinimumWidth: Double = 1000
+
+    /// Facing columns per page: two on a wide screen in paged flow, like an
+    /// open book. Everything else reads one column at a time.
+    static func columnsPerPage(
+        settings: ReaderSettings, pageWidth: Double
+    ) -> Int {
+        guard settings.pageFlow == .paged,
+              settings.twoPageSpread,
+              pageWidth >= spreadMinimumWidth else { return 1 }
+        return 2
+    }
 
     /// Memoised base64 `data:` URIs for bundled fonts, keyed by resource
     /// name. The WKWebView runs out-of-process and does not inherit the
@@ -79,10 +101,26 @@ enum ReaderStyle {
         let compactHeight = pageHeight < 500
         let minimumMargin = compactHeight
             ? max(margin, landscapeMinimumHorizontalMargin) : margin
-        let leftMargin = max(minimumMargin, safeAreaLeft + safeAreaGutter)
-        let rightMargin = max(minimumMargin, safeAreaRight + safeAreaGutter)
+        let baseLeftMargin = max(minimumMargin, safeAreaLeft + safeAreaGutter)
+        let baseRightMargin = max(minimumMargin, safeAreaRight + safeAreaGutter)
+        // Width one column gets: the whole page, or half of it in a spread.
+        let columns = Double(
+            columnsPerPage(settings: settings, pageWidth: pageWidth)
+        )
+        let columnSlot = pageWidth / columns
+        // Split any width beyond a readable measure evenly into the margins.
+        // Paged flow depends on column-width + column-gap == the slot, and
+        // widening both margins by the same amount preserves that — so the
+        // spread's inner gutter matches the outer margins, like a real book.
+        let measureOverflow = max(
+            0,
+            (columnSlot - baseLeftMargin - baseRightMargin)
+                - settings.fontSize * maximumMeasureEm
+        )
+        let leftMargin = baseLeftMargin + measureOverflow / 2
+        let rightMargin = baseRightMargin + measureOverflow / 2
         let horizontalGutter = leftMargin + rightMargin
-        let contentWidth = pageWidth - horizontalGutter
+        let contentWidth = columnSlot - horizontalGutter
         let resolvedTopPadding = compactHeight
             ? landscapeTopPadding : topPadding
         let resolvedBottomPadding = compactHeight
@@ -161,6 +199,12 @@ enum ReaderStyle {
         // every bundled font's bytes. System fonts contribute nothing.
         let fontFaceRule = fontFace(for: settings.font)
 
+        // Hyphenation follows justification: justified text without it
+        // opens rivers of white space between words, ragged-right text
+        // reads better unbroken.
+        let alignment = settings.isJustified ? "justify" : "left"
+        let hyphenation = settings.isJustified ? "auto" : "none"
+
         return """
         \(fontFaceRule)
         :root { color-scheme: \(theme.isDark ? "dark" : "light"); }
@@ -171,10 +215,17 @@ enum ReaderStyle {
             font-family: \(settings.font.cssFamily) !important;
             font-size: \(settings.fontSize)px !important;
             line-height: \(settings.lineHeight) !important;
-            text-align: \(settings.isJustified ? "justify" : "left");
-            -webkit-hyphens: auto;
-            hyphens: auto;
             text-rendering: optimizeLegibility;
+        }
+        /* Books ship their own `p { text-align: justify }`, which beats an
+           unflagged rule on body however late ours is injected — so the
+           reader's alignment choice only takes effect as !important.
+           Headings are excluded: they keep the book's own alignment. */
+        body, body p, body div, body li, body dd, body dt,
+        body blockquote, body td {
+            text-align: \(alignment) !important;
+            -webkit-hyphens: \(hyphenation) !important;
+            hyphens: \(hyphenation) !important;
         }
         body * {
             color: inherit !important;
@@ -199,6 +250,12 @@ enum ReaderStyle {
             break-inside: avoid;
             margin-left: auto !important;
             margin-right: auto !important;
+            /* WebKit hands a drag that starts on an image to iOS's
+               drag-and-drop interaction, which swallows the touch: the
+               page would not scroll and the curl would not scrub while
+               the finger sits on a picture. */
+            -webkit-user-drag: none;
+            -webkit-touch-callout: none;
         }
         a { color: \(theme.accentHex) !important; text-decoration: none; }
         blockquote {

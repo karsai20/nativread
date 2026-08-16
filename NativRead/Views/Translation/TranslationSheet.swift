@@ -10,6 +10,7 @@ struct TranslationSheet: View {
     @Environment(TranslationStore.self) private var translations
     @Environment(TranslationAuthStore.self) private var auth
     @Environment(BookPurchaseStore.self) private var purchases
+    @Environment(PricingStore.self) private var pricing
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
     @Environment(\.dismiss) private var dismiss
@@ -22,9 +23,18 @@ struct TranslationSheet: View {
     @State private var bookProduct: Product?
     @State private var isEntitledToFullBook = false
     @State private var pricingError: String?
-    @State private var showsTranslationDetails = false
-    @State private var showsWholeBookOptions = false
+    @State private var selectedPlan: TranslationPlan = .freeChapter
     @State private var pendingAITranslation: PendingAITranslation?
+    @State private var showsTermsOfUse = false
+    /// Fraction of the book sent so far, or `nil` when no upload is running.
+    @State private var uploadProgress: Double?
+    /// StoreKit products for every price band, keyed by identifier.
+    @State private var bandProducts: [String: Product] = [:]
+    /// The book's own character count, resolved once when the sheet opens.
+    /// Held here rather than read from `book` because a book shelved before
+    /// counts existed is counted on the spot, and `book` is this sheet's own
+    /// copy — it would not see the number the library just wrote down.
+    @State private var sourceCharacters: Int?
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -36,6 +46,13 @@ struct TranslationSheet: View {
 
     private var clickwrapCopy: TranslationClickwrapCopy {
         locale.language.languageCode?.identifier == "hu" ? .hungarian : .english
+    }
+
+    /// The attestation with its inline Terms link. Falls back to plain text
+    /// if the markdown ever fails to parse, so the sentence is never lost.
+    private var attestationText: AttributedString {
+        (try? AttributedString(markdown: clickwrapCopy.attestation))
+            ?? AttributedString(clickwrapCopy.attestation)
     }
 
     var body: some View {
@@ -54,13 +71,9 @@ struct TranslationSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: Spacing.lg) {
                         header
-                        freePreviewCard
-                        languageSection
-                        freeChapterSection
-                        translationDetails
-                        if hasAcceptedTerms && hasBackendIdentity {
-                            purchaseSection
-                        }
+                        if showsPhaseMessage { progressCard }
+                        planPicker
+                        actionSection
                     }
                     .padding(.horizontal, Spacing.lg)
                     .padding(.bottom, Spacing.lg)
@@ -90,167 +103,141 @@ struct TranslationSheet: View {
         .onAppear {
             hasAcceptedTerms = translations.currentTermsAcceptance(for: book) != nil
             detectedLanguage = DetectedBookLanguage.detect(
-                from: library.languageDetectionSample(for: book)
+                from: library.languageDetectionSample(for: book),
+                declared: library.declaredLanguage(for: book)
             )
+            // The sample is only worth offering once; a reader who already has
+            // it lands on the option they can still act on.
+            if job.hasFreePreview && !job.hasFullTranslation {
+                selectedPlan = .wholeBook
+            }
+        }
+        .task {
+            // Awaited: pricing the book needs the table, and reading it before
+            // the fetch lands is what put "See price" on a card that could
+            // already have shown the price.
+            await pricing.refreshIfStale()
+            await resolvePriceWithoutUpload()
+            await loadBandProducts()
         }
     }
 
+    /// The book being translated, shown the way the shelf shows it: cover,
+    /// title, author, and the direction the translation runs in.
     private var header: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(book.title)
-                .font(Typography.display(28))
-                .foregroundStyle(palette.text)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(book.author)
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
-        }
-    }
-
-    private var freePreviewCard: some View {
-        HStack(spacing: Spacing.md) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(palette.accent)
-                .frame(width: 48, height: 48)
-                .background(palette.accent.opacity(0.12), in: Circle())
+        HStack(alignment: .top, spacing: Spacing.md) {
+            BookCard.cover(book: book, coverURL: library.coverURL(for: book))
+                .frame(width: 62, height: 93)
+                .clipShape(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+                .shadow(color: .black.opacity(0.22), radius: 6, x: 0, y: 4)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("First chapter free")
-                    .font(Typography.control(18, weight: .semibold))
+                Text(book.title)
+                    .font(Typography.display(24))
                     .foregroundStyle(palette.text)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                Text("Try the translation before deciding.")
+                Text(book.author)
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
+
+                AppPill(title: languagePairText, palette: palette)
+                    .padding(.top, Spacing.xxs)
             }
-
-            if job.hasFreePreview {
-                Spacer(minLength: Spacing.xs)
-                AppPill(
-                    title: String(localized: "Added", locale: locale),
-                    tone: .accent,
-                    palette: palette
-                )
-            }
-        }
-        .padding(Spacing.md)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(palette.surface)
-        .clipShape(
-            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-                .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
-        }
-    }
-
-    private var languageSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            AppSectionLabel(title: "Languages", palette: palette)
-
-            languagePairCard
-
-            // Only worth a control when there is something to choose between;
-            // with one shipped language the pair card already says everything.
-            if TranslationTargetLanguage.passed.count > 1 {
-                AppSegmentedControl(
-                    options: TranslationTargetLanguage.passed.map { language in
-                        .init(
-                            value: language,
-                            title: LocalizedStringKey(localizedName(for: language))
-                        )
-                    },
-                    selection: Binding(
-                        get: { job.targetLanguage },
-                        set: { translations.setTargetLanguage($0, for: book) }
-                    ),
-                    palette: palette
-                )
-                .disabled(job.isBackendActive)
-                // The primitive draws no disabled state of its own.
-                .opacity(job.isBackendActive ? 0.45 : 1)
-                .accessibilityIdentifier("translation.targetLanguage")
-            }
-        }
-    }
-
-    /// Source on the left, target on the right. The source side is read-only:
-    /// it reports what detection found rather than offering a choice.
-    private var languagePairCard: some View {
-        HStack(spacing: Spacing.xs) {
-            languageFace(
-                label: "From",
-                code: detectedLanguageCode,
-                name: localizedSourceLanguage
-            )
-
-            Image(systemName: "arrow.right")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(palette.accent)
-                .frame(width: 34, height: 34)
-                .background(palette.surfaceRaised, in: Circle())
-
-            languageFace(
-                label: "To",
-                code: job.targetLanguage.rawValue,
-                name: localizedName(for: job.targetLanguage)
-            )
-        }
-        .padding(Spacing.sm)
-        .frame(maxWidth: .infinity)
-        .background(palette.surface)
-        .clipShape(
-            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: Spacing.radiusCard, style: .continuous)
-                .strokeBorder(palette.hairline, lineWidth: Spacing.hairlineWidth)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("translation.languagePair")
+        .accessibilityIdentifier("translation.hero")
     }
 
-    private func languageFace(
-        label: LocalizedStringKey,
-        code: String,
-        name: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(label)
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.secondaryText)
+    /// The two things on sale, both on screen from the first frame: the free
+    /// sample and the whole book. One card is selected at a time and the sheet's
+    /// single primary button follows the selection.
+    private var planPicker: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            AppSectionLabel(title: "Choose what to translate", palette: palette)
 
-            HStack(spacing: Spacing.xs) {
-                Text(code.uppercased())
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(palette.accent)
-                    .frame(width: 34, height: 34)
-                    .background(
-                        palette.accentSoft,
-                        in: RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    )
+            TranslationPlanCard(
+                plan: .freeChapter,
+                title: "First chapter",
+                subtitle: "See the quality before you decide.",
+                badge: job.hasFreePreview
+                    ? String(localized: "Added") : String(localized: "Free"),
+                isSelected: selectedPlan == .freeChapter,
+                isEnabled: !job.isBackendActive,
+                palette: palette,
+                action: { select(.freeChapter) }
+            )
+            .accessibilityIdentifier("translation.plan.freeChapter")
 
-                Text(name)
-                    .font(Typography.control(14, weight: .semibold))
-                    .foregroundStyle(palette.text)
-                    .lineLimit(2)
+            TranslationPlanCard(
+                plan: .wholeBook,
+                title: "Whole book",
+                subtitle: "Every chapter. One purchase, yours for good.",
+                badge: wholeBookBadge,
+                isRecommended: !job.hasFullTranslation,
+                isSelected: selectedPlan == .wholeBook,
+                isEnabled: !job.isBackendActive,
+                palette: palette,
+                action: { select(.wholeBook) }
+            )
+            .accessibilityIdentifier("translation.plan.wholeBook")
+
+            if let table = pricing.usablePricing {
+                TranslationPriceBands(
+                    tiers: table.tiers,
+                    products: bandProducts,
+                    highlightedProductID: bookProduct?.id,
+                    palette: palette
+                )
+            }
+
+            if exceedsLongestTier {
+                Text("This book is longer than we can translate.")
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.danger)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("translation.tooLong")
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var termsAcceptanceSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text(clickwrapCopy.title)
-                .font(Typography.control(17, weight: .semibold))
-                .foregroundStyle(palette.text)
+    /// Price on the trailing edge of the whole-book card. StoreKit is the only
+    /// source of a real price, so anything else is a state, not a number.
+    private var wholeBookBadge: String {
+        if job.hasFullTranslation { return String(localized: "Added") }
+        if isEntitledToFullBook || (fullQuote != nil && fullQuote?.price == nil) {
+            return String(localized: "Owned")
+        }
+        if let bookProduct { return bookProduct.displayPrice }
+        return String(localized: "See price")
+    }
 
+    private func select(_ plan: TranslationPlan) {
+        withAnimation(.easeInOut(duration: 0.18)) { selectedPlan = plan }
+    }
+
+    /// "English → Magyar", or just the target when detection came up empty.
+    ///
+    /// A low-confidence guess is shown as nothing rather than as a language:
+    /// `requestCode` already discards it, so naming it here would put a source
+    /// on screen that the translation is not actually going to use.
+    private var languagePairText: String {
+        let target = job.targetLanguage.localizedName(in: locale)
+        guard case .language(let code, let fallbackName, _) = detectedLanguage,
+              detectedLanguage.isTrusted
+        else { return "→ \(target)" }
+        let source = (locale.localizedString(forLanguageCode: code)
+            ?? fallbackName).capitalized
+        return "\(source) → \(target)"
+    }
+
+    /// One line: a checkbox and the attestation, whose "Terms of Use" is the
+    /// link itself — no second row repeating the same destination.
+    private var termsAcceptanceSection: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
             Button {
                 hasAcceptedTerms.toggle()
                 if hasAcceptedTerms {
@@ -262,39 +249,39 @@ struct TranslationSheet: View {
                     translations.clearTermsAcceptance(for: book)
                 }
             } label: {
-                HStack(alignment: .top, spacing: Spacing.sm) {
-                    Image(
-                        systemName: hasAcceptedTerms
-                            ? "checkmark.square.fill" : "square"
-                    )
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(palette.accent)
-                    .frame(width: 28, height: 28)
-
-                    Text(clickwrapCopy.attestation)
-                        .font(Typography.body(16))
-                        .foregroundStyle(palette.text)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(
+                    systemName: hasAcceptedTerms
+                        ? "checkmark.square.fill" : "square"
+                )
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(palette.accent)
+                .frame(width: Spacing.minTapTarget, height: Spacing.minTapTarget)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("translation.termsAcceptance")
+            .accessibilityLabel(Text(String(attestationText.characters)))
             .accessibilityAddTraits(hasAcceptedTerms ? [.isSelected] : [])
             .accessibilityValue(
                 hasAcceptedTerms ? clickwrapCopy.accepted : clickwrapCopy.notAccepted
             )
 
-            NavigationLink {
-                TermsOfUseView()
-            } label: {
-                Label(clickwrapCopy.termsLink, systemImage: "doc.text")
-                    .font(Typography.control(16, weight: .semibold))
-                    .foregroundStyle(palette.accent)
-                    .frame(minHeight: Spacing.minTapTarget)
-            }
-            .accessibilityIdentifier("translation.terms.link")
+            Text(attestationText)
+                .font(Typography.body(16))
+                .foregroundStyle(palette.text)
+                .tint(palette.accent)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("translation.terms.link")
+        }
+        // The link is a URL, not a NavigationLink, so the tap is caught here
+        // and turned into the same push the old row made.
+        .environment(\.openURL, OpenURLAction { _ in
+            showsTermsOfUse = true
+            return .handled
+        })
+        .navigationDestination(isPresented: $showsTermsOfUse) {
+            TermsOfUseView()
         }
         .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -304,38 +291,144 @@ struct TranslationSheet: View {
         )
     }
 
-    private var freeChapterSection: some View {
+    /// Everything the reader has to pass through before the selected plan can
+    /// start: the rights attestation, an account, then the one button.
+    private var actionSection: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
-            if showsPhaseMessage {
-                progressCard
-            }
-
             if !job.isBackendActive && !job.hasFullTranslation {
                 termsAcceptanceSection
             }
 
-            if !job.hasFreePreview && !job.isBackendActive {
-                if hasAcceptedTerms && !hasBackendIdentity {
-                    accountSection
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
+            if !job.isBackendActive && hasAcceptedTerms && !hasBackendIdentity {
+                accountSection
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
 
+            primaryAction
+
+            // The whole book goes over the wire here, which on a phone
+            // connection is the slowest thing this screen does. A disabled
+            // button alone reads as a hang.
+            if let uploadProgress {
+                ProgressView(value: uploadProgress) {
+                    Text(
+                        uploadProgress < 1
+                            ? "Uploading \(Int(uploadProgress * 100))%…"
+                            : "Measuring the book…"
+                    )
+                    .font(Typography.meta())
+                    .foregroundStyle(palette.secondaryText)
+                }
+                .tint(palette.accent)
+                .accessibilityIdentifier("translation.uploadProgress")
+            }
+
+            if let pricingError {
+                Label {
+                    Text(verbatim: pricingError)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
+            }
+
+            Text(footnote)
+                .font(Typography.meta())
+                .foregroundStyle(palette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .animation(.easeInOut(duration: 0.22), value: hasAcceptedTerms)
+    }
+
+    private var footnote: LocalizedStringKey {
+        switch selectedPlan {
+        case .freeChapter:
+            return "The translation arrives as a separate book on your shelf. Your original stays unchanged."
+        case .wholeBook:
+            return "One purchase per book. Buy it once and it stays yours — reinstall the app and it comes back."
+        }
+    }
+
+    /// One dominant button, whose job is decided by the selected plan and by how
+    /// far the whole-book flow has got (no price yet → quote, price → buy,
+    /// already paid → translate).
+    @ViewBuilder
+    private var primaryAction: some View {
+        switch selectedPlan {
+        case .freeChapter:
             AppPrimaryButton(
                 title: freePreviewButtonTitle,
                 systemImage: "sparkles",
-                isEnabled: hasAcceptedTerms
-                    && hasBackendIdentity
-                    && !isRequestingTranslation
-                    && !job.isBackendActive
-                    && !job.hasFreePreview
-                    && book.isTranslatableSource,
+                isEnabled: canStartRequest && !job.hasFreePreview,
                 action: { beginTranslation(kind: .preview) },
                 palette: palette
             )
             .accessibilityIdentifier("translation.freeChapter")
+        case .wholeBook:
+            wholeBookAction
         }
-        .animation(.easeInOut(duration: 0.22), value: hasAcceptedTerms)
+    }
+
+    @ViewBuilder
+    private var wholeBookAction: some View {
+        // `bookProduct` alone is enough: a cached price restores it without an
+        // upload, so the reader sees the cost straight away and the book only
+        // goes over the wire once they decide to buy.
+        //
+        // No price *on a real upload response* means the backend is not selling
+        // this book — a self-hosted deployment with entitlements turned off.
+        // Nothing to buy, so the translation is simply available. A missing
+        // `fullQuote` means the price came from the cache instead, which is not
+        // the same thing.
+        if isEntitledToFullBook || (fullQuote != nil && fullQuote?.price == nil) {
+            AppPrimaryButton(
+                title: fullBookButtonTitle,
+                systemImage: "book.closed",
+                isEnabled: !isRequestingTranslation
+                    && !job.isBackendActive
+                    && !job.hasFullTranslation,
+                action: {
+                    guard let fullQuote else { return }
+                    beginTranslation(kind: .full, preparedUpload: fullQuote)
+                },
+                palette: palette
+            )
+            .accessibilityIdentifier("translation.fullBook")
+        } else if let bookProduct {
+            // The price always comes from StoreKit, never from our own tier
+            // table: it is the only source that is localized and matches what
+            // the App Store will actually charge.
+            AppPrimaryButton(
+                title: "Translate whole book · \(bookProduct.displayPrice)",
+                systemImage: "cart",
+                isEnabled: canStartRequest
+                    && !job.hasFullTranslation
+                    && !purchases.isPurchasing,
+                action: { buyFullBook(bookProduct) },
+                palette: palette
+            )
+            .accessibilityIdentifier("translation.purchaseFullBook")
+        } else {
+            AppPrimaryButton(
+                title: "Calculate exact quote",
+                systemImage: "number",
+                isEnabled: canStartRequest && !job.hasFullTranslation,
+                action: { prepareFullQuote() },
+                palette: palette
+            )
+            .accessibilityIdentifier("translation.calculateQuote")
+        }
+    }
+
+    /// The gate every plan shares: accepted terms, an account, nothing already
+    /// running, and a source file the backend can actually take.
+    private var canStartRequest: Bool {
+        hasAcceptedTerms
+            && hasBackendIdentity
+            && !isRequestingTranslation
+            && !job.isBackendActive
+            && book.isTranslatableSource
     }
 
     private var accountSection: some View {
@@ -400,45 +493,6 @@ struct TranslationSheet: View {
         }
     }
 
-    private var translationDetails: some View {
-        AppSettingsSection(palette: palette) {
-            AppSettingsRow(
-                systemImage: "info.circle",
-                title: "How translation works",
-                hidesSeparator: !showsTranslationDetails,
-                action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showsTranslationDetails.toggle()
-                    }
-                },
-                palette: palette,
-                trailing: { disclosureChevron(isOpen: showsTranslationDetails) }
-            )
-            .accessibilityIdentifier("translation.details")
-
-            if showsTranslationDetails {
-                Text("Your original book stays unchanged. The first reading chapter is translated and added to your library as a separate book.")
-                    .font(Typography.meta())
-                    .foregroundStyle(palette.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.bottom, Spacing.md)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
-
-    /// The chevron that marks an expandable row. Rows carrying their own
-    /// trailing control suppress `AppSettingsRow`'s navigation chevron, so
-    /// this one stands in and rotates with the disclosure.
-    private func disclosureChevron(isOpen: Bool) -> some View {
-        Image(systemName: "chevron.down")
-            .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(palette.secondaryText)
-            .rotationEffect(.degrees(isOpen ? 180 : 0))
-    }
-
     private var freePreviewButtonTitle: LocalizedStringKey {
         job.hasFreePreview ? "Free chapter already added" : "Translate first chapter"
     }
@@ -452,59 +506,15 @@ struct TranslationSheet: View {
         }
     }
 
-    /// The two-letter badge on the source side of the pair card. Detection can
-    /// come up empty, and an em dash reads better there than a blank tile.
-    private var detectedLanguageCode: String {
-        switch detectedLanguage {
-        case .language(let code, _, _):
-            return code
-        case .unknown:
-            return "—"
-        }
-    }
-
-    private var localizedSourceLanguage: String {
-        switch detectedLanguage {
-        case .language(let code, let fallbackName, _):
-            let name = locale.localizedString(forLanguageCode: code)
-                ?? fallbackName
-            return name.capitalized
-        case .unknown:
-            return String(localized: "Not detected", locale: locale)
-        }
-    }
-
-    private func localizedName(
-        for language: TranslationTargetLanguage
-    ) -> String {
-        let name = locale.localizedString(forLanguageCode: language.rawValue)
-            ?? language.displayName
-        return name.capitalized
-    }
-
     /// One card carries the whole run: a headline for where the job stands, a
     /// determinate track once the backend reports chunk counts, and the
     /// phase's own sentence underneath.
     private var progressCard: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    AppSectionLabel(title: "Overall progress", palette: palette)
-
-                    Text(progressHeadline)
-                        .font(Typography.control(21, weight: .bold))
-                        .foregroundStyle(palette.text)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer(minLength: Spacing.xs)
-
-                AppPill(
-                    title: job.targetLanguage.rawValue.uppercased(),
-                    tone: .accent,
-                    palette: palette
-                )
-            }
+            Text(progressHeadline)
+                .font(Typography.control(21, weight: .bold))
+                .foregroundStyle(palette.text)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let fraction = job.progressFraction {
                 AppProgressTrack(value: fraction, palette: palette)
@@ -551,21 +561,16 @@ struct TranslationSheet: View {
         case .translating:
             if let reconnectMessage = job.errorMessage {
                 phaseText(verbatim: reconnectMessage)
+            } else if let sections = sectionsText {
+                phaseText(verbatim: sections)
             } else {
-                phaseText(
-                    verbatim: job.progressText.map {
-                        "\(job.activeProgressMessage)... \($0)"
-                    } ?? "\(job.activeProgressMessage)..."
-                )
+                phaseText("You can close the app. We keep translating.")
             }
         case .importingResult:
-            phaseText("Importing \(job.activeResultName)...")
+            // The headline ("Adding to your library") already says it all.
+            EmptyView()
         case .finished:
-            if job.hasFullTranslation {
-                phaseText("Full \(localizedName(for: job.targetLanguage)) translation was added as a separate library book.")
-            } else {
-                phaseText("\(localizedName(for: job.targetLanguage)) preview was added as a separate library book.")
-            }
+            phaseText("Added to your library.")
         case .failed:
             if let errorMessage = job.errorMessage {
                 phaseText(verbatim: errorMessage)
@@ -573,6 +578,19 @@ struct TranslationSheet: View {
                 phaseText("Translation failed.")
             }
         }
+    }
+
+    /// "12/40 sections", localized. Only once the backend reports chunks.
+    private var sectionsText: String? {
+        guard let done = job.translatedChunks,
+              let total = job.totalChunks,
+              total > 0
+        else { return nil }
+        return String.localizedStringWithFormat(
+            String(localized: "%lld/%lld sections", locale: locale),
+            done,
+            total
+        )
     }
 
     private func phaseText(_ text: LocalizedStringKey) -> some View {
@@ -593,110 +611,6 @@ struct TranslationSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var purchaseSection: some View {
-        AppSettingsSection(palette: palette) {
-            AppSettingsRow(
-                systemImage: "book.closed",
-                title: "Whole book",
-                hidesSeparator: !showsWholeBookOptions,
-                action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showsWholeBookOptions.toggle()
-                    }
-                },
-                palette: palette,
-                trailing: { disclosureChevron(isOpen: showsWholeBookOptions) }
-            )
-            .accessibilityIdentifier("translation.fullBookDisclosure")
-
-            if showsWholeBookOptions {
-                purchaseOptions
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.bottom, Spacing.md)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
-
-    private var purchaseOptions: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
-            if let quote = fullQuote?.quote {
-                HStack {
-                    Text("Source characters")
-                    Spacer()
-                    Text(quote.sourceCharacters.formatted())
-                        .monospacedDigit()
-                }
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
-
-                // No price means the backend is not selling this book — a
-                // self-hosted deployment with entitlements turned off. Nothing
-                // to buy, so the translation is simply available.
-                if isEntitledToFullBook || fullQuote?.price == nil {
-                    AppPrimaryButton(
-                        title: fullBookButtonTitle,
-                        systemImage: "book.closed",
-                        isEnabled: !isRequestingTranslation && !job.isBackendActive,
-                        action: {
-                            guard let fullQuote else { return }
-                            beginTranslation(
-                                kind: .full, preparedUpload: fullQuote
-                            )
-                        },
-                        palette: palette
-                    )
-                    .accessibilityIdentifier("translation.fullBook")
-                } else if let bookProduct {
-                    // The price always comes from StoreKit, never from our own
-                    // tier table: it is the only source that is localized and
-                    // matches what the App Store will actually charge.
-                    AppPrimaryButton(
-                        title: "Translate whole book · \(bookProduct.displayPrice)",
-                        systemImage: "cart",
-                        isEnabled: !isRequestingTranslation && !purchases.isPurchasing,
-                        action: { buyFullBook(bookProduct) },
-                        palette: palette
-                    )
-                    .accessibilityIdentifier("translation.purchaseFullBook")
-
-                    Text("One purchase per book. Buy it once and it stays yours — reinstall the app and it comes back.")
-                        .font(Typography.meta())
-                        .foregroundStyle(palette.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text("Loading the price…")
-                        .font(Typography.meta())
-                        .foregroundStyle(palette.secondaryText)
-                }
-            } else {
-                AppPrimaryButton(
-                    title: "Calculate exact quote",
-                    systemImage: "number",
-                    tone: .secondary,
-                    isEnabled: hasAcceptedTerms
-                        && hasBackendIdentity
-                        && !isRequestingTranslation
-                        && !job.isBackendActive
-                        && !job.hasFullTranslation
-                        && book.isTranslatableSource,
-                    action: { prepareFullQuote() },
-                    palette: palette
-                )
-                .accessibilityIdentifier("translation.calculateQuote")
-            }
-
-            if let pricingError {
-                Label {
-                    Text(verbatim: pricingError)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle")
-                }
-                .font(Typography.meta())
-                .foregroundStyle(palette.secondaryText)
-            }
-        }
-    }
 
     private var fullBookButtonTitle: LocalizedStringKey {
         job.hasFullTranslation ? "Full translation already added" : "Translate whole book"
@@ -737,6 +651,7 @@ struct TranslationSheet: View {
 
         isRequestingTranslation = true
         let targetLanguage = job.targetLanguage
+        let sourceLanguage = detectedLanguage.requestCode
         let sourceURL = library.storedFileURL(for: book)
         if preparedUpload == nil {
             translations.markBackendUploadStarted(for: book, kind: kind)
@@ -761,6 +676,7 @@ struct TranslationSheet: View {
                     try await client.start(
                         jobID: upload.id,
                         sample: kind == .preview,
+                        sourceLanguage: sourceLanguage,
                         targetLanguage: targetLanguage,
                         termsAcceptance: termsAcceptance
                     )
@@ -811,51 +727,214 @@ struct TranslationSheet: View {
         requestTranslation(kind: kind, preparedUpload: preparedUpload)
     }
 
+    /// Puts a price on screen without sending the book anywhere, so the reader
+    /// decides on a number instead of on a progress bar.
+    ///
+    /// Two sources, in order of authority: the price the backend quoted for
+    /// these exact bytes last time, then the tier this build counts the book
+    /// into itself. Both are display only — the upload inside `buyFullBook`
+    /// re-derives the tier server-side before anything is charged.
+    ///
+    /// Entitlement is deliberately *not* restored from either: a book bought on
+    /// another device would otherwise still look unowned here, and the reader
+    /// could be charged for it twice. Ownership is always read from the upload
+    /// that has to happen before a purchase anyway.
+    private func resolvePriceWithoutUpload() async {
+        guard book.format == .epub, fullQuote == nil, bookProduct == nil else {
+            return
+        }
+        if let productId = await cachedQuotedProductID() {
+            bookProduct = try? await purchases.product(for: productId)
+            return
+        }
+        guard let productId = locallyPricedProductID() else { return }
+        bookProduct = try? await purchases.product(for: productId)
+    }
+
+    /// Prices for every band. One StoreKit round trip for the whole table, and
+    /// it is what makes the bands appear at the same time as the book's own
+    /// price rather than after a second wait.
+    private func loadBandProducts() async {
+        guard let table = pricing.usablePricing, bandProducts.isEmpty else {
+            return
+        }
+        let loaded = await purchases.products(for: table.productIDs)
+        bandProducts = Dictionary(
+            uniqueKeysWithValues: loaded.map { ($0.id, $0) }
+        )
+    }
+
+    /// The product the backend named for this file, if the file still is the
+    /// one it was quoted for.
+    private func cachedQuotedProductID() async -> String? {
+        guard let cachedHash = book.quotedSourceHash,
+              let productId = book.quotedProductId
+        else { return nil }
+        let sourceURL = library.storedFileURL(for: book)
+        let currentHash = await Task.detached(priority: .utility) {
+            LibraryStore.sourceHash(ofFileAt: sourceURL)
+        }.value
+        // A different file under the same book is a different quote.
+        return currentHash == cachedHash ? productId : nil
+    }
+
+    /// The product this build's own character count puts the book in, or nil
+    /// when there is nothing trustworthy to price with — no table fetched yet,
+    /// a table published for counting rules this build does not implement, or a
+    /// book too long to be sold at all.
+    private func locallyPricedProductID() -> String? {
+        // Counting a book shelved before counts existed writes to the library,
+        // so it happens here — inside a task — and never while a body is being
+        // evaluated.
+        sourceCharacters = library.sourceCharacters(for: book)
+        guard let table = pricing.usablePricing,
+              let characters = sourceCharacters
+        else { return nil }
+        return table.tier(forSourceCharacters: characters)?.productId
+    }
+
+    /// True when the book is longer than the backend sells, which is worth
+    /// saying before the reader waits through an upload that ends in a refusal.
+    private var exceedsLongestTier: Bool {
+        guard let table = pricing.usablePricing,
+              let characters = sourceCharacters ?? book.sourceCharacters
+        else { return false }
+        return table.exceedsLongestTier(sourceCharacters: characters)
+    }
+
+    /// The upload this flow cannot skip: StoreKit binds a purchase to a backend
+    /// job id, and a job id only exists once the book is on the server. Both
+    /// the explicit quote and the first tap on a cached price come through here.
+    private func uploadForQuote(
+        client: TranslationBackendClient
+    ) async throws -> TranslationBackendClient.UploadResponse {
+        translations.markBackendUploadStarted(for: book, kind: .full)
+        let sourceURL = library.storedFileURL(for: book)
+        let progress = $uploadProgress
+        uploadProgress = 0
+        defer { uploadProgress = nil }
+
+        do {
+            let upload = try await client.upload(epubURL: sourceURL) { fraction in
+                Task { @MainActor in progress.wrappedValue = fraction }
+            }
+            guard upload.quote != nil else {
+                throw TranslationBackendClient.ClientError.invalidResponse
+            }
+            fullQuote = upload
+            isEntitledToFullBook = upload.entitledLanguages?.contains("hu") ?? false
+            // Remember the price against the bytes it was quoted for, so
+            // reopening this sheet costs nothing.
+            if let hash = upload.sourceHash, let price = upload.price {
+                library.recordQuote(
+                    bookID: book.id, sourceHash: hash, productId: price.productId
+                )
+            }
+            translations.markBackendQuoteReady(for: book, backendJobID: upload.id)
+            return upload
+        } catch {
+            // This function is what moved the job into `.uploading`, so it is
+            // what has to move it out. A job left uploading is reloaded from
+            // disk as an interrupted one on the next launch.
+            translations.markBackendFailed(
+                for: book, message: error.localizedDescription
+            )
+            throw error
+        }
+    }
+
     private func prepareFullQuote() {
         guard hasAcceptedTerms, let client = backendClient else { return }
         guard book.format == .epub else { return }
         pricingError = nil
         isRequestingTranslation = true
-        translations.markBackendUploadStarted(for: book, kind: .full)
-        let sourceURL = library.storedFileURL(for: book)
 
         Task {
             do {
-                let upload = try await client.upload(epubURL: sourceURL)
-                guard upload.quote != nil else {
-                    throw TranslationBackendClient.ClientError.invalidResponse
-                }
-                fullQuote = upload
-                isEntitledToFullBook = upload.entitledLanguages?.contains("hu") ?? false
+                let upload = try await uploadForQuote(client: client)
                 if !isEntitledToFullBook, let price = upload.price {
-                    bookProduct = try? await purchases.product(for: price.productId)
+                    // Not `try?`. The book has already gone over the wire and
+                    // the reader is waiting for a number; a product StoreKit
+                    // will not load leaves `bookProduct` nil, which renders as
+                    // the untouched "Calculate exact quote" button — an upload
+                    // that silently undoes itself, with no price and no reason.
+                    bookProduct = try await purchases.product(for: price.productId)
                 }
-                translations.markBackendQuoteReady(
-                    for: book, backendJobID: upload.id
-                )
             } catch {
                 pricingError = error.localizedDescription
-                translations.markBackendFailed(
-                    for: book, message: error.localizedDescription
-                )
             }
             isRequestingTranslation = false
         }
     }
 
+    /// The product the server's own count says this book is sold as.
+    ///
+    /// Normally the one already on screen: the on-device counter is a port of
+    /// the server's, pinned character-for-character by `QuoteGoldenTests`. When
+    /// they do disagree the reader is shown the real price and asked again
+    /// rather than being charged an amount the button never displayed — one
+    /// extra tap, in a case that should not happen.
+    private func confirmedProduct(
+        for upload: TranslationBackendClient.UploadResponse,
+        shown: Product
+    ) async throws -> Product {
+        guard let serverProductID = upload.price?.productId,
+              serverProductID != shown.id
+        else { return shown }
+        let corrected = try await purchases.product(for: serverProductID)
+        bookProduct = corrected
+        pricingError = String(
+            localized: "This book's price is \(corrected.displayPrice). Tap again to buy it."
+        )
+        return corrected
+    }
+
     private func buyFullBook(_ product: Product) {
-        guard let fullQuote, let appAccountToken = auth.appAccountToken else { return }
+        guard let appAccountToken = auth.appAccountToken else { return }
         pricingError = nil
         Task {
             do {
+                // A cached price got us here without an upload, so the book has
+                // to go up now — and its response, not the cache, decides
+                // whether this reader already owns the translation.
+                let upload: TranslationBackendClient.UploadResponse
+                if let fullQuote {
+                    upload = fullQuote
+                } else {
+                    guard hasAcceptedTerms, let client = backendClient else { return }
+                    isRequestingTranslation = true
+                    do {
+                        upload = try await uploadForQuote(client: client)
+                    } catch {
+                        isRequestingTranslation = false
+                        throw error
+                    }
+                    isRequestingTranslation = false
+                }
+                // Either the reader already owns this book, or the backend is
+                // not selling it at all. Both mean there is nothing to charge
+                // for, and the cached price must not talk us into StoreKit.
+                guard !isEntitledToFullBook, upload.price != nil else {
+                    beginTranslation(kind: .full, preparedUpload: upload)
+                    return
+                }
+                // The upload just produced the server's own character count,
+                // and that is the only tier `POST /api/purchase` will accept.
+                // If the price on screen came from this device's count and
+                // lands in a different tier, charging for `product` would take
+                // the reader's money and then be refused.
+                let confirmed = try await confirmedProduct(
+                    for: upload, shown: product
+                )
+                guard confirmed.id == product.id else { return }
                 switch try await purchases.purchase(
                     product,
-                    jobID: fullQuote.id,
+                    jobID: upload.id,
                     appAccountToken: appAccountToken
                 ) {
                 case .entitled:
                     isEntitledToFullBook = true
-                    beginTranslation(kind: .full, preparedUpload: fullQuote)
+                    beginTranslation(kind: .full, preparedUpload: upload)
                 case .cancelled:
                     break
                 case .pending:
@@ -940,24 +1019,24 @@ struct TranslationSheet: View {
 }
 
 private struct TranslationClickwrapCopy {
-    let title: String
+    /// The rights statement has to be made **on screen**, not only inside the
+    /// Terms: the acceptance record sent to the backend carries
+    /// `statementVersion`, and an App Review 5.2 pass rests on the reviewer
+    /// seeing the attestation in the flow (`docs/legal-posture.md` MUST-FIX #1).
+    /// Markdown: the link target is never opened as a URL — the sheet
+    /// intercepts it and pushes the Terms instead.
     let attestation: String
-    let termsLink: String
     let accepted: String
     let notAccepted: String
 
     static let english = TranslationClickwrapCopy(
-        title: "Your book, your rights",
-        attestation: "I confirm that I lawfully acquired this book and have the necessary permission or another lawful basis to translate it. I will use the translation only for my own personal, non-commercial reading and will not publish, distribute, sell, or share it. I accept the Terms of Use (22 July 2026).",
-        termsLink: "Read the Terms of Use",
+        attestation: "I own this book and have the right to translate it for my personal use — [Terms of Use](nativread://terms).",
         accepted: "Accepted",
         notAccepted: "Not accepted"
     )
 
     static let hungarian = TranslationClickwrapCopy(
-        title: "Saját könyv, saját jogosultság",
-        attestation: "Kijelentem, hogy a könyvet jogszerűen szereztem be, és rendelkezem a fordításhoz szükséges engedéllyel vagy más jogalappal. A fordítást kizárólag saját, személyes, nem kereskedelmi olvasásra használom; nem teszem közzé, nem terjesztem, nem adom el és nem osztom meg. Elfogadom a Felhasználási feltételeket (2026. július 22.).",
-        termsLink: "Felhasználási feltételek elolvasása",
+        attestation: "Sajátom ez a könyv, és jogosult vagyok személyes használatra lefordíttatni — [Felhasználási feltételek](nativread://terms).",
         accepted: "Elfogadva",
         notAccepted: "Nincs elfogadva"
     )
@@ -976,24 +1055,6 @@ private extension TranslationJob {
 
     var hasFullTranslation: Bool {
         fullCompletedAt != nil
-    }
-
-    var activeProgressMessage: String {
-        switch activeRequestKind {
-        case .full:
-            return "Translating whole book on the backend"
-        case .preview, nil:
-            return "Translating preview on the backend"
-        }
-    }
-
-    var activeResultName: String {
-        switch activeRequestKind {
-        case .full:
-            return "full translation"
-        case .preview, nil:
-            return "preview"
-        }
     }
 
     /// Only defined once the backend has reported chunk counts; until then the

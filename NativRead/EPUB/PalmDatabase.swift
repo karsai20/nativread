@@ -48,19 +48,52 @@ struct PalmDatabase {
     private let data: Data
     /// `recordCount + 1` byte offsets; record N spans offsets[N]..<offsets[N+1].
     private let offsets: [Int]
+    /// The absolute record this view calls record 0. Non-zero only for the KF8
+    /// half of a hybrid MOBI6+KF8 file, whose internal record numbers are all
+    /// relative to its boundary record.
+    private let recordBase: Int
 
-    var recordCount: Int { offsets.count - 1 }
+    var recordCount: Int { offsets.count - 1 - recordBase }
 
     /// Slices record `index`, or returns empty `Data` when the index is out of
     /// range. Header-supplied record numbers (FDST/skeleton/fragment) come from
     /// untrusted files; an out-of-range subscript would trap, so callers get an
     /// empty record instead and degrade to an import failure downstream.
     func record(_ index: Int) -> Data {
-        guard index >= 0, index < recordCount else { return Data() }
-        return data.subdata(in: offsets[index] ..< offsets[index + 1])
+        let absolute = recordBase + index
+        guard index >= 0, absolute < offsets.count - 1 else { return Data() }
+        return data.subdata(in: offsets[absolute] ..< offsets[absolute + 1])
+    }
+
+    /// The same file viewed with `index` as record 0, or `nil` when `index` is
+    /// out of range. Used to read the KF8 half of a hybrid book.
+    func rebased(at index: Int) -> PalmDatabase? {
+        guard index > 0, index < recordCount else { return nil }
+        return PalmDatabase(
+            type: type,
+            creator: creator,
+            data: data,
+            offsets: offsets,
+            recordBase: recordBase + index
+        )
+    }
+
+    private init(
+        type: String,
+        creator: String,
+        data: Data,
+        offsets: [Int],
+        recordBase: Int
+    ) {
+        self.type = type
+        self.creator = creator
+        self.data = data
+        self.offsets = offsets
+        self.recordBase = recordBase
     }
 
     init(data: Data) throws {
+        recordBase = 0
         guard data.count >= 78 else { throw MOBIError.notPalmDB }
         self.data = data
         type = data.magic(60)

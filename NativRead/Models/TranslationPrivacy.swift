@@ -6,7 +6,7 @@ import Foundation
 /// published Privacy Policy. Changing the provider or the disclosed processing
 /// requires a new consent version so existing readers are asked again.
 enum TranslationPrivacy {
-    static let policyVersion = "2026-07-22"
+    static let policyVersion = "2026-08-05"
     static let currentAIConsentVersion = "2026-07-20-gemini"
 
     private static let providerNameKey = "NativReadAIProviderName"

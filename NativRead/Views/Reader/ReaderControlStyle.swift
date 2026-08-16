@@ -28,6 +28,7 @@ extension View {
                 .strokeBorder(isSelected ? palette.accent : palette.hairline)
         )
         .foregroundStyle(isSelected ? palette.accent : palette.text)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     /// Capsule pill used by the transition picker.
@@ -39,6 +40,7 @@ extension View {
         .overlay(
             Capsule().strokeBorder(isSelected ? palette.accent : palette.hairline))
         .foregroundStyle(isSelected ? palette.accent : palette.secondaryText)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     /// Raised card for the top "live" group: surfaceRaised fill, hairline

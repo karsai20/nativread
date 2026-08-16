@@ -136,8 +136,8 @@ private struct TranslationTermsCopy {
     static let english = TranslationTermsCopy(
         navigationTitle: "Terms of Use",
         title: "NativRead Terms of Use",
-        version: "Translation service · Version 1.0 · Effective 22 July 2026",
-        introduction: "These terms apply to NativRead’s optional AI translation service. Before a book is uploaded for translation, you must actively accept the current version and confirm that you may lawfully request that translation.",
+        version: "Translation service · Version 1.3 · Effective 5 August 2026",
+        introduction: "These terms apply to NativRead’s optional AI translation service. Before a book is uploaded for translation, you actively accept the current version of these terms. By accepting them and starting a translation you also confirm, per the User content and copyright section, that you may lawfully request that translation.",
         draftNotice: "Draft for product testing · legal review is still required before release.",
         sections: [
             Section(
@@ -158,7 +158,8 @@ private struct TranslationTermsCopy {
                 title: "AI translation",
                 paragraphs: [
                     "Translations are produced by artificial intelligence, not a human literary translator. They may contain errors, awkward wording, or inconsistencies.",
-                    "Some books may be declined by the translation provider’s content rules. If the free preview is declined, that attempt is not treated as used."
+                    "Some books may be declined by the translation provider’s content rules. If the free preview is declined, that attempt is not treated as used.",
+                    "We do not use your books, your translations, or your reading data to train AI models, and the paid API terms of the provider we use prohibit using your text to improve its products or models."
                 ]
             ),
             Section(
@@ -178,15 +179,17 @@ private struct TranslationTermsCopy {
             Section(
                 title: "Acceptable use",
                 paragraphs: [
-                    "Do not use the service unlawfully, infringe another person’s rights, share translated files, overload or probe the service, or attempt to access another user’s data. We may restrict accounts used for abuse."
+                    "Do not use the service unlawfully, infringe another person’s rights, share translated files, overload or probe the service, or attempt to access another user’s data. We may restrict accounts used for abuse.",
+                    "Do not resell the translation service, sublicense it, make it available to other people, or access it by automated means other than the app itself."
                 ]
             ),
             Section(
                 title: "User content and copyright",
                 paragraphs: [
-                    "You may upload only a DRM-free book that you lawfully acquired and for which you have the permission or another lawful basis required to create the requested translation. Owning a copy does not necessarily grant translation rights.",
+                    "By accepting these terms and starting a translation, you confirm that the book is DRM-free, that you lawfully acquired it, and that you have the permission or another lawful basis required to create the requested translation. Owning a copy does not necessarily grant translation rights.",
                     "You represent that uploading and processing the book, and your use of the result, do not infringe another person’s copyright or other intellectual-property right.",
                     "You are responsible for checking the legal basis for your use. NativRead does not conduct advance or retrospective legal review of books, and accepting an upload does not approve or certify its lawfulness.",
+                    "The translation is made for you and we claim no ownership of it: whatever rights we hold in the machine output, we pass to you for your personal use. Because a translation is an adaptation of the original book, the author’s and publisher’s rights in that book continue to cover the translation — it gives you no right you did not already have.",
                     "The translation is supplied only for your personal, non-commercial reading. Except for copies reasonably necessary on devices or private storage you control, you must not reproduce, publish, sell, distribute, make available, or share it or any extract with another person.",
                     "To the extent permitted by applicable law, if your intentional or negligent breach of these promises causes a substantiated third-party claim, you are responsible for the documented direct loss reasonably resulting from that breach. This does not remove any mandatory consumer right or transfer a legal duty that the law places on NativRead.",
                     "After a credible rightsholder notice, we may suspend the disputed processing while we investigate. Repeated or serious infringement may lead to account restriction or termination."
@@ -196,7 +199,8 @@ private struct TranslationTermsCopy {
                 title: "Liability",
                 paragraphs: [
                     "AI translations can contain errors and are not a substitute for professional advice or a human literary translation. We do not promise uninterrupted availability.",
-                    "Nothing in these terms excludes or limits liability, guarantees, remedies, or consumer rights that cannot lawfully be excluded or limited."
+                    "Nothing in these terms excludes or limits liability, guarantees, remedies, or consumer rights that cannot lawfully be excluded or limited.",
+                    "Beyond that, and where the law allows it, our total liability for the translation service is limited to what you paid for it in the twelve months before the claim arose. That limit never covers loss caused intentionally or by gross negligence, or harm to life, bodily integrity, or health."
                 ]
             ),
             Section(
@@ -204,6 +208,12 @@ private struct TranslationTermsCopy {
                 paragraphs: [
                     "We may update the service and these terms. A material change requires renewed, active acceptance before a new translation; an unchecked box is never treated as acceptance.",
                     "You can stop using the translation service and delete your account. We may discontinue the service with reasonable notice, without affecting rights attached to completed purchases."
+                ]
+            ),
+            Section(
+                title: "What belongs to NativRead",
+                paragraphs: [
+                    "The app, its name, interface, design, and source code belong to the operator. These terms give you a personal licence to use the app; they transfer none of that to you, and they do not affect your ownership of your own books, translations, highlights, or notes."
                 ]
             ),
             Section(
@@ -221,8 +231,8 @@ private struct TranslationTermsCopy {
     static let hungarian = TranslationTermsCopy(
         navigationTitle: "Felhasználási feltételek",
         title: "NativRead Felhasználási feltételek",
-        version: "Fordítószolgáltatás · 1.0 verzió · Hatályos: 2026. július 22.",
-        introduction: "Ezek a feltételek a NativRead választható AI-fordítószolgáltatására vonatkoznak. Mielőtt egy könyvet fordításra feltöltesz, aktívan el kell fogadnod az aktuális változatot, és meg kell erősítened, hogy jogszerűen kérheted a fordítást.",
+        version: "Fordítószolgáltatás · 1.3 verzió · Hatályos: 2026. augusztus 5.",
+        introduction: "Ezek a feltételek a NativRead választható AI-fordítószolgáltatására vonatkoznak. Mielőtt egy könyvet fordításra feltöltesz, aktívan elfogadod az aktuális változatot. Az elfogadással és a fordítás elindításával a Felhasználói tartalom és szerzői jog szakasz szerint azt is megerősíted, hogy jogszerűen kérheted a fordítást.",
         draftNotice: "Terméktesztelési vázlat · kiadás előtt jogi átvizsgálás szükséges.",
         sections: [
             Section(
@@ -243,7 +253,8 @@ private struct TranslationTermsCopy {
                 title: "AI-fordítás",
                 paragraphs: [
                     "A fordítást mesterséges intelligencia, nem emberi műfordító készíti. Előfordulhat benne hiba, döccenő megfogalmazás vagy következetlenség.",
-                    "Egyes könyveket a fordítást végző szolgáltató tartalmi szabályai elutasíthatnak. Ha ez az ingyenes próbánál történik, a próbálkozás nem számít felhasználtnak."
+                    "Egyes könyveket a fordítást végző szolgáltató tartalmi szabályai elutasíthatnak. Ha ez az ingyenes próbánál történik, a próbálkozás nem számít felhasználtnak.",
+                    "A könyveidet, a fordításaidat és az olvasási adataidat nem használjuk AI-modellek betanítására, és az igénybe vett szolgáltató fizetős API-jának feltételei is tiltják, hogy a szövegedet termékei vagy modelljei fejlesztésére használja."
                 ]
             ),
             Section(
@@ -263,15 +274,17 @@ private struct TranslationTermsCopy {
             Section(
                 title: "Rendeltetésszerű használat",
                 paragraphs: [
-                    "Tilos a szolgáltatást jogellenesen használni, más jogait megsérteni, fordított fájlt megosztani, a szolgáltatást túlterhelni vagy szondázni, illetve más felhasználó adataihoz hozzáférést kísérelni. A visszaélésre használt fiókokat korlátozhatjuk."
+                    "Tilos a szolgáltatást jogellenesen használni, más jogait megsérteni, fordított fájlt megosztani, a szolgáltatást túlterhelni vagy szondázni, illetve más felhasználó adataihoz hozzáférést kísérelni. A visszaélésre használt fiókokat korlátozhatjuk.",
+                    "A fordítószolgáltatást nem értékesítheted tovább, nem adhatod tovább licencbe, nem teheted mások számára elérhetővé, és az alkalmazáson kívüli automatizált eszközzel nem férhetsz hozzá."
                 ]
             ),
             Section(
                 title: "Felhasználói tartalom és szerzői jog",
                 paragraphs: [
-                    "Csak olyan DRM-mentes könyvet tölthetsz fel, amelyet jogszerűen szereztél be, és amelynek kért fordításához rendelkezel a szükséges engedéllyel vagy más jogalappal. Egy könyvpéldány megszerzése önmagában nem feltétlenül ad fordítási jogot.",
+                    "E feltételek elfogadásával és a fordítás elindításával megerősíted, hogy a könyv DRM-mentes, jogszerűen szerezted be, és kért fordításához rendelkezel a szükséges engedéllyel vagy más jogalappal. Egy könyvpéldány megszerzése önmagában nem feltétlenül ad fordítási jogot.",
                     "Kijelented, hogy a könyv feltöltése és feldolgozása, valamint az eredmény általad történő használata nem sérti más szerzői vagy egyéb szellemi tulajdonjogát.",
                     "A felhasználás jogalapjának ellenőrzése a te feladatod. A NativRead nem végez előzetes vagy utólagos jogi vizsgálatot a könyveken; a feltöltés elfogadása nem jelenti annak jóváhagyását vagy jogszerűségi tanúsítását.",
+                    "A fordítás neked készül, és nem tartunk rá igényt: a gépi kimeneten fennálló jogainkat személyes használatra átengedjük. Mivel a fordítás az eredeti mű átdolgozása, a könyv szerzőjének és kiadójának jogai a fordításra is kiterjednek — a fordítás nem ad olyan jogot, amellyel korábban nem rendelkeztél.",
                     "A fordítást kizárólag saját, személyes, nem kereskedelmi olvasásra kapod. A saját ellenőrzésed alatt álló eszközökön vagy privát tárhelyen észszerűen szükséges példányokon túl nem másolhatod, nem teheted közzé, nem adhatod el, nem terjesztheted, nem teheted hozzáférhetővé és nem oszthatod meg mással a fordítást vagy annak részletét.",
                     "Az alkalmazandó jog által megengedett mértékben, ha e vállalások szándékos vagy gondatlan megszegése igazolt harmadik fél általi igényt okoz, az ebből észszerűen eredő, dokumentált közvetlen kárért felelsz. Ez nem von el kötelező fogyasztói jogot, és nem hárít át rád olyan jogi kötelezettséget, amelyet a jog a NativReadre telepít.",
                     "Hitelt érdemlő jogtulajdonosi bejelentés után a kifogásolt feldolgozást a vizsgálat idejére felfüggeszthetjük. Ismétlődő vagy súlyos jogsértés a fiók korlátozásához vagy megszüntetéséhez vezethet."
@@ -281,7 +294,8 @@ private struct TranslationTermsCopy {
                 title: "Felelősség",
                 paragraphs: [
                     "Az AI-fordítás hibákat tartalmazhat, és nem helyettesít szakmai tanácsot vagy emberi műfordítást. Megszakítás nélküli rendelkezésre állást nem ígérünk.",
-                    "E feltételek nem zárnak ki és nem korlátoznak olyan felelősséget, kellékszavatosságot, jogorvoslatot vagy fogyasztói jogot, amely jogszerűen nem zárható ki vagy nem korlátozható."
+                    "E feltételek nem zárnak ki és nem korlátoznak olyan felelősséget, kellékszavatosságot, jogorvoslatot vagy fogyasztói jogot, amely jogszerűen nem zárható ki vagy nem korlátozható.",
+                    "Ezen túlmenően, ahol a jog megengedi, a fordítószolgáltatással kapcsolatos teljes felelősségünk az igény keletkezését megelőző tizenkét hónapban a szolgáltatásért fizetett összegre korlátozódik. A korlátozás soha nem terjed ki a szándékosan vagy súlyosan gondatlanul okozott kárra, sem az emberi életet, testi épséget vagy egészséget megkárosító szerződésszegésre."
                 ]
             ),
             Section(
@@ -289,6 +303,12 @@ private struct TranslationTermsCopy {
                 paragraphs: [
                     "A szolgáltatást és e feltételeket módosíthatjuk. Lényeges változás után egy új fordításhoz ismételt, aktív elfogadás kell; az üres vagy előre kijelölt jelölőnégyzetet soha nem tekintjük elfogadásnak.",
                     "A fordítószolgáltatás használatát abbahagyhatod és a fiókodat törölheted. A szolgáltatást észszerű értesítéssel megszüntethetjük, a teljesített vásárlásokhoz kapcsolódó jogaid sérelme nélkül."
+                ]
+            ),
+            Section(
+                title: "Ami a NativReadé",
+                paragraphs: [
+                    "Az alkalmazás, a neve, a felülete, a formaterve és a forráskódja az üzemeltetőé. E feltételek személyes használati engedélyt adnak az alkalmazásra; ezekből semmit nem ruháznak át rád, és nem érintik a saját könyveiden, fordításaidon, kiemeléseiden és jegyzeteiden fennálló jogaidat."
                 ]
             ),
             Section(

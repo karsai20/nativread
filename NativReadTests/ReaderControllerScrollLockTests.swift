@@ -68,6 +68,36 @@ final class ReaderControllerScrollLockTests: XCTestCase {
         XCTAssertTrue(controller.webView.scrollView.isScrollEnabled)
     }
 
+    /// Only a settled position the reader actually chose may be written
+    /// back as their progress. Persisting a mid-scroll sample, or the
+    /// restore that has not landed yet, is what used to drop a reader
+    /// back at the top of the chapter.
+    func testOnlySettledPositionsArePersistable() {
+        func state(
+            restoring: Bool, atRest: Bool
+        ) -> ReaderEngineState {
+            ReaderEngineState(
+                page: 3, pageCount: 10, fraction: 0.33,
+                isRestoring: restoring, isAtRest: atRest
+            )
+        }
+
+        XCTAssertTrue(state(restoring: false, atRest: true).isPersistable)
+        XCTAssertFalse(state(restoring: true, atRest: true).isPersistable)
+        XCTAssertFalse(state(restoring: false, atRest: false).isPersistable)
+    }
+
+    /// Scroll flow reports where the reader actually is, not the nearest
+    /// whole screen — the rounding was losing up to half a page every
+    /// time a chapter was reopened.
+    func testScrollEngineReportsAContinuousFraction() {
+        let engine = ReaderScripts.engine(
+            pageWidth: 393, flow: .scroll, transition: .slide
+        )
+        XCTAssertTrue(engine.contains("scrollTop / max"))
+        XCTAssertTrue(engine.contains("restoreTarget"))
+    }
+
     func testViewportPreparationReplacesPortraitGeometry() {
         let controller = makeController(flow: .paged, transition: .slide)
         let landscape = CGSize(width: 852, height: 393)

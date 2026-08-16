@@ -34,6 +34,7 @@ struct NativReadApp: App {
     @State private var translationStore: TranslationStore
     @State private var translationAuthStore: TranslationAuthStore
     @State private var bookPurchaseStore: BookPurchaseStore
+    @State private var pricingStore: PricingStore
     @State private var localizationStore: LocalizationStore
 
     init() {
@@ -43,6 +44,7 @@ struct NativReadApp: App {
 
         if ProcessInfo.processInfo.arguments.contains("-resetSettings") {
             SettingsStore.resetPersisted()
+            PricingStore.resetPersisted()
         }
         if ProcessInfo.processInfo.arguments.contains("-resetLanguage") {
             LocalizationStore.resetPersisted()
@@ -68,6 +70,15 @@ struct NativReadApp: App {
             )
         })
 
+        // The price table needs no account, so it uses the plain client rather
+        // than the session-bound one the purchase store builds.
+        _pricingStore = State(initialValue: PricingStore { [settings] in
+            guard let backendURL = settings.translationBackendURL else {
+                return nil
+            }
+            return TranslationBackendClient(baseURL: backendURL)
+        })
+
         // Build LocalizationStore after the reset hook so the persisted app
         // language can be overridden for tests without touching user defaults.
         let locStore = LocalizationStore()
@@ -83,6 +94,7 @@ struct NativReadApp: App {
                 .environment(translationStore)
                 .environment(translationAuthStore)
                 .environment(bookPurchaseStore)
+                .environment(pricingStore)
                 .environment(localizationStore)
                 // Apply the chosen locale to the entire view tree so SwiftUI
                 // Text nodes use the right String Catalog translation.
@@ -97,12 +109,16 @@ struct NativReadApp: App {
                 // A purchase whose confirmation never reached the backend — a
                 // dead network, a kill mid-flight — is replayed from here.
                 .task { bookPurchaseStore.startObservingTransactions() }
+                // Fetched at launch so the translation sheet already has the
+                // price table by the time a reader opens one.
+                .task { await pricingStore.refreshIfStale() }
         }
     }
 
     /// Decides whether the first-launch onboarding appears. Shown only the
     /// first time (until `hasSeenOnboarding`), overridable for tests via
     /// `-forceOnboarding` (always show) / `-skipOnboarding` (never show).
+    /// Settings can bring it back later via `replayOnboarding()`.
     private static func shouldShowLaunch(_ settings: SettingsStore) -> Bool {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-skipOnboarding") { return false }
@@ -222,12 +238,19 @@ struct NativReadApp: App {
                     )
                 )
             }
+            // Unlike the bookmark's display-only snippet, the highlight text
+            // is a locator: it must match the book text verbatim or the mark
+            // never renders. Alice's sentence continues "…on the bank", so
+            // the seeded period would make the locator miss.
+            let highlightText = isHungarian
+                ? snippet
+                : "Alice was beginning to get very tired of sitting by her sister"
             if book.highlights.isEmpty {
                 store.addHighlight(
                     bookID: book.id,
                     highlight: Highlight(
                         spineIndex: spineIndex,
-                        text: snippet,
+                        text: highlightText,
                         occurrence: 0,
                         chapterTitle: chapterTitle,
                         note: note

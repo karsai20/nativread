@@ -28,15 +28,8 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
-    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
-    /// `tabItem`, and the labels are localised, so tabs are addressed by their
-    /// fixed position: 0 Library, 1 Translate, 2 Settings.
-    private enum Tab: Int {
-        case library, translate, settings
-    }
-
-    private func tab(_ tab: Tab) -> XCUIElement {
-        app.tabBars.buttons.element(boundBy: tab.rawValue)
+    private func tab(_ tab: AppTab) -> XCUIElement {
+        app.tabButton(tab)
     }
 
     override func setUp() {
@@ -75,48 +68,22 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         ])
 
         XCTAssertTrue(
-            app.staticTexts["onboarding.tour.title"]
+            app.staticTexts["welcome.title"]
                 .waitForExistence(timeout: 25)
         )
-        capture(locale, 1, "onboarding-add-book")
-
-        tapTourNext()
-        waitForTourStep(2)
-        capture(locale, 2, "onboarding-translate")
-
-        tapTourNext()
-        XCTAssertTrue(
-            app.buttons["onboarding.tour.finish"]
-                .waitForExistence(timeout: 10)
-        )
-        capture(locale, 3, "onboarding-wait")
-    }
-
-    /// Seeding the showcase library imports several megabytes of EPUB, so the
-    /// first taps can land while the app is still busy. Waiting for the button
-    /// to be hittable — not merely present — keeps them from being swallowed.
-    private func tapTourNext() {
-        let next = app.buttons["onboarding.tour.next"]
-        XCTAssertTrue(next.waitForExistence(timeout: 10))
+        // The continue button is the last reveal stage; once it is hittable
+        // the screen is fully composed and worth photographing.
+        let continueButton = app.buttons["welcome.continue"]
         let hittable = NSPredicate(format: "isHittable == true")
-        expectation(for: hittable, evaluatedWith: next)
+        expectation(for: hittable, evaluatedWith: continueButton)
         waitForExpectations(timeout: 10)
-        next.tap()
-    }
+        capture(locale, 1, "onboarding-welcome")
 
-    private func waitForTourStep(_ step: Int) {
-        // The progress rail is an accessibility container built from shapes,
-        // so it surfaces as `other`, not `staticText`. Querying it as text
-        // matched nothing and the wait could only ever time out.
-        let progress = app.descendants(matching: .any)
-            .matching(identifier: "onboarding.tour.progress")
-            .firstMatch
-        let predicate = NSPredicate(
-            format: "label CONTAINS %@",
-            String(step)
+        continueButton.tap()
+        XCTAssertTrue(
+            app.staticTexts["welcome.mode.title"].waitForExistence(timeout: 8)
         )
-        expectation(for: predicate, evaluatedWith: progress)
-        waitForExpectations(timeout: 8)
+        capture(locale, 2, "onboarding-reading-mode")
     }
 
     // MARK: - Library + EPUB reader
@@ -227,19 +194,20 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         )
         capture(locale, 18, "translation-overview")
 
-        app.buttons["translation.details"].tap()
-        capture(locale, 19, "translation-details")
-
         app.buttons["translation.termsAcceptance"].tap()
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(localAccount.waitForExistence(timeout: 10))
         localAccount.tap()
 
-        let disclosure = app.buttons["translation.fullBookDisclosure"]
-        scrollUntilHittable(disclosure, direction: .up, attempts: 6)
-        XCTAssertTrue(disclosure.isHittable)
-        disclosure.tap()
+        let wholeBookPlan = app.buttons["translation.plan.wholeBook"]
+        scrollUntilHittable(wholeBookPlan, direction: .up, attempts: 6)
+        XCTAssertTrue(wholeBookPlan.isHittable)
+        wholeBookPlan.tap()
         capture(locale, 20, "translation-whole-book-options")
+
+        let freeChapterPlan = app.buttons["translation.plan.freeChapter"]
+        scrollUntilHittable(freeChapterPlan, direction: .up, attempts: 4)
+        freeChapterPlan.tap()
 
         let freeChapter = app.buttons["translation.freeChapter"]
         scrollUntilHittable(freeChapter, direction: .down, attempts: 7)

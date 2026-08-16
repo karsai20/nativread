@@ -68,11 +68,18 @@ enum ReaderScripts {
               }
             },
 
-            notify() {
+            // `atRest` false marks a mid-scroll sample: the chrome may
+            // follow it, but it is far too early to persist as the
+            // reading position. Every discrete event (page turn, jump,
+            // scroll settle) reports at rest.
+            notify(atRest) {
               window.webkit.messageHandlers.lumen.postMessage({
                 type: "state",
                 page: this.page,
-                pageCount: this.pageCount
+                pageCount: this.pageCount,
+                fraction: this.fraction(),
+                restoring: this.restorePending,
+                atRest: atRest !== false
               });
             },
 
@@ -683,16 +690,67 @@ enum ReaderScripts {
               this.notify();
             },
 
-            goToFraction(fraction, animate) {
+            // The position being restored, held until the reader takes
+            // over. Images and web fonts land after the first paint and
+            // grow the document; a chapter measured before they arrive
+            // has almost no scroll range, so the restore would settle at
+            // the top — and that top would then be persisted as the
+            // reading position. Re-applying the target on every
+            // re-measure is what makes a saved position survive.
+            restoreTarget: 0,
+            // True only while landing on a position the reader did NOT
+            // just choose — the one saved from a previous session. That
+            // is the only case where the reported position must not be
+            // written back, since it may still be the provisional top of
+            // a half-measured chapter. True from the start: nothing may
+            // be persisted before the stored position has been applied.
+            restorePending: true,
+
+            // `isRestore` distinguishes the three callers: true for the
+            // saved-position restore, false for a jump the reader asked
+            // for (scrubber, contents), omitted for a re-measure, which
+            // keeps whichever of the two is in flight.
+            goToFraction(fraction, animate, isRestore) {
+              this.restoreTarget = fraction;
+              if (isRestore !== undefined) {
+                this.restorePending = !!isRestore;
+              }
+              if (MODE === "scroll") {
+                this.scroller().scrollTo({
+                  top: fraction * this.maxScroll(),
+                  behavior: animate ? "smooth" : "auto"
+                });
+                this.syncScrollPage();
+                return;
+              }
               this.goTo(Math.round(fraction * (this.pageCount - 1)), animate);
             },
 
+            // How far into the chapter the reader is, 0…1. Scroll flow
+            // reads the raw offset rather than the rounded synthetic
+            // page: routing the saved position through a whole-viewport
+            // page index quantised it, so reopening a chapter landed up
+            // to half a screen away from where reading stopped.
             fraction() {
+              if (MODE === "scroll") {
+                const max = this.maxScroll();
+                return max > 0 ? Math.min(1, Math.max(
+                  0, this.scroller().scrollTop / max
+                )) : 0;
+              }
               return this.pageCount > 1
                 ? this.page / (this.pageCount - 1) : 0;
             },
 
+            // The reader moved themselves: stop re-applying the held
+            // position, and let theirs be persisted again.
+            releaseRestore() {
+              this.restoreTarget = null;
+              this.restorePending = false;
+            },
+
             next() {
+              this.releaseRestore();
               if (MODE === "scroll") {
                 const el = this.scroller();
                 if (el.scrollTop >= this.maxScroll() - 2) { return false; }
@@ -714,6 +772,7 @@ enum ReaderScripts {
             },
 
             prev() {
+              this.releaseRestore();
               if (MODE === "scroll") {
                 const el = this.scroller();
                 if (el.scrollTop <= 2) { return false; }
@@ -786,6 +845,12 @@ enum ReaderScripts {
                         Math.max(0, Math.floor(absoluteLeft / PW)), false
                       );
                     }
+                    // Hold the landed spot: a late image or font load
+                    // re-measures the chapter, and the reader must not
+                    // drift off the hit they navigated to. It is a
+                    // position they chose, so it stays persistable.
+                    this.restoreTarget = this.fraction();
+                    this.restorePending = false;
                     return true;
                   }
                   seen += 1;
@@ -795,7 +860,7 @@ enum ReaderScripts {
               return false;
             },
 
-            syncScrollPage() {
+            syncScrollPage(atRest) {
               // Hot path: runs while the user scrolls. Must NOT call
               // layout() — reading scrollHeight forces a synchronous
               // reflow every frame and makes scrolling stutter. The
@@ -804,20 +869,25 @@ enum ReaderScripts {
               const max = this.maxScroll();
               const f = max > 0 ? this.scroller().scrollTop / max : 0;
               this.page = Math.round(f * (this.pageCount - 1));
-              this.notify();
+              this.notify(atRest);
             },
 
             // Re-measure the document (late font/image loads grow it),
             // then resync. Called on resize/load, never per scroll frame.
             remeasureScroll() {
               this.layout();
-              this.syncScrollPage();
+              if (this.restoreTarget !== null) {
+                this.goToFraction(this.restoreTarget, false);
+                return;
+              }
+              this.syncScrollPage(true);
             },
 
             // Paged flow: the user can flick the native pager to a
             // different page; re-read it from the horizontal offset.
             // Clamped: a rubber-band offset can round outside the range.
             syncPagedPage() {
+              this.releaseRestore();
               this.page = Math.min(Math.max(
                 Math.round(this.scroller().scrollLeft / PW), 0
               ), this.pageCount - 1);
@@ -927,6 +997,8 @@ enum ReaderScripts {
                   try {
                     const mark = document.createElement("mark");
                     mark.className = "lumen-highlight";
+                    mark.dataset.hlText = item.text;
+                    mark.dataset.hlOccurrence = String(item.occurrence);
                     range.surroundContents(mark);
                   } catch (e) { /* node mutated mid-walk: skip */ }
                 }
@@ -947,10 +1019,12 @@ enum ReaderScripts {
               const now = performance.now();
               if (now - lastNotify >= 200) {
                 lastNotify = now;
-                lumen.syncScrollPage();
+                lumen.syncScrollPage(false);
               }
+              // Only the settle tick is a real reading position; the
+              // mid-scroll samples above just keep the chrome honest.
               clearTimeout(restTimer);
-              restTimer = setTimeout(() => lumen.syncScrollPage(), 160);
+              restTimer = setTimeout(() => lumen.syncScrollPage(true), 160);
             }, { passive: true });
             window.addEventListener("resize", () => {
               lumen.remeasureScroll();
@@ -960,6 +1034,13 @@ enum ReaderScripts {
             setTimeout(() => { lumen.remeasureScroll(); }, 350);
           }
 
+          // The reader put a finger down: whatever happens next (scroll,
+          // curl scrub, tap turn) is theirs, so stop re-applying the
+          // restored position and let progress persist again.
+          document.addEventListener("touchstart", () => {
+            lumen.releaseRestore();
+          }, { passive: true, capture: true });
+
           // Gestures live in the page so native text selection can
           // coexist with page turning. A tap with an active selection
           // only dismisses the selection.
@@ -967,6 +1048,16 @@ enum ReaderScripts {
             event.preventDefault();
             const selection = window.getSelection();
             if (selection && !selection.isCollapsed) { return; }
+            const mark = event.target && event.target.closest
+              ? event.target.closest("mark.lumen-highlight") : null;
+            if (mark) {
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "highlightTap",
+                text: mark.dataset.hlText || "",
+                occurrence: Number(mark.dataset.hlOccurrence || 0)
+              });
+              return;
+            }
             const x = event.clientX / window.innerWidth;
             const zone = x < ZONE
               ? "left" : (x > 1 - ZONE ? "right" : "center");
@@ -1118,7 +1209,11 @@ enum ReaderScripts {
           // recomputed while keeping the reading position.
           const remeasure = () => {
             if (!started) { start(); return; }
-            const f = lumen.fraction();
+            // A restore still in flight wins over the live position: the
+            // live position is exactly what the unfinished layout got
+            // wrong.
+            const f = lumen.restoreTarget !== null
+              ? lumen.restoreTarget : lumen.fraction();
             lumen.layout();
             lumen.goToFraction(f, false);
           };

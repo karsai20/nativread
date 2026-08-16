@@ -54,6 +54,14 @@ final class BookPurchaseStore {
         self.makeClient = makeClient
     }
 
+    /// Every product in the price table, cheapest first, for showing the bands
+    /// a book can fall into. Unlike `product(for:)` this tolerates gaps: a band
+    /// StoreKit does not know about is left out rather than failing the list.
+    func products(for productIDs: [String]) async -> [Product] {
+        let loaded = (try? await Product.products(for: productIDs)) ?? []
+        return loaded.sorted { $0.price < $1.price }
+    }
+
     func product(for productID: String) async throws -> Product {
         guard let product = try await Product.products(for: [productID]).first else {
             throw PurchaseError.productUnavailable

@@ -28,46 +28,6 @@ final class TranslationStoreTests: XCTestCase {
         XCTAssertEqual(jobs[0].phase, .attested)
     }
 
-    func testEstimatedPageCountUsesSpineWeights() {
-        let book = Book(
-            title: "Long",
-            author: "A",
-            fileName: "long.epub",
-            spineWeights: [1_800, 3_600, 900]
-        )
-
-        XCTAssertEqual(TranslationStore.estimatedPageCount(for: book), 4)
-    }
-
-    func testEstimatedPageCountFallsBackWhenWeightsMissing() {
-        // Empty spineWeights is the realistic case for older imports; it must
-        // still yield a sane page count since it drives the price tier.
-        let empty = Book(title: "T", author: "A", fileName: "f.epub")
-        XCTAssertEqual(TranslationStore.estimatedPageCount(for: empty), 1)
-        let zeros = Book(
-            title: "T", author: "A", fileName: "f.epub",
-            spineWeights: [0, 0, 0]
-        )
-        XCTAssertEqual(TranslationStore.estimatedPageCount(for: zeros), 36)
-    }
-
-    func testPriceTierBoundaries() {
-        // Both sides of every tier edge: an off-by-one changes what users pay.
-        let cases: [(Int, TranslationPriceTier)] = [
-            (99, .under100), (100, .pages100To199),
-            (199, .pages100To199), (200, .pages200To349),
-            (349, .pages200To349), (350, .pages350To549),
-            (549, .pages350To549), (550, .pages550To799),
-            (799, .pages550To799), (800, .pages800Plus),
-        ]
-        for (pages, expected) in cases {
-            XCTAssertEqual(
-                TranslationPriceTier.tier(forEstimatedPages: pages), expected,
-                "pages=\(pages)"
-            )
-        }
-    }
-
     func testBackendJobSurvivesRelaunchForRecovery() throws {
         // Translation runs on the backend. Once its ID and request kind were
         // persisted, terminating iOS must keep it recoverable rather than
@@ -81,7 +41,6 @@ final class TranslationStoreTests: XCTestCase {
 
         var job = TranslationJob(
             bookID: UUID(), bookTitle: "B", phase: .translating,
-            estimatedPages: 1, priceTier: .under100,
             backendJobID: "backend-123"
         )
         job.activeRequestKind = .full
@@ -109,7 +68,6 @@ final class TranslationStoreTests: XCTestCase {
 
         let job = TranslationJob(
             bookID: UUID(), bookTitle: "B", phase: .uploading,
-            estimatedPages: 1, priceTier: .under100,
             activeRequestKind: .preview
         )
         try JSONEncoder().encode([job]).write(
@@ -432,7 +390,6 @@ final class TranslationStoreTests: XCTestCase {
         XCTAssertEqual(live.phase, .translating)
         XCTAssertEqual(live.translatedChunks, 10)
         XCTAssertEqual(live.totalChunks, 19)
-        XCTAssertEqual(live.progressText, "10/19 sections")
 
         store.markBackendFinished(for: book)
         let reloaded = TranslationStore(rootDirectory: root).job(for: book)

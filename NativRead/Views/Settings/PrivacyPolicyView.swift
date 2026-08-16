@@ -142,7 +142,7 @@ private struct PrivacyPolicyCopy {
         PrivacyPolicyCopy(
             navigationTitle: "Privacy Policy",
             title: "NativRead Privacy Policy",
-            version: "Effective July 22, 2026 · Version 1.2",
+            version: "Effective August 5, 2026 · Version 1.3",
             introduction: "Reading is private by default. Your books stay on this device unless you deliberately start an AI translation.",
             draftNotice: "Product-ready draft · add the final public URL and operator contact before App Store submission.",
             publicLink: "View the published policy",
@@ -172,6 +172,7 @@ private struct PrivacyPolicyCopy {
                     title: "AI and service providers",
                     paragraphs: [
                         "After your separate permission, the book text is sent to \(providerName), a third-party AI service, to create the translation. Its paid API does not use prompts or responses to improve Google products. Google may retain them for a limited period for abuse detection and required legal disclosures.",
+                        "The API is operated by Google LLC in the United States, so the request leaves the EEA. The transfer relies on the Standard Contractual Clauses in Google’s data processing terms together with Google’s certification under the EU–US Data Privacy Framework. No other transfer of book text outside the EEA takes place.",
                         "Apple processes sign-in and in-app purchase data under its own privacy terms. NativRead uses Cloudflare for hosting and compute. Book-file storage in R2, the D1 metadata database, and translation containers are restricted to the EU jurisdiction; the encrypted request may pass through Cloudflare’s global edge network. Cloudflare and the AI provider may process data only to provide the service and must protect it to at least the level described here."
                     ]
                 ),
@@ -186,14 +187,15 @@ private struct PrivacyPolicyCopy {
                     title: "Your choices and rights",
                     paragraphs: [
                         "You can decline AI processing and continue using the offline reader. You may withdraw permission for future AI processing without undoing processing already completed at your request. You can delete your translation account from Settings; deletion removes the backend account and associated data that NativRead is not legally required to retain.",
-                        "Depending on where you live, you may also request access, correction, restriction, portability, or object to processing through the support contact on the App Store page."
+                        "Depending on where you live, you may also request access, correction, restriction, portability, or object to processing through the support contact on the App Store page. We answer within 30 days.",
+                        "If you live in California: NativRead does not sell and does not share your personal information, so there is nothing to opt out of."
                     ]
                 ),
                 Section(
                     title: "Security and children",
                     paragraphs: [
                         "Sessions are stored in the iOS Keychain and translation requests use authenticated connections. No system can be guaranteed perfectly secure, but access is limited to what is needed to operate the service.",
-                        "NativRead’s translation service is for adults and does not knowingly create translation accounts for people under 18."
+                        "Reading offline has no age requirement. NativRead’s translation service is for adults and does not knowingly create translation accounts for people under 18."
                     ]
                 ),
                 Section(
@@ -210,7 +212,7 @@ private struct PrivacyPolicyCopy {
         PrivacyPolicyCopy(
             navigationTitle: "Adatkezelési tájékoztató",
             title: "NativRead Adatkezelési tájékoztató",
-            version: "Hatályos: 2026. július 22. · 1.2 verzió",
+            version: "Hatályos: 2026. augusztus 5. · 1.3 verzió",
             introduction: "Az olvasás alapból magánügy. A könyveid a készülékeden maradnak, hacsak tudatosan nem indítasz AI-fordítást.",
             draftNotice: "Termékkész tervezet · App Store-beküldés előtt a nyilvános URL-t és az üzemeltető elérhetőségét véglegesíteni kell.",
             publicLink: "Közzétett tájékoztató megnyitása",
@@ -240,6 +242,7 @@ private struct PrivacyPolicyCopy {
                     title: "AI- és egyéb szolgáltatók",
                     paragraphs: [
                         "Külön engedélyed után a könyv szövegét a \(providerName), egy külső AI-szolgáltatás kapja meg a fordítás elkészítéséhez. A fizetős API a kéréseket és válaszokat nem használja Google-termékek fejlesztésére. A Google visszaélés-felismerés és kötelező jogi adatszolgáltatás céljából korlátozott ideig megőrizheti őket.",
+                        "Az API-t a Google LLC üzemelteti az Egyesült Államokban, így a kérés elhagyja az EGT-t. A továbbítás jogalapja a Google adatfeldolgozási feltételeiben szereplő általános szerződési feltételek (SCC) és a Google EU–USA adatvédelmi keret szerinti tanúsítása. A könyv szövege ezen kívül nem kerül az EGT-n kívülre.",
                         "Az Apple a saját adatvédelmi feltételei szerint kezeli a bejelentkezési és alkalmazáson belüli vásárlási adatokat. A NativRead tárhely- és futtatási szolgáltatója a Cloudflare. A könyvfájlok R2-tárhelye, a D1-metaadatbázis és a fordítókonténerek EU-joghatósághoz kötöttek; a titkosított kérés Cloudflare globális peremhálózatán haladhat át. A Cloudflare és az AI-szolgáltató kizárólag a szolgáltatás biztosításához dolgozhatja fel az adatokat, legalább az itt leírt védelemmel."
                     ]
                 ),
@@ -254,14 +257,15 @@ private struct PrivacyPolicyCopy {
                     title: "Döntéseid és jogaid",
                     paragraphs: [
                         "Az AI-feldolgozást elutasíthatod, az offline olvasót ettől továbbra is használhatod. A jövőbeli AI-feldolgozáshoz adott engedélyt visszavonhatod; ez nem teszi semmissé a kérésedre már befejezett feldolgozást. A fordítási fiókot a Beállításokban törölheted; ezzel eltávolítjuk a szerveroldali fiókot és minden kapcsolódó adatot, amelyet jogszabály alapján nem kell megőriznünk.",
-                        "Lakóhelyedtől függően hozzáférést, helyesbítést, korlátozást és adathordozhatóságot is kérhetsz, illetve tiltakozhatsz az adatkezelés ellen az App Store-oldalon megadott elérhetőségen."
+                        "Lakóhelyedtől függően hozzáférést, helyesbítést, korlátozást és adathordozhatóságot is kérhetsz, illetve tiltakozhatsz az adatkezelés ellen az App Store-oldalon megadott elérhetőségen. A megkeresésekre 30 napon belül válaszolunk.",
+                        "Ha Kaliforniában élsz: a NativRead nem adja el és nem osztja meg a személyes adataidat, így nincs miről leiratkoznod."
                     ]
                 ),
                 Section(
                     title: "Biztonság és gyermekek",
                     paragraphs: [
                         "A munkamenet az iOS Kulcskarikában tárolódik, a fordítási kérések pedig hitelesített kapcsolaton mennek. Tökéletes biztonság nem garantálható, de a hozzáférést a szolgáltatás működtetéséhez szükséges körre korlátozzuk.",
-                        "A NativRead fordítószolgáltatása felnőtteknek szól, és tudatosan nem hoz létre fordítási fiókot 18 év alattiaknak."
+                        "Az offline olvasásnak nincs korhatára. A NativRead fordítószolgáltatása felnőtteknek szól, és tudatosan nem hoz létre fordítási fiókot 18 év alattiaknak."
                     ]
                 ),
                 Section(

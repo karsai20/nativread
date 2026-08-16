@@ -4,7 +4,16 @@ import NaturalLanguage
 enum TranslationTerms {
     /// Change this whenever the accepted terms change materially. Existing
     /// translations keep working, but a new upload asks for acceptance again.
-    static let currentVersion = "2026-07-22"
+    /// 2026-08-03: rights attestation folded into the Terms (v1.1); the sheet
+    /// checkbox now accepts the Terms as a whole.
+    /// 2026-08-05 (v1.2): the rights statement is back on screen beside the
+    /// checkbox, and the Terms gained the translation-ownership and NativRead
+    /// IP clauses.
+    static let currentVersion = "2026-08-05"
+    /// Identifies the *wording* of the rights statement, which v1.2 restores
+    /// unchanged from 22 July — so this stays put. It is also the one field the
+    /// backend validates (`RIGHTS_ATTESTATION_VERSION`), so changing it here
+    /// without redeploying the Worker would reject every translation.
     static let rightsAttestationVersion = "2026-07-22"
 
     static let appleStandardEULAURL = URL(
@@ -22,16 +31,49 @@ enum DetectedBookLanguage: Equatable {
     case language(code: String, name: String, confidence: Double)
     case unknown
 
-    var displayText: String {
+    /// What the backend assumes when the app cannot name a source language.
+    /// It re-detects server-side anyway; this only keeps the request well formed.
+    static let defaultSourceCode = "en"
+
+    /// Below this the recogniser is guessing, and a guess is worse than the
+    /// default: it both mislabels the book on screen and sends a wrong source
+    /// language the backend would have got right on its own.
+    static let minimumConfidence = 0.5
+
+    /// True once the detection is worth acting on. `unknown` and every
+    /// low-confidence guess answer false, so the pill and the request agree.
+    var isTrusted: Bool {
         switch self {
-        case .language(_, let name, let confidence):
-            return "\(name) · \(Int((confidence * 100).rounded()))% confidence"
-        case .unknown:
-            return "Could not detect source language"
+        case .language(_, _, let confidence): confidence >= Self.minimumConfidence
+        case .unknown: false
         }
     }
 
-    static func detect(from sample: String) -> DetectedBookLanguage {
+    /// BCP-47 code to send with a translation request, or the default when
+    /// detection had too little text to be confident.
+    var requestCode: String {
+        guard case .language(let code, _, _) = self, isTrusted else {
+            return Self.defaultSourceCode
+        }
+        return code
+    }
+
+    /// The publisher's own `<dc:language>` when the EPUB carries one, and the
+    /// text recogniser only as a fallback.
+    ///
+    /// The metadata wins because the recogniser is a statistical guess over a
+    /// text sample and the declaration is a statement of fact: an English book
+    /// whose sample happened to read as Dutch or Indonesian was being labelled
+    /// — and sent — as such, while `<dc:language>en</dc:language>` sat unread in
+    /// the OPF the app had already parsed.
+    static func detect(
+        from sample: String, declared: String? = nil
+    ) -> DetectedBookLanguage {
+        if let declared = primaryCode(of: declared) {
+            return .language(
+                code: declared, name: displayName(of: declared), confidence: 1
+            )
+        }
         let trimmed = sample.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count >= 80 else { return .unknown }
         let recognizer = NLLanguageRecognizer()
@@ -40,8 +82,32 @@ enum DetectedBookLanguage: Equatable {
         let hypotheses = recognizer.languageHypotheses(withMaximum: 1)
         let confidence = hypotheses[language] ?? 0
         let code = language.rawValue
-        let name = Locale.current.localizedString(forLanguageCode: code) ?? code.uppercased()
-        return .language(code: code, name: name.capitalized, confidence: confidence)
+        return .language(
+            code: code, name: displayName(of: code), confidence: confidence
+        )
+    }
+
+    /// "en-GB" -> "en". The backend's registry keys on the bare language, and a
+    /// region subtag it does not know would be rejected as an unknown language.
+    /// Returns nil for anything that is not a usable language subtag, so a
+    /// malformed declaration falls through to the recogniser instead of
+    /// poisoning the request.
+    private static func primaryCode(of declared: String?) -> String? {
+        guard let declared else { return nil }
+        let subtag = declared
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(separator: "-", maxSplits: 1).first
+            .map { $0.lowercased() } ?? ""
+        guard (2...3).contains(subtag.count),
+              subtag.allSatisfy({ $0.isASCII && $0.isLetter })
+        else { return nil }
+        return subtag
+    }
+
+    private static func displayName(of code: String) -> String {
+        let name = Locale.current.localizedString(forLanguageCode: code)
+            ?? code.uppercased()
+        return name.capitalized
     }
 }
 
@@ -67,13 +133,10 @@ enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable, Hashab
 
     var shortCode: String { rawValue.uppercased() }
 
-    var validationNote: String {
-        switch self {
-        case .hu:
-            return "Validated baseline language"
-        case .de, .es:
-            return "Needs full-novel quality validation before launch"
-        }
+    /// "Hungarian" reads as "Magyar" once the app is in Hungarian.
+    func localizedName(in locale: Locale) -> String {
+        (locale.localizedString(forLanguageCode: rawValue) ?? displayName)
+            .capitalized
     }
 }
 
@@ -112,48 +175,6 @@ enum TranslationRequestKind: String, Codable, Equatable {
     case full
 }
 
-enum TranslationPriceTier: String, Codable, CaseIterable, Equatable {
-    case under100
-    case pages100To199
-    case pages200To349
-    case pages350To549
-    case pages550To799
-    case pages800Plus
-
-    var displayName: String {
-        switch self {
-        case .under100: return "Under 100 pages"
-        case .pages100To199: return "100-199 pages"
-        case .pages200To349: return "200-349 pages"
-        case .pages350To549: return "350-549 pages"
-        case .pages550To799: return "550-799 pages"
-        case .pages800Plus: return "800+ pages"
-        }
-    }
-
-    var priceText: String {
-        switch self {
-        case .under100: return "$2.99"
-        case .pages100To199: return "$3.99"
-        case .pages200To349: return "$4.99"
-        case .pages350To549: return "$6.99"
-        case .pages550To799: return "$8.99"
-        case .pages800Plus: return "$11.99"
-        }
-    }
-
-    static func tier(forEstimatedPages pages: Int) -> TranslationPriceTier {
-        switch pages {
-        case ..<100: return .under100
-        case 100..<200: return .pages100To199
-        case 200..<350: return .pages200To349
-        case 350..<550: return .pages350To549
-        case 550..<800: return .pages550To799
-        default: return .pages800Plus
-        }
-    }
-}
-
 struct TranslationJob: Codable, Equatable, Identifiable {
     var id: UUID { bookID }
 
@@ -166,8 +187,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
     var termsAcceptanceID: UUID?
     var termsAcceptanceLocale: String?
     var acceptedAIProcessingVersion: String?
-    var estimatedPages: Int
-    var priceTier: TranslationPriceTier
     var backendJobID: String?
     var activeRequestKind: TranslationRequestKind?
     var previewCompletedAt: Date?
@@ -181,7 +200,7 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         case bookID, bookTitle, targetLanguage, phase, attestedAt
         case acceptedTermsVersion, termsAcceptanceID, termsAcceptanceLocale
         case acceptedAIProcessingVersion
-        case estimatedPages, priceTier, backendJobID, activeRequestKind
+        case backendJobID, activeRequestKind
         case previewCompletedAt, fullCompletedAt, translatedChunks
         case totalChunks, errorMessage, updatedAt
     }
@@ -211,10 +230,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         )
         acceptedAIProcessingVersion = try c.decodeIfPresent(
             String.self, forKey: .acceptedAIProcessingVersion
-        )
-        estimatedPages = try c.decode(Int.self, forKey: .estimatedPages)
-        priceTier = try c.decode(
-            TranslationPriceTier.self, forKey: .priceTier
         )
         backendJobID = try c.decodeIfPresent(
             String.self, forKey: .backendJobID
@@ -248,8 +263,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         termsAcceptanceID: UUID? = nil,
         termsAcceptanceLocale: String? = nil,
         acceptedAIProcessingVersion: String? = nil,
-        estimatedPages: Int,
-        priceTier: TranslationPriceTier,
         backendJobID: String? = nil,
         activeRequestKind: TranslationRequestKind? = nil,
         previewCompletedAt: Date? = nil,
@@ -268,8 +281,6 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         self.termsAcceptanceID = termsAcceptanceID
         self.termsAcceptanceLocale = termsAcceptanceLocale
         self.acceptedAIProcessingVersion = acceptedAIProcessingVersion
-        self.estimatedPages = estimatedPages
-        self.priceTier = priceTier
         self.backendJobID = backendJobID
         self.activeRequestKind = activeRequestKind
         self.previewCompletedAt = previewCompletedAt
@@ -278,13 +289,5 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         self.totalChunks = totalChunks
         self.errorMessage = errorMessage
         self.updatedAt = updatedAt
-    }
-
-    var progressText: String? {
-        guard let translatedChunks,
-              let totalChunks,
-              totalChunks > 0
-        else { return nil }
-        return "\(translatedChunks)/\(totalChunks) sections"
     }
 }

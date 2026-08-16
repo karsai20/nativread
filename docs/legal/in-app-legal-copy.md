@@ -9,27 +9,26 @@ https://nativread.com/privacy/.
 
 ## 1. Terms acceptance (shown once per book and terms version, before upload)
 
+Terms v1.2 (2026-08-05) shortened this to a single line, with the Terms link
+inside the sentence rather than on a row of its own. The rights statement
+itself stays **on screen** — `legal-posture.md` MUST-FIX #1 requires the
+reviewer to see it in the flow, and the acceptance record sent to the backend
+asserts it (`statementVersion`). The long form above is the wording that
+version 2026-07-22 of the statement identifies; the one-liner is its plain
+restatement, and the full promises live in Terms clauses 7.1–7.5, which the
+same checkbox accepts.
+
 HU:
-> **Saját könyv, saját jogosultság**
->
-> ☐ Kijelentem, hogy a könyvet jogszerűen szereztem be, és rendelkezem a
-> fordításhoz szükséges engedéllyel vagy más jogalappal. A fordítást kizárólag
-> saját, személyes, nem kereskedelmi olvasásra használom; nem teszem közzé,
-> nem terjesztem, nem adom el és nem osztom meg. Elfogadom a Felhasználási
-> feltételeket (2026. július 22.).
->
-> [Felhasználási feltételek elolvasása]
+> ☐ Sajátom ez a könyv, és jogosult vagyok személyes használatra lefordíttatni
+> — [Felhasználási feltételek]
 
 EN:
-> **Your book, your rights**
->
-> ☐ I confirm that I lawfully acquired this book and have the necessary
-> permission or another lawful basis to translate it. I will use the
-> translation only for my own personal, non-commercial reading and will not
-> publish, distribute, sell, or share it. I accept the Terms of Use
-> (22 July 2026).
->
-> [Read the Terms of Use]
+> ☐ I own this book and have the right to translate it for my personal use —
+> [Terms of Use]
+
+Source of truth in code: `TranslationClickwrapCopy` in
+`NativRead/Views/Translation/TranslationSheet.swift`. The bracketed text is a
+markdown link; tapping it pushes the Terms screen instead of opening a URL.
 
 The box is empty by default for a new book/version. Acceptance is stored
 locally and server-side with the authenticated account, book fingerprint,
