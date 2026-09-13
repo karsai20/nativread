@@ -282,6 +282,50 @@ final class ReaderJourneyUITests: XCTestCase {
         waitForExpectations(timeout: 8)
     }
 
+    /// Scroll flow must reopen where the reader stopped — both after a
+    /// plain leave/reopen and after the app is killed and relaunched (the
+    /// phone locked long enough for iOS to evict it). Measured on the
+    /// chapter heading's on-screen Y, not the page label: the label only
+    /// changes per screenful and cannot see a wrong offset.
+    func testScrollFlowRestoresPositionAfterReopenAndRelaunch() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-forceFlow", "scroll", "-skipOnboarding"
+        ]
+        app.launch()
+        openSampleBook()
+        let web = app.webViews.firstMatch
+        let heading = web.staticTexts.firstMatch
+        XCTAssertTrue(heading.waitForExistence(timeout: 5))
+        let anchor = web.staticTexts[heading.label]
+
+        let window = app.windows.firstMatch
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
+            .press(forDuration: 0.05, thenDragTo: window.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)))
+        // Let the settle tick land and the coalesced save run.
+        sleep(2)
+        let scrolledY = anchor.frame.minY
+        XCTAssertLessThan(scrolledY, -50, "drag should have scrolled the page")
+
+        // Leave and reopen.
+        app.buttons["reader.back"].tap()
+        openSampleBook()
+        XCTAssertTrue(anchor.waitForExistence(timeout: 5))
+        sleep(2)
+        XCTAssertEqual(anchor.frame.minY, scrolledY, accuracy: 8)
+
+        // Kill and relaunch with the library intact.
+        app.terminate()
+        app.launchArguments = ["-forceFlow", "scroll", "-skipOnboarding"]
+        app.launch()
+        openSampleBook()
+        XCTAssertTrue(anchor.waitForExistence(timeout: 5))
+        sleep(2)
+        XCTAssertEqual(anchor.frame.minY, scrolledY, accuracy: 8)
+    }
+
     func testScrollFlowChapterEndAffordanceAdvancesChapter() {
         app.terminate()
         app.launchArguments = [

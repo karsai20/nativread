@@ -1209,6 +1209,13 @@ enum ReaderScripts {
           // recomputed while keeping the reading position.
           const remeasure = () => {
             if (!started) { start(); return; }
+            // Scroll flow, reader already scrolling: a grown document
+            // must not shift the text under their finger. Keep the pixel
+            // offset, just re-count the pages.
+            if (MODE === "scroll" && lumen.restoreTarget === null) {
+              lumen.remeasureScroll();
+              return;
+            }
             // A restore still in flight wins over the live position: the
             // live position is exactly what the unfinished layout got
             // wrong.

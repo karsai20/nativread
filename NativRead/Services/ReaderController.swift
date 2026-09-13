@@ -65,6 +65,12 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     private var flow: PageFlow
     private var transition: PageTransition
     private var pendingFraction: Double?
+    /// Where the reader last was in this chapter, 0…1. WebKit reloads the
+    /// document on its own after a background WebContent termination (the
+    /// phone put down mid-read), and that reload arrives with no pending
+    /// request — landing it here instead of at the top is what keeps the
+    /// reading position through a lock/unlock.
+    private var lastKnownFraction: Double = 0
     private var pendingLocate: (query: String, occurrence: Int)?
     private var chapterAdvancePending = false
     private var navigationGeneration = 0
@@ -167,9 +173,19 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         self.readAccessRoot = normalizedRoot
         navigationGeneration += 1
         pendingFraction = fraction
+        lastKnownFraction = fraction
         pendingLocate = locate.map { (query: $0.0, occurrence: $0.1) }
         webView.alpha = 0
         webView.loadFileURL(url, allowingReadAccessTo: readAccessRoot)
+    }
+
+    /// A foreground WebContent crash leaves the web view blank and deaf
+    /// (WebKit only auto-reloads after a background termination). Reload
+    /// the chapter; `ready` then lands on `lastKnownFraction`.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        navigationGeneration += 1
+        webView.alpha = 0
+        webView.reload()
     }
 
     /// Book-authored navigation stays inside the current extracted EPUB.
@@ -539,7 +555,9 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                         """
                     )
                 } else {
-                    let fraction = self.pendingFraction ?? 0
+                    // No pending request means WebKit reloaded the
+                    // document itself: resume where the reader was.
+                    let fraction = self.pendingFraction ?? self.lastKnownFraction
                     self.pendingFraction = nil
                     // The saved position: hold it against the late
                     // re-measures, and do not write it back until it
@@ -559,6 +577,9 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
                     UIView.animate(withDuration: 0.18) {
                         self.webView.alpha = 1
                     }
+                }
+                if !state.isRestoring {
+                    self.lastKnownFraction = state.fraction
                 }
                 self.onState?(state)
             case "tap":
