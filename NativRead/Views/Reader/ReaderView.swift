@@ -3,7 +3,14 @@ import SwiftUI
 /// The full-screen reading surface: page web view underneath, tap zones
 /// and swipe on top, chrome bars that melt away while reading.
 struct ReaderView: View {
-    @State private var viewModel: ReaderViewModel
+    /// `StateObject` because its autoclosure runs once per presentation.
+    /// `State(initialValue:)` would run on every re-evaluation of the
+    /// presenting closure — and the shelf re-evaluates it on every saved
+    /// scroll position — building and tearing down a WKWebView (a whole
+    /// WebContent process) per scroll settle. On iPhone 17 / iOS 26.6 that
+    /// churn deadlocked RunningBoard and hung the app.
+    @StateObject private var model: OncePerPresentation<ReaderViewModel>
+    private var viewModel: ReaderViewModel { model.value }
     /// Whether the bottom-right reading menu is fanned out.
     @State private var isMenuOpen = false
     @Environment(\.dismiss) private var dismiss
@@ -18,14 +25,13 @@ struct ReaderView: View {
         settingsStore: SettingsStore,
         initialSystemDark: Bool
     ) {
-        let bounds = UIScreen.main.bounds
-        _viewModel = State(initialValue: ReaderViewModel(
+        _model = StateObject(wrappedValue: OncePerPresentation(ReaderViewModel(
             book: book,
             library: library,
             settingsStore: settingsStore,
-            pageSize: bounds.size,
+            pageSize: UIScreen.main.bounds.size,
             initialSystemDark: initialSystemDark
-        ))
+        )))
     }
 
     private var palette: ReaderPalette { viewModel.palette }
@@ -83,7 +89,7 @@ struct ReaderView: View {
         .onDisappear {
             viewModel.persistProgressNow()
         }
-        .sheet(item: $viewModel.activeSheet) { sheet in
+        .sheet(item: Bindable(viewModel).activeSheet) { sheet in
             switch sheet {
             case .contents:
                 ContentsSheet(viewModel: viewModel)
@@ -648,4 +654,12 @@ private struct ReadingPositionSheet: View {
         .disabled(!enabled)
         .accessibilityIdentifier(identifier)
     }
+}
+
+/// Holds an `@Observable` model so a view can keep it in a `StateObject`,
+/// whose `wrappedValue` autoclosure is evaluated once per presentation.
+/// Observation still flows from the model itself; the box is inert.
+final class OncePerPresentation<Value>: ObservableObject {
+    let value: Value
+    init(_ value: Value) { self.value = value }
 }

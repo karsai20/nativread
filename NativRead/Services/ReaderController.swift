@@ -29,6 +29,10 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
     let webView: HighlightingWebView
     private(set) var pageSize: CGSize
 
+    /// Every instance owns a WKWebView, and every WKWebView is a WebContent
+    /// process. Tests assert this stays at one per reading session.
+    static private(set) var createdCount = 0
+
     /// Fired after every page change, scroll sample or relayout.
     var onState: ((ReaderEngineState) -> Void)?
     /// Fired once per chapter when the engine finished measuring.
@@ -86,6 +90,7 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         self.flow = flow
         self.transition = transition
 
+        Self.createdCount += 1
         let configuration = WKWebViewConfiguration()
         // Incremental rendering must stay ON: suppressing it stops
         // WebKit from rasterising the off-screen CSS columns, so a

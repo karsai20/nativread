@@ -5,7 +5,9 @@ import PDFKit
 /// — melt-away top/bottom bars, page position, page label, bookmark —
 /// over a fixed-layout PDFKit page instead of the reflowable web view.
 struct PDFReaderView: View {
-    @State private var viewModel: PDFReaderViewModel
+    /// See `ReaderView`: built once per presentation, not per re-render.
+    @StateObject private var model: OncePerPresentation<PDFReaderViewModel>
+    private var viewModel: PDFReaderViewModel { model.value }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -18,12 +20,12 @@ struct PDFReaderView: View {
         settingsStore: SettingsStore,
         initialSystemDark: Bool
     ) {
-        _viewModel = State(initialValue: PDFReaderViewModel(
+        _model = StateObject(wrappedValue: OncePerPresentation(PDFReaderViewModel(
             book: book,
             library: library,
             settingsStore: settingsStore,
             initialSystemDark: initialSystemDark
-        ))
+        )))
     }
 
     private var palette: ReaderPalette { viewModel.palette }
@@ -52,7 +54,7 @@ struct PDFReaderView: View {
         .onDisappear {
             viewModel.persistProgressNow()
         }
-        .sheet(item: $viewModel.activeSheet) { sheet in
+        .sheet(item: Bindable(viewModel).activeSheet) { sheet in
             switch sheet {
             case .contents:
                 PDFContentsSheet(viewModel: viewModel)

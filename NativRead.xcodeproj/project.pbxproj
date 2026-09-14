@@ -66,6 +66,7 @@
 		5C01CA1931AF8D098CBA02FF /* OnboardingLaunchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6C7AB5DB7D76129E39F0CBB /* OnboardingLaunchUITests.swift */; };
 		5E82A67F9F5095E254320F72 /* LibraryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5CB2E6F4600FB25D00FBCF1 /* LibraryStoreTests.swift */; };
 		5FD870D8B0638A678408E0C3 /* BookPurchaseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69C90DF03786DD503F6F0D04 /* BookPurchaseStore.swift */; };
+		610F67BA8FFB6048D57DF576 /* ReaderViewLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98F9A27D56A6C4FC8E6D2E2 /* ReaderViewLifecycleTests.swift */; };
 		62F9050F98EBEB912058A8A2 /* ReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33C7CD7546ABA5930344A94E /* ReaderView.swift */; };
 		6583EFAEE63A1C04470BEF8F /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8665DC3CA08B5847D28DB270 /* PDFImporter.swift */; };
 		66E30837DBFE99D2229B564F /* alice-csodaorszagban-hu.epub in Resources */ = {isa = PBXBuildFile; fileRef = F33A0870F1710ACFA41E5811 /* alice-csodaorszagban-hu.epub */; };
@@ -259,6 +260,7 @@
 		B5BA3D36504019BE10524820 /* SkeletonLines.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkeletonLines.swift; sourceTree = "<group>"; };
 		B66ED57B805387E39771FA1B /* TranslationBackendClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationBackendClientTests.swift; sourceTree = "<group>"; };
 		B6EB5922A24C5FAA1F2DB3B3 /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
+		B98F9A27D56A6C4FC8E6D2E2 /* ReaderViewLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderViewLifecycleTests.swift; sourceTree = "<group>"; };
 		B992500E3C0F70C78777DDBC /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		BAA4FDA1174F0F823A2FDC46 /* NativReadUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NativReadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCB3CF79F401B884A70E4327 /* TranslationPriceBands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPriceBands.swift; sourceTree = "<group>"; };
