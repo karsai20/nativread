@@ -5,7 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- Reader: four new atmospheres — Mist (sage), Bold (high contrast, heavier body), Amber (warm night), Night (true black) — eight in all.
+
 ### Changed
+- Reader: the Aa panel is one scrolling sheet (Atmosphere · Text · Layout · Comfort) with no tabs; theme tiles preview your typeface and the typeface list folds under its row.
+- Reader: size-aware tracking and leading plus optical sizing on the page; the first text size follows Dynamic Type.
 - Before the first AI translation, NativRead now clearly names Google Gemini API, explains exactly what book data leaves the device and for how long, and asks for separate, versioned permission. Declining keeps the offline reader fully usable.
 - Settings now includes an in-app Privacy Policy and a permanent account-deletion flow. Deletion reconfirms and revokes Sign in with Apple, removes server-side translation data and entitlements, and leaves books stored on the device untouched.
 - The translation sheet now leads with the book, target language, and free first chapter. Sign in appears only after accepting the versioned, readable Terms of Use, while optional process details and developer-only whole-book controls stay collapsed.

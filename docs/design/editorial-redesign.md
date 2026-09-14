@@ -28,9 +28,13 @@ a warm, editorial identity where **the book is the hero**.
   page), but adopt the shared `Typography`/`Spacing` for an editorial feel.
   Selected text uses Apple's native Look Up action rather than an app-owned
   definition sheet.
-- The 4 reading atmospheres (Paper/Sepia/Dusk/Ink) keep their intentional
-  per-atmosphere accents. The default theme is **Paper**, which matches the
-  brand. Default reading font is **Charter**.
+- The 8 reading atmospheres (Paper/Sepia/Mist/Bold · Dusk/Amber/Ink/Night) keep
+  their intentional per-atmosphere accents; Bold also sets body weight 500. The
+  appearance sheet is one scrolling panel (Atmosphere · Text · Layout ·
+  Comfort), no tabs — see
+  `docs/superpowers/specs/2026-09-14-reading-atmospheres-and-appearance-panel-design.md`.
+  The default theme is **Paper**, which matches the brand. Default reading font
+  is **Charter**; the first text size follows the system Dynamic Type setting.
 
 ## Open follow-up: app icon
 
