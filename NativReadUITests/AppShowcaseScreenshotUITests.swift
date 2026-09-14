@@ -81,9 +81,9 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
 
         continueButton.tap()
         XCTAssertTrue(
-            app.staticTexts["welcome.mode.title"].waitForExistence(timeout: 8)
+            app.staticTexts["welcome.translation.title"].waitForExistence(timeout: 8)
         )
-        capture(locale, 2, "onboarding-reading-mode")
+        capture(locale, 2, "onboarding-translation")
     }
 
     // MARK: - Library + EPUB reader
@@ -127,34 +127,31 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
 
         tapReaderMenuItem("reader.typography")
         XCTAssertTrue(
-            app.buttons["appearance.tab.theme"].waitForExistence(timeout: 8)
+            app.buttons["theme.paper"].waitForExistence(timeout: 8)
         )
-        capture(locale, 10, "epub-appearance-theme")
+        capture(locale, 10, "epub-appearance")
 
-        app.buttons["appearance.tab.text"].tap()
-        capture(locale, 11, "epub-appearance-text")
-
-        app.buttons["appearance.tab.layout"].tap()
-        capture(locale, 12, "epub-appearance-layout")
+        app.swipeUp(velocity: .fast)
+        capture(locale, 11, "epub-appearance-layout")
         dismissReaderSheet()
 
         tapReaderMenuItem("reader.contents")
         XCTAssertTrue(
             app.scrollViews["contents.toc"].waitForExistence(timeout: 10)
         )
-        capture(locale, 13, "epub-contents")
+        capture(locale, 12, "epub-contents")
 
         let contentsSegments = app.segmentedControls.firstMatch.buttons
         XCTAssertGreaterThanOrEqual(contentsSegments.count, 3)
         contentsSegments.element(boundBy: 1).tap()
-        capture(locale, 14, "epub-bookmarks")
+        capture(locale, 13, "epub-bookmarks")
 
         contentsSegments.element(boundBy: 2).tap()
         XCTAssertTrue(
             app.scrollViews["contents.highlights"]
                 .waitForExistence(timeout: 8)
         )
-        capture(locale, 15, "epub-highlights")
+        capture(locale, 14, "epub-highlights")
         dismissReaderSheet()
 
         tapReaderMenuItem("reader.search")
@@ -165,7 +162,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts["search.resultCount"].waitForExistence(timeout: 25)
         )
-        capture(locale, 16, "epub-search")
+        capture(locale, 15, "epub-search")
     }
 
     // MARK: - Translation
@@ -186,13 +183,13 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         let pickerBook =
             app.buttons["translate.ready.\(locale.primaryTitle)"]
         XCTAssertTrue(pickerBook.waitForExistence(timeout: 12))
-        capture(locale, 17, "translation-book-picker")
+        capture(locale, 16, "translation-book-picker")
         pickerBook.tap()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 12)
         )
-        capture(locale, 18, "translation-overview")
+        capture(locale, 17, "translation-overview")
 
         app.buttons["translation.termsAcceptance"].tap()
         let localAccount = app.buttons["translation.localTestAccount"]
@@ -203,7 +200,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         scrollUntilHittable(wholeBookPlan, direction: .up, attempts: 6)
         XCTAssertTrue(wholeBookPlan.isHittable)
         wholeBookPlan.tap()
-        capture(locale, 20, "translation-whole-book-options")
+        capture(locale, 19, "translation-whole-book-options")
 
         let freeChapterPlan = app.buttons["translation.plan.freeChapter"]
         scrollUntilHittable(freeChapterPlan, direction: .up, attempts: 4)
@@ -218,7 +215,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
             app.buttons["translation.aiConsent.allow"]
                 .waitForExistence(timeout: 10)
         )
-        capture(locale, 21, "translation-ai-consent")
+        capture(locale, 20, "translation-ai-consent")
     }
 
     // MARK: - Settings + legal
@@ -238,26 +235,26 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(
             app.otherElements["settings.sheet"].waitForExistence(timeout: 10)
         )
-        capture(locale, 22, "settings-top")
+        capture(locale, 21, "settings-top")
 
         let deleteAccount = app.buttons["settings.account.delete"]
         scrollUntilHittable(deleteAccount, direction: .up, attempts: 5)
         XCTAssertTrue(deleteAccount.isHittable)
-        capture(locale, 23, "settings-privacy-account")
+        capture(locale, 22, "settings-privacy-account")
 
         let privacyLink = app.buttons["settings.privacy.link"]
         scrollUntilHittable(privacyLink, direction: .up, attempts: 6)
         XCTAssertTrue(privacyLink.isHittable)
-        capture(locale, 24, "settings-about")
+        capture(locale, 23, "settings-about")
 
         privacyLink.tap()
         XCTAssertTrue(
             app.scrollViews["privacy.screen"].waitForExistence(timeout: 10)
         )
-        capture(locale, 25, "privacy-policy-top")
+        capture(locale, 24, "privacy-policy-top")
         app.swipeUp(velocity: .fast)
         app.swipeUp(velocity: .fast)
-        capture(locale, 26, "privacy-policy-more")
+        capture(locale, 25, "privacy-policy-more")
         navigateBack()
 
         let termsLink = app.buttons["settings.terms.link"]
@@ -267,10 +264,10 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(
             app.scrollViews["terms.screen"].waitForExistence(timeout: 10)
         )
-        capture(locale, 27, "terms-of-use-top")
+        capture(locale, 26, "terms-of-use-top")
         app.swipeUp(velocity: .fast)
         app.swipeUp(velocity: .fast)
-        capture(locale, 28, "terms-of-use-more")
+        capture(locale, 27, "terms-of-use-more")
         navigateBack()
 
         let licensesLink = app.buttons["settings.licenses.link"]
@@ -280,14 +277,14 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(
             app.scrollViews["settings.licenses"].waitForExistence(timeout: 10)
         )
-        capture(locale, 29, "licenses")
+        capture(locale, 28, "licenses")
         navigateBack()
 
         scrollUntilHittable(deleteAccount, direction: .down, attempts: 7)
         XCTAssertTrue(deleteAccount.isHittable)
         deleteAccount.tap()
         XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 8))
-        capture(locale, 30, "delete-account-confirmation")
+        capture(locale, 29, "delete-account-confirmation")
 
         let deleteLabel = locale.code == "hu"
             ? "Fiók törlése"
@@ -297,20 +294,20 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
             app.otherElements["settings.account.authorization"]
                 .waitForExistence(timeout: 10)
         )
-        capture(locale, 31, "delete-account-apple-confirmation")
+        capture(locale, 30, "delete-account-apple-confirmation")
         app.buttons[locale.code == "hu" ? "Mégse" : "Cancel"].tap()
 
         let darkAppearance = app.buttons["settings.appearance.dark"]
         scrollUntilHittable(darkAppearance, direction: .down, attempts: 8)
         XCTAssertTrue(darkAppearance.isHittable)
         darkAppearance.tap()
-        capture(locale, 32, "settings-dark")
+        capture(locale, 31, "settings-dark")
         tab(.library).tap()
         XCTAssertTrue(
             app.staticTexts["library.grid.heading"]
                 .waitForExistence(timeout: 8)
         )
-        capture(locale, 33, "library-dark")
+        capture(locale, 32, "library-dark")
     }
 
     // MARK: - PDF reader
@@ -329,29 +326,29 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(
             app.buttons["reader.position"].waitForExistence(timeout: 20)
         )
-        capture(locale, 34, "pdf-reader")
+        capture(locale, 33, "pdf-reader")
 
         app.buttons["reader.bookmark"].tap()
         app.buttons["reader.contents"].tap()
         XCTAssertTrue(
             app.segmentedControls.firstMatch.waitForExistence(timeout: 8)
         )
-        capture(locale, 35, "pdf-contents")
+        capture(locale, 34, "pdf-contents")
         app.segmentedControls.firstMatch.buttons.element(boundBy: 1).tap()
-        capture(locale, 36, "pdf-bookmarks")
+        capture(locale, 35, "pdf-bookmarks")
         dismissReaderSheet()
 
         app.buttons["reader.position"].tap()
         XCTAssertTrue(
             app.sliders["reader.position.slider"].waitForExistence(timeout: 8)
         )
-        capture(locale, 37, "pdf-position")
+        capture(locale, 36, "pdf-position")
         app.buttons["reader.position.done"].tap()
 
         app.buttons["reader.appearance"].tap()
         let darkMode = app.buttons["appearance.mode.Dark"]
         XCTAssertTrue(darkMode.waitForExistence(timeout: 8))
-        capture(locale, 38, "pdf-appearance")
+        capture(locale, 37, "pdf-appearance")
         darkMode.tap()
         app.windows.firstMatch.coordinate(
             withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)
@@ -359,7 +356,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         XCTAssertTrue(
             waitForDisappearance(app.staticTexts["Appearance"], timeout: 8)
         )
-        capture(locale, 39, "pdf-reader-night")
+        capture(locale, 38, "pdf-reader-night")
 
         app.buttons["reader.search"].tap()
         let field = app.textFields["search.field"]
@@ -373,7 +370,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
                 NSPredicate(format: "label CONTAINS[c] %@", pageLabel)
             ).firstMatch.waitForExistence(timeout: 15)
         )
-        capture(locale, 40, "pdf-search")
+        capture(locale, 39, "pdf-search")
     }
 
     // MARK: - Helpers

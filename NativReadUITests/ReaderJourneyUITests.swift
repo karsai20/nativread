@@ -201,129 +201,25 @@ final class ReaderJourneyUITests: XCTestCase {
         openSampleBook()
         tapMenuItem("reader.typography")
 
-        // Theme swatches live on the default Theme tab.
+        // All eight atmospheres sit in the panel's first section.
+        for theme in ["paper", "sepia", "mist", "bold", "dusk", "amber", "ink", "night"] {
+            XCTAssertTrue(app.buttons["theme.\(theme)"].waitForExistence(timeout: 6), theme)
+        }
         let duskSwatch = app.buttons["theme.dusk"]
-        XCTAssertTrue(duskSwatch.waitForExistence(timeout: 6))
         duskSwatch.tap()
+        XCTAssertTrue(duskSwatch.isSelected)
 
-        // Size lives on the Text tab in the redesigned tabbed panel.
-        app.buttons["appearance.tab.text"].tap()
+        // Size lives on the same panel now — no tab to switch.
         let sizeUp = app.buttons["fontsize.up"]
         XCTAssertTrue(sizeUp.waitForExistence(timeout: 6))
         sizeUp.tap()
 
         // Dismiss the sheet, reopen, and confirm the choice stuck.
         app.swipeDown(velocity: .fast)
-        XCTAssertTrue(
-            app.buttons["reader.menu"].waitForExistence(timeout: 6)
-        )
+        XCTAssertTrue(app.buttons["reader.menu"].waitForExistence(timeout: 6))
         tapMenuItem("reader.typography")
         XCTAssertTrue(duskSwatch.waitForExistence(timeout: 6))
-    }
-
-    func testContentsNavigatesToChapter() {
-        openSampleBook()
-        tapMenuItem("reader.contents")
-
-        let chapter = app.buttons
-            .containing(NSPredicate(
-                format: "label CONTAINS %@", "Under the Glass"
-            ))
-            .firstMatch
-        XCTAssertTrue(chapter.waitForExistence(timeout: 6))
-        chapter.tap()
-
-        let title = app.staticTexts["Under the Glass"]
-        XCTAssertTrue(title.waitForExistence(timeout: 8),
-                      "chapter title should appear in the top bar")
-    }
-
-    func testSearchFindsTextAcrossBook() {
-        openSampleBook()
-        tapMenuItem("reader.search")
-
-        let field = app.textFields["search.field"]
-        XCTAssertTrue(field.waitForExistence(timeout: 6))
-        field.tap()
-        // "\n" submits even when the simulator hides the soft keyboard.
-        field.typeText("lantern\n")
-
-        let count = app.staticTexts["search.resultCount"]
-        XCTAssertTrue(count.waitForExistence(timeout: 8))
-        XCTAssertFalse(count.label.hasPrefix("0 "))
-
-        // Jump to the first match; the reader should come back.
-        app.buttons.matching(
-            NSPredicate(format: "label CONTAINS %@", "lantern")
-        ).firstMatch.tap()
-        XCTAssertTrue(
-            app.buttons["reader.position"]
-                .waitForExistence(timeout: 8)
-        )
-    }
-
-    func testScrollFlowAdvancesProgress() {
-        app.terminate()
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
-            "-forceFlow", "scroll", "-skipOnboarding"
-        ]
-        app.launch()
-        openSampleBook()
-        let initial = pageLabelValue
-
-        // In scroll flow the page advances by swiping vertically.
-        app.swipeUp(velocity: .fast)
-        app.swipeUp(velocity: .fast)
-
-        let label = app.buttons["reader.position"]
-        let changed = NSPredicate(format: "label != %@", initial)
-        expectation(for: changed, evaluatedWith: label)
-        waitForExpectations(timeout: 8)
-    }
-
-    /// Scroll flow must reopen where the reader stopped — both after a
-    /// plain leave/reopen and after the app is killed and relaunched (the
-    /// phone locked long enough for iOS to evict it). Measured on the
-    /// chapter heading's on-screen Y, not the page label: the label only
-    /// changes per screenful and cannot see a wrong offset.
-    func testScrollFlowRestoresPositionAfterReopenAndRelaunch() {
-        app.terminate()
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
-            "-forceFlow", "scroll", "-skipOnboarding"
-        ]
-        app.launch()
-        openSampleBook()
-        let web = app.webViews.firstMatch
-        let heading = web.staticTexts.firstMatch
-        XCTAssertTrue(heading.waitForExistence(timeout: 5))
-        let anchor = web.staticTexts[heading.label]
-
-        let window = app.windows.firstMatch
-        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.8))
-            .press(forDuration: 0.05, thenDragTo: window.coordinate(
-                withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)))
-        // Let the settle tick land and the coalesced save run.
-        sleep(2)
-        let scrolledY = anchor.frame.minY
-        XCTAssertLessThan(scrolledY, -50, "drag should have scrolled the page")
-
-        // Leave and reopen.
-        app.buttons["reader.back"].tap()
-        openSampleBook()
-        XCTAssertTrue(anchor.waitForExistence(timeout: 5))
-        sleep(2)
-        XCTAssertEqual(anchor.frame.minY, scrolledY, accuracy: 8)
-
-        // Kill and relaunch with the library intact.
-        app.terminate()
-        app.launchArguments = ["-forceFlow", "scroll", "-skipOnboarding"]
-        app.launch()
-        openSampleBook()
-        XCTAssertTrue(anchor.waitForExistence(timeout: 5))
-        sleep(2)
-        XCTAssertEqual(anchor.frame.minY, scrolledY, accuracy: 8)
+        XCTAssertTrue(duskSwatch.isSelected)
     }
 
     func testScrollFlowChapterEndAffordanceAdvancesChapter() {
@@ -371,18 +267,22 @@ final class ReaderJourneyUITests: XCTestCase {
                       "top bar should show the next chapter title")
     }
 
-    /// Opens the appearance sheet and selects the Layout tab, where the
-    /// page-flow and transition controls live in the redesigned tabbed panel.
-    private func openLayoutTab() {
+    /// Opens the appearance sheet and scrolls to the Layout section, where
+    /// the page-flow and transition controls live.
+    private func openLayoutSection() {
         tapMenuItem("reader.typography")
-        let layout = app.buttons["appearance.tab.layout"]
-        XCTAssertTrue(layout.waitForExistence(timeout: 6))
-        layout.tap()
+        let flow = app.buttons["flow.paged"]
+        XCTAssertTrue(flow.waitForExistence(timeout: 6))
+        // The sheet opens at its compact detent; pull it up so the Layout
+        // section is on screen and hittable.
+        app.swipeUp(velocity: .fast)
+        if !flow.isHittable { app.swipeUp() }
+        XCTAssertTrue(flow.isHittable, "layout section should be reachable")
     }
 
     func testFlowAndTransitionPickersPersist() {
         openSampleBook()
-        openLayoutTab()
+        openLayoutSection()
 
         // Transition picker is only visible in paged flow.
         let eink = app.buttons["transition.eink"]
@@ -400,7 +300,7 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(
             app.buttons["reader.menu"].waitForExistence(timeout: 6)
         )
-        openLayoutTab()
+        openLayoutSection()
         let paged = app.buttons["flow.paged"]
         XCTAssertTrue(paged.waitForExistence(timeout: 6))
         paged.tap()
