@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 /// App-wide appearance preference for the library and chrome. `.system`
 /// follows the device's Light/Dark setting; the others force one mode.
@@ -49,7 +50,9 @@ final class SettingsStore {
 
     init(
         defaults: UserDefaults = .standard,
-        defaultTranslationBackendURLString: String? = nil
+        defaultTranslationBackendURLString: String? = nil,
+        contentSizeCategory: UIContentSizeCategory =
+            UIApplication.shared.preferredContentSizeCategory
     ) {
         self.defaults = defaults
         if defaults.object(forKey: Self.onboardingSeenKey) == nil,
@@ -63,7 +66,9 @@ final class SettingsStore {
            ) {
             settings = decoded
         } else {
-            settings = ReaderSettings()
+            var seeded = ReaderSettings()
+            seeded.fontSize = ReaderSettings.defaultFontSize(for: contentSizeCategory)
+            settings = seeded
         }
         hasSeenOnboarding = defaults.bool(forKey: Self.onboardingSeenKey)
         appAppearance = defaults.string(forKey: Self.appearanceKey)

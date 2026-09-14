@@ -319,6 +319,22 @@ struct ReaderSettings: Codable, Equatable {
     var isJustified: Bool = true
 
     static let fontSizeRange: ClosedRange<Double> = 13...26
+
+    /// First-launch text size, taken from the system Dynamic Type setting
+    /// so a reader who already asked iOS for bigger text opens the book at
+    /// bigger text. Only used when nothing is stored; a saved size wins.
+    static func defaultFontSize(for category: UIContentSizeCategory) -> Double {
+        switch category {
+        case .extraSmall: return 15
+        case .small: return 16
+        case .medium: return 17
+        case .large, .unspecified: return 18
+        case .extraLarge: return 19
+        case .extraExtraLarge: return 20
+        case .extraExtraExtraLarge: return 22
+        default: return 24   // every accessibility size
+        }
+    }
     static let lineHeightRange: ClosedRange<Double> = 1.25...2.1
     static let marginRange: ClosedRange<Double> = 14...48
     static let warmthRange: ClosedRange<Double> = 0...1

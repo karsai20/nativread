@@ -990,4 +990,29 @@ final class ReaderMotionPreferenceTests: XCTestCase {
         XCTAssertTrue(css.contains("letter-spacing: -0.01em"))
         XCTAssertTrue(css.contains("letter-spacing: 0.04em"))
     }
+
+    func testDefaultFontSizeFollowsContentSizeCategory() {
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .large), 18)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .extraLarge), 19)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .extraExtraLarge), 20)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .extraExtraExtraLarge), 22)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .accessibilityMedium), 24)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .accessibilityExtraExtraExtraLarge), 24)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .small), 16)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .extraSmall), 15)
+        XCTAssertEqual(ReaderSettings.defaultFontSize(for: .medium), 17)
+    }
+
+    @MainActor
+    func testSettingsStoreSeedsFontSizeFromDynamicTypeOnlyWhenNothingStored() {
+        let suite = "test.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let fresh = SettingsStore(defaults: defaults, contentSizeCategory: .extraExtraLarge)
+        XCTAssertEqual(fresh.settings.fontSize, 20)
+
+        fresh.update { var s = $0; s.fontSize = 13; return s }
+        let reloaded = SettingsStore(defaults: defaults, contentSizeCategory: .accessibilityLarge)
+        XCTAssertEqual(reloaded.settings.fontSize, 13, "a saved size always wins")
+    }
 }
