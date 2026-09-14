@@ -52,7 +52,7 @@ final class SettingsStore {
         defaults: UserDefaults = .standard,
         defaultTranslationBackendURLString: String? = nil,
         contentSizeCategory: UIContentSizeCategory =
-            UIApplication.shared.preferredContentSizeCategory
+            UIScreen.main.traitCollection.preferredContentSizeCategory
     ) {
         self.defaults = defaults
         if defaults.object(forKey: Self.onboardingSeenKey) == nil,

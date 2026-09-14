@@ -180,17 +180,17 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// SwiftUI preview font for the typography panel. Bundled fonts use
+    /// SwiftUI preview font for the appearance panel. Bundled fonts use
     /// the family name iOS exposes once registered via `UIAppFonts`.
-    var previewFont: Font {
+    func previewFont(size: CGFloat = 17) -> Font {
         switch self {
-        case .newYork: return .system(.body, design: .serif)
-        case .sanFrancisco: return .system(.body)
-        case .georgia: return .custom("Georgia", size: 17)
-        case .palatino: return .custom("Palatino", size: 17)
-        case .charter: return .custom("Charter", size: 17)
-        case .crimson: return .custom("Crimson Pro", size: 17)
-        case .cormorant: return .custom(Typography.displayFamily, size: 17)
+        case .newYork: return .system(size: size, design: .serif)
+        case .sanFrancisco: return .system(size: size)
+        case .georgia: return .custom("Georgia", size: size)
+        case .palatino: return .custom("Palatino", size: size)
+        case .charter: return .custom("Charter", size: size)
+        case .crimson: return .custom("Crimson Pro", size: size)
+        case .cormorant: return .custom(Typography.displayFamily, size: size)
         }
     }
 }
@@ -332,7 +332,13 @@ struct ReaderSettings: Codable, Equatable {
         case .extraLarge: return 19
         case .extraExtraLarge: return 20
         case .extraExtraExtraLarge: return 22
-        default: return 24   // every accessibility size
+        case .accessibilityMedium, .accessibilityLarge,
+             .accessibilityExtraLarge, .accessibilityExtraExtraLarge,
+             .accessibilityExtraExtraExtraLarge: return 24
+        // An unknown raw value (the category is not always resolved this
+        // early in launch) must land on the plain default, never on the
+        // accessibility size.
+        default: return 18
         }
     }
     static let lineHeightRange: ClosedRange<Double> = 1.25...2.1

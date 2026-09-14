@@ -220,9 +220,14 @@ struct PressHighlightStyle: ButtonStyle {
 /// A page-like rounded tile previewing a reading theme: the real background,
 /// an "Aa" in the theme's ink, and the theme name. Selected tiles gain an
 /// accent ring and lift; the whole tile is the tap target.
+/// One reading atmosphere as a little page: the "Aa" is set in the font the
+/// reader currently uses, on the theme's paper, so a tile shows exactly what
+/// the page will look like. Selection rings it in the theme's accent and
+/// lifts it on a spring.
 struct ThemeTile: View {
     let theme: ReaderTheme
     let isSelected: Bool
+    let font: ReaderFont
     let palette: ReaderPalette
     let action: () -> Void
 
@@ -238,10 +243,12 @@ struct ThemeTile: View {
                             lineWidth: isSelected ? 2.5 : 1
                         )
                     Text("Aa")
-                        .font(.custom(Typography.displayFamily, size: 24))
+                        .font(font.previewFont(size: 24))
+                        .fontWeight(theme == .bold ? .medium : .regular)
                         .foregroundStyle(theme.text)
                 }
-                .frame(height: 58)
+                .frame(height: 64)
+                .scaleEffect(isSelected ? 1.0 : 0.96)
                 .shadow(
                     color: .black.opacity(isSelected ? palette.shadowOpacity : 0),
                     radius: 5, y: 2
@@ -251,85 +258,16 @@ struct ThemeTile: View {
                     .font(Typography.meta(11))
                     .foregroundStyle(isSelected ? palette.accent : palette.secondaryText)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .animation(.snappy(duration: 0.28), value: isSelected)
+        .sensoryFeedback(.selection, trigger: isSelected) { _, new in new }
+        .accessibilityLabel(theme.label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityIdentifier("theme.\(theme.rawValue)")
-    }
-}
-
-// MARK: - Segmented tabs
-
-/// The three calm sections of the appearance sheet. Tabs keep every control
-/// one tap away — no "More options" disclosure, no long scroll — so each
-/// surface stays uncrowded. This is the custom pattern NativRead uses instead of
-/// Apple Books' single scrolling list.
-enum AppearanceTab: String, CaseIterable, Identifiable {
-    case theme, text, layout
-    var id: String { rawValue }
-
-    var label: LocalizedStringKey {
-        switch self {
-        case .theme:  return "Theme"
-        case .text:   return "Text"
-        case .layout: return "Layout"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .theme:  return "circle.lefthalf.filled"
-        case .text:   return "textformat"
-        case .layout: return "rectangle.portrait.arrowtriangle.2.inward"
-        }
-    }
-}
-
-/// An editorial segmented control: a recessed well with a single raised pill
-/// that slides to the active tab. Selected text takes the accent; the pill
-/// lifts on a soft shadow.
-struct SegmentedTabs: View {
-    @Binding var selection: AppearanceTab
-    let palette: ReaderPalette
-    @Namespace private var pill
-
-    var body: some View {
-        HStack(spacing: Spacing.xxs) {
-            ForEach(AppearanceTab.allCases) { tab in
-                let isSelected = tab == selection
-                Button {
-                    withAnimation(.snappy(duration: 0.28)) { selection = tab }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 12, weight: .semibold))
-                        Text(tab.label)
-                            .font(Typography.body(15))
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 36)
-                    .foregroundStyle(isSelected ? palette.accent : palette.secondaryText)
-                    .background {
-                        if isSelected {
-                            RoundedRectangle(cornerRadius: Spacing.radiusSmall - 2)
-                                .fill(palette.surfaceRaised)
-                                .matchedGeometryEffect(id: "pill", in: pill)
-                                .shadow(
-                                    color: .black.opacity(palette.shadowOpacity * 0.6),
-                                    radius: 3, y: 1
-                                )
-                        }
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("appearance.tab.\(tab.rawValue)")
-            }
-        }
-        .padding(Spacing.xxs)
-        .background(
-            RoundedRectangle(cornerRadius: Spacing.radiusSmall)
-                .fill(palette.surface)
-        )
     }
 }
 

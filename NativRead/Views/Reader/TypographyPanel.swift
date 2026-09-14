@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// The "Aa" appearance sheet: themes, typeface, size, spacing, margins.
-///
-/// Primary controls (theme, size, brightness) sit up top in the compact
-/// detent; typeface and fine-tuning live behind "More". All sliders are the
-/// hand-built `EditorialSlider`; swatches are page-like `ThemeTile`s.
+/// The "Aa" appearance sheet: one scrolling panel in four eyebrow-labelled
+/// sections — Atmosphere, Text, Layout, Comfort — with no tabs. The theme
+/// tiles set "Aa" in the reader's own typeface; every control repaints the
+/// page underneath as it changes.
 struct TypographyPanel: View {
     @Bindable var viewModel: ReaderViewModel
 
@@ -17,29 +16,51 @@ struct TypographyPanel: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var brightness = UIScreen.main.brightness
-    @State private var tab: AppearanceTab = Self.initialTab
-
-    /// UI-test hook: `-appearanceTab text|layout` opens a specific tab for
-    /// screenshots, mirroring the existing `-showTypographyPanel` argument.
-    private static var initialTab: AppearanceTab {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "-appearanceTab"), i + 1 < args.count,
-           let forced = AppearanceTab(rawValue: args[i + 1]) {
-            return forced
-        }
-        return .theme
-    }
+    /// The typeface list is long; it folds under its row until asked for.
+    @State private var isTypefaceListExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             grabber
-            SegmentedTabs(selection: $tab, palette: palette)
             ScrollView {
-                tabContent
-                    .padding(.top, Spacing.xs)
-                    .padding(.bottom, Spacing.lg)
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    section("appearance.section.atmosphere") {
+                        themeGrid
+                        autoThemeToggle
+                    }
+                    divider
+                    section("appearance.section.text") {
+                        sizeGroup
+                        typefaceRow
+                        lineSpacingGroup
+                        justifiedToggle
+                    }
+                    divider
+                    section("appearance.section.layout") {
+                        marginsGroup
+                        flowGroup
+                        if settings.pageFlow == .paged {
+                            transitionRow
+                            // Without this row the picker above looks broken: iOS is
+                            // quietly overriding it and nothing on screen said so.
+                            if reduceMotion { reduceMotionRow }
+                            // Only a regular-width device can ever show two columns.
+                            if horizontalSizeClass == .regular { spreadToggle }
+                        }
+                    }
+                    divider
+                    section("appearance.section.comfort") {
+                        warmthGroup
+                        brightnessGroup
+                    }
+                }
+                .padding(.top, Spacing.xs)
+                .padding(.bottom, Spacing.lg)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: settings.pageFlow)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: isTypefaceListExpanded)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.xs)
@@ -54,70 +75,38 @@ struct TypographyPanel: View {
         .presentationDragIndicator(.hidden)
     }
 
-    /// The active tab's controls. Each tab is a calm, uncrowded column —
-    /// no disclosure, no long scroll in the default detent.
-    @ViewBuilder private var tabContent: some View {
-        switch tab {
-        case .theme:  themeTab
-        case .text:   textTab
-        case .layout: layoutTab
-        }
-    }
-
-    private var themeTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            themeRow
-            autoThemeToggle
-            divider
-            warmthGroup
-            brightnessGroup
-        }
-    }
-
-    private var textTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sizeGroup
-            divider
-            fontList
-            divider
-            lineSpacingGroup
-            justifiedToggle
-        }
-    }
-
-    private var layoutTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            marginsGroup
-            divider
-            flowGroup
-            if settings.pageFlow == .paged {
-                transitionRow
-                // Without this row the picker above looks broken: iOS is
-                // quietly overriding it and nothing on screen said so.
-                if reduceMotion {
-                    reduceMotionRow
-                }
-                // Only a regular-width device can ever show two columns.
-                if horizontalSizeClass == .regular {
-                    spreadToggle
-                }
-            }
+    /// An eyebrow-labelled group: the panel's only structural device, so
+    /// the reader can skim to a section without a mode switch.
+    private func section<Content: View>(
+        _ title: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text(title)
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
+                .foregroundStyle(palette.secondaryText)
+            content()
         }
     }
 
     // MARK: - Theme tiles
 
-    private var themeRow: some View {
-        HStack(spacing: Spacing.sm) {
+    private var themeGrid: some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: 4),
+            spacing: Spacing.sm
+        ) {
             ForEach(ReaderTheme.allCases) { candidate in
                 ThemeTile(
                     theme: candidate,
                     isSelected: candidate == activeTheme,
+                    font: settings.font,
                     palette: palette
                 ) {
                     selectTheme(candidate)
                 }
-                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -352,6 +341,39 @@ struct TypographyPanel: View {
         }
     }
 
+    // MARK: - Typeface (collapsible)
+
+    private var typefaceRow: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                isTypefaceListExpanded.toggle()
+            } label: {
+                HStack {
+                    ControlLabel(title: "appearance.typeface", icon: "textformat", palette: palette)
+                    Spacer()
+                    Text(settings.font.label)
+                        .font(settings.font.previewFont(size: 15))
+                        .foregroundStyle(palette.text)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(palette.secondaryText)
+                        .rotationEffect(.degrees(isTypefaceListExpanded ? 180 : 0))
+                }
+                .frame(minHeight: Spacing.minTapTarget)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("appearance.typeface")
+            .accessibilityValue(settings.font.label)
+
+            if isTypefaceListExpanded {
+                fontList
+                    .padding(.leading, Spacing.sm)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
     // MARK: - Fonts
 
     private var fontList: some View {
@@ -362,7 +384,7 @@ struct TypographyPanel: View {
                 } label: {
                     HStack {
                         Text(candidate.label)
-                            .font(candidate.previewFont)
+                            .font(candidate.previewFont())
                         Spacer()
                         if candidate == settings.font {
                             Image(systemName: "checkmark")
