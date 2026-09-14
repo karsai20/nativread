@@ -19,6 +19,10 @@ final class ReaderJourneyUITests: XCTestCase {
             "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding"
         ]
+        // Device-state probes run against a hand-seeded container.
+        if ProcessInfo.processInfo.environment["PROBE_KEEP_STATE"] != nil {
+            app.launchArguments = ["-skipOnboarding"]
+        }
         app.launch()
     }
 
@@ -220,6 +224,33 @@ final class ReaderJourneyUITests: XCTestCase {
         tapMenuItem("reader.typography")
         XCTAssertTrue(duskSwatch.waitForExistence(timeout: 6))
         XCTAssertTrue(duskSwatch.isSelected)
+    }
+
+    /// Opens whatever book the simulator container already holds and
+    /// scrolls through two chapters, asserting the app answers throughout.
+    /// Run with `TEST_RUNNER_PROBE_KEEP_STATE=1` after seeding the container
+    /// (library.json progress + reader settings) by hand to replay a
+    /// tester's exact state; without the variable it runs on the sample book.
+    func testScrollFlowStaysResponsiveOnSeededState() {
+        let card = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'library.book.'")).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 15))
+        card.tap()
+        let window = app.windows.firstMatch
+        func alive(_ tag: String) {
+            let ok = app.wait(for: .runningForeground, timeout: 5)
+            XCTAssertTrue(ok && window.exists, "app hung at \(tag)")
+        }
+        XCTAssertTrue(app.buttons["reader.back"].waitForExistence(timeout: 15), "reader opens")
+        alive("open"); sleep(2)
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        for i in 0..<10 { app.swipeUp(velocity: .fast); if i % 3 == 2 { alive("swipe\(i)") } }
+        for _ in 0..<10 where !app.buttons["reader.nextChapter"].exists { app.swipeUp(velocity: .fast) }
+        if app.buttons["reader.nextChapter"].exists { app.buttons["reader.nextChapter"].tap() }
+        alive("nextChapter")
+        for i in 0..<10 { app.swipeUp(velocity: .fast); if i % 3 == 2 { alive("ch2-swipe\(i)") } }
+        for _ in 0..<4 { app.swipeDown(velocity: .fast) }
+        alive("final")
     }
 
     func testScrollFlowChapterEndAffordanceAdvancesChapter() {

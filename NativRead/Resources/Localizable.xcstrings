@@ -3088,6 +3088,17 @@
           }
         }
       }
+    },
+    "This chapter keeps crashing the page renderer. Try another chapter or reopen the book." : {
+      "comment" : "Reader error when WebKit's content process dies twice on one chapter.",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez a fejezet folyton összeomlasztja az oldalmegjelenítőt. Próbálj egy másik fejezetet, vagy nyisd meg újra a könyvet."
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

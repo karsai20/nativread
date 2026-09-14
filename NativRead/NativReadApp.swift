@@ -161,6 +161,18 @@ struct NativReadApp: App {
                 }
             }
         }
+        // `-importFile <path>` imports one EPUB from an absolute path, so a
+        // simulator run can be pointed at any book on the Mac.
+        if let flagIndex = arguments.firstIndex(of: "-importFile"),
+           arguments.indices.contains(flagIndex + 1), store.books.isEmpty {
+            do {
+                _ = try store.importBook(
+                    from: URL(fileURLWithPath: arguments[flagIndex + 1])
+                )
+            } catch {
+                NSLog("importFile failed: %@", String(describing: error))
+            }
+        }
         if arguments.contains("-seedShowcaseBooks"), store.books.isEmpty {
             for name in [
                 "alice-wonderland-standard-en",

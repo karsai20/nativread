@@ -1,4 +1,5 @@
 import WebKit
+import os
 
 /// One position report from the reading engine.
 struct ReaderEngineState: Equatable {
@@ -172,6 +173,8 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
         guard normalizedURL.path.hasPrefix(rootPrefix) else { return }
         self.readAccessRoot = normalizedRoot
         navigationGeneration += 1
+        contentProcessReloads = 0
+        didGiveUpOnContentProcess = false
         pendingFraction = fraction
         lastKnownFraction = fraction
         pendingLocate = locate.map { (query: $0.0, occurrence: $0.1) }
@@ -181,9 +184,39 @@ final class ReaderController: NSObject, WKScriptMessageHandler,
 
     /// A foreground WebContent crash leaves the web view blank and deaf
     /// (WebKit only auto-reloads after a background termination). Reload
-    /// the chapter; `ready` then lands on `lastKnownFraction`.
+    /// the chapter once; `ready` then lands on `lastKnownFraction`. A
+    /// process that dies again straight after that reload is dying on this
+    /// chapter itself, and reloading it forever would keep the page hidden
+    /// and make the reader look frozen every time the chapter is opened.
+    /// Give up, show whatever is there, and tell the view model.
+    static let maxContentProcessReloads = 1
+    private(set) var contentProcessReloads = 0
+    private var didGiveUpOnContentProcess = false
+    /// Fired once when the reload budget is spent.
+    var onContentProcessGaveUp: (() -> Void)?
+
+    private static let log = Logger(
+        subsystem: "com.karsai.nativread", category: "reader"
+    )
+
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         navigationGeneration += 1
+        // Visible in Console / sysdiagnose on a tester's phone: which
+        // chapter, which flow, how many times.
+        Self.log.error(
+            "WebContent terminated: flow=\(self.flow.rawValue, privacy: .public) reloads=\(self.contentProcessReloads) url=\(webView.url?.lastPathComponent ?? "-", privacy: .public)"
+        )
+        guard contentProcessReloads < Self.maxContentProcessReloads else {
+            // The dead process leaves a blank page whatever alpha says;
+            // report once so the reader sees a message, not a void.
+            webView.alpha = 1
+            if !didGiveUpOnContentProcess {
+                didGiveUpOnContentProcess = true
+                onContentProcessGaveUp?()
+            }
+            return
+        }
+        contentProcessReloads += 1
         webView.alpha = 0
         webView.reload()
     }

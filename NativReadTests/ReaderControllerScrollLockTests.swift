@@ -110,3 +110,54 @@ final class ReaderControllerScrollLockTests: XCTestCase {
         XCTAssertEqual(controller.pageSize, landscape)
     }
 }
+
+/// A WebContent process that dies again right after the reload it was
+/// given must not be reloaded forever: the page would stay hidden (alpha 0)
+/// and the reader would look frozen, on every reopen of that chapter.
+@MainActor
+final class ReaderControllerProcessTerminationTests: XCTestCase {
+
+    private func makeController() -> ReaderController {
+        ReaderController(
+            pageSize: CGSize(width: 393, height: 852),
+            initialCSS: "",
+            backgroundColor: .white,
+            flow: .scroll,
+            transition: .slide
+        )
+    }
+
+    func testFirstTerminationReloadsAndHidesThePage() {
+        let controller = makeController()
+        controller.webView.alpha = 1
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        XCTAssertEqual(controller.contentProcessReloads, 1)
+        XCTAssertEqual(controller.webView.alpha, 0)
+    }
+
+    func testRepeatedTerminationGivesUpInsteadOfLooping() {
+        let controller = makeController()
+        var gaveUp = 0
+        controller.onContentProcessGaveUp = { gaveUp += 1 }
+        for _ in 0..<5 {
+            controller.webViewWebContentProcessDidTerminate(controller.webView)
+        }
+        XCTAssertEqual(
+            controller.contentProcessReloads,
+            ReaderController.maxContentProcessReloads
+        )
+        XCTAssertEqual(gaveUp, 1, "give up exactly once, then stay quiet")
+        XCTAssertEqual(controller.webView.alpha, 1, "never leave the page hidden")
+    }
+
+    func testReloadBudgetResetsWhenAChapterLoads() {
+        let controller = makeController()
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        XCTAssertEqual(controller.contentProcessReloads, 1)
+        let root = FileManager.default.temporaryDirectory
+        let chapter = root.appendingPathComponent("chapter.xhtml")
+        try? "<html></html>".write(to: chapter, atomically: true, encoding: .utf8)
+        controller.loadChapter(at: chapter, readAccessRoot: root)
+        XCTAssertEqual(controller.contentProcessReloads, 0)
+    }
+}

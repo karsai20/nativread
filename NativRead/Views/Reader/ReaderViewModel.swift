@@ -120,6 +120,14 @@ final class ReaderViewModel {
             self?.finishChapterLoading()
             self?.applyStoredHighlights()
         }
+        controller.onContentProcessGaveUp = { [weak self] in
+            // The chapter keeps killing WebKit's content process. Stop the
+            // veil and say so instead of leaving a blank, frozen-looking page.
+            self?.finishChapterLoading()
+            self?.loadError = String(
+                localized: "This chapter keeps crashing the page renderer. Try another chapter or reopen the book."
+            )
+        }
         controller.onOverscroll = { [weak self] direction in
             if direction == "forward" {
                 return self?.goToNextChapter() ?? false
