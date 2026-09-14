@@ -969,4 +969,25 @@ final class ReaderMotionPreferenceTests: XCTestCase {
         XCTAssertEqual(decoded.theme, .bold)
         XCTAssertEqual(decoded.darkTheme, .night)
     }
+
+    func testReaderStyleEmitsBodyWeightOnlyForBold() {
+        var settings = ReaderSettings()
+        settings.theme = .bold
+        let bold = ReaderStyle.css(settings: settings, pageWidth: 390, pageHeight: 844)
+        XCTAssertTrue(bold.contains("font-weight: 500"))
+        settings.theme = .paper
+        let paper = ReaderStyle.css(settings: settings, pageWidth: 390, pageHeight: 844)
+        XCTAssertTrue(paper.contains("font-weight: 400"))
+        XCTAssertFalse(paper.contains("font-weight: 500"))
+    }
+
+    func testReaderStyleEmitsSizeAwareTrackingAndOpticalSizing() {
+        let css = ReaderStyle.css(
+            settings: ReaderSettings(), pageWidth: 390, pageHeight: 844
+        )
+        XCTAssertTrue(css.contains("font-optical-sizing: auto"))
+        XCTAssertTrue(css.contains("h1, h2, h3 {"))
+        XCTAssertTrue(css.contains("letter-spacing: -0.01em"))
+        XCTAssertTrue(css.contains("letter-spacing: 0.04em"))
+    }
 }

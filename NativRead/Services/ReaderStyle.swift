@@ -208,13 +208,16 @@ enum ReaderStyle {
         return """
         \(fontFaceRule)
         :root { color-scheme: \(theme.isDark ? "dark" : "light"); }
+        html { font-optical-sizing: auto; }
         \(layout)
         body {
             background: \(theme.backgroundHex) !important;
             color: \(theme.textHex) !important;
             font-family: \(settings.font.cssFamily) !important;
             font-size: \(settings.fontSize)px !important;
+            font-weight: \(theme.bodyFontWeight);
             line-height: \(settings.lineHeight) !important;
+            letter-spacing: 0;
             text-rendering: optimizeLegibility;
         }
         /* Books ship their own `p { text-align: justify }`, which beats an
@@ -235,11 +238,21 @@ enum ReaderStyle {
             max-width: 100% !important;
         }
         p { margin: 0 0 0.65em 0; }
-        h1, h2, h3, h4, h5, h6 {
+        /* Tracking and leading follow size: large heads tighten, small
+           labels open up, body stays at 0 (Apple type guidance). */
+        h1, h2, h3 {
+            letter-spacing: -0.01em;
+            line-height: 1.2 !important;
+            text-align: left;
+            break-after: avoid;
+        }
+        h4, h5, h6 {
+            letter-spacing: 0;
             line-height: 1.25 !important;
             text-align: left;
             break-after: avoid;
         }
+        small, .small-caps, [style*="small-caps"] { letter-spacing: 0.04em; }
         img, svg, image, picture, video, object, .calibre1, .calibre2 {
             display: block !important;
             width: auto !important;

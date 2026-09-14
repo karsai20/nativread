@@ -257,6 +257,9 @@ struct ReaderPalette: Equatable {
     let hairlineHex: String
     let shadowOpacity: Double
     let isDark: Bool
+    /// CSS body weight the theme asks for (Bold reads heavier, see
+    /// `ReaderTheme.bodyFontWeight`).
+    let bodyFontWeight: Int
 
     var background: Color { Color(hex: backgroundHex) }
     var text: Color { Color(hex: textHex) }
@@ -344,7 +347,8 @@ struct ReaderSettings: Codable, Equatable {
                 surfaceRaisedHex: theme.surfaceRaisedHex,
                 hairlineHex: theme.hairlineHex,
                 shadowOpacity: theme.shadowOpacity,
-                isDark: theme.isDark
+                isDark: theme.isDark,
+                bodyFontWeight: theme.bodyFontWeight
             )
         }
         func warmed(_ hex: String, cap: Double) -> String {
@@ -367,7 +371,8 @@ struct ReaderSettings: Codable, Equatable {
             ),
             hairlineHex: warmed(theme.hairlineHex, cap: Self.backgroundWarmthCap),
             shadowOpacity: theme.shadowOpacity,
-            isDark: theme.isDark
+            isDark: theme.isDark,
+            bodyFontWeight: theme.bodyFontWeight
         )
     }
 }
