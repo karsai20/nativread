@@ -929,4 +929,44 @@ final class ReaderMotionPreferenceTests: XCTestCase {
         XCTAssertFalse(restored.allowsMotionWhenReduced)
         XCTAssertEqual(restored.pageTransition, .curl)
     }
+
+    func testReaderThemeHasEightCasesLightRowThenDarkRow() {
+        XCTAssertEqual(
+            ReaderTheme.allCases,
+            [.paper, .sepia, .mist, .bold, .dusk, .amber, .ink, .night]
+        )
+        XCTAssertEqual(ReaderTheme.allCases.filter { !$0.isDark }.count, 4)
+        XCTAssertEqual(ReaderTheme.allCases.filter(\.isDark).count, 4)
+    }
+
+    func testNewThemesUseSpecColours() {
+        XCTAssertEqual(ReaderTheme.mist.backgroundHex, "#E3EAE0")
+        XCTAssertEqual(ReaderTheme.mist.textHex, "#25312A")
+        XCTAssertEqual(ReaderTheme.mist.accentHex, "#4E6B58")
+        XCTAssertEqual(ReaderTheme.bold.backgroundHex, "#FBFAF7")
+        XCTAssertEqual(ReaderTheme.bold.textHex, "#141311")
+        XCTAssertEqual(ReaderTheme.bold.accentHex, "#8A2F22")
+        XCTAssertEqual(ReaderTheme.amber.backgroundHex, "#2A1F16")
+        XCTAssertEqual(ReaderTheme.amber.textHex, "#E6CFAE")
+        XCTAssertEqual(ReaderTheme.amber.accentHex, "#D2A263")
+        XCTAssertEqual(ReaderTheme.night.backgroundHex, "#000000")
+        XCTAssertEqual(ReaderTheme.night.textHex, "#CFC9BC")
+        XCTAssertEqual(ReaderTheme.night.accentHex, "#C39A68")
+    }
+
+    func testOnlyBoldThemeUsesMediumBodyWeight() {
+        for theme in ReaderTheme.allCases {
+            XCTAssertEqual(theme.bodyFontWeight, theme == .bold ? 500 : 400, "\(theme)")
+        }
+    }
+
+    func testNewThemesRoundTripThroughSettingsJSON() throws {
+        var settings = ReaderSettings()
+        settings.theme = .bold
+        settings.darkTheme = .night
+        let data = try JSONEncoder().encode(settings)
+        let decoded = try JSONDecoder().decode(ReaderSettings.self, from: data)
+        XCTAssertEqual(decoded.theme, .bold)
+        XCTAssertEqual(decoded.darkTheme, .night)
+    }
 }

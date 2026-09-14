@@ -3,29 +3,39 @@ import SwiftUI
 /// The four reading atmospheres. Chrome colours follow the page so the
 /// whole screen feels like one sheet of paper, the way Apple Books does it.
 enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
-    case paper, sepia, ink, dusk
+    // Tile order: the light row, then the dark row.
+    case paper, sepia, mist, bold, dusk, amber, ink, night
 
     var id: String { rawValue }
 
     // Labels mirror the app-level Light/Dark palette: `paper` is the light
-    // page, `ink` the dark one; `sepia`/`dusk` keep their character names.
+    // page, `ink` the dark one; the rest keep their character names.
     var label: String {
         switch self {
-        case .paper:    return Bundle.main.localizedString(forKey: "theme.label.paper", value: "Light", table: nil)
-        case .sepia:    return Bundle.main.localizedString(forKey: "theme.label.sepia", value: "Sepia", table: nil)
-        case .dusk:     return Bundle.main.localizedString(forKey: "theme.label.dusk", value: "Dusk", table: nil)
-        case .ink:      return Bundle.main.localizedString(forKey: "theme.label.ink", value: "Dark", table: nil)
+        case .paper: return Bundle.main.localizedString(forKey: "theme.label.paper", value: "Light", table: nil)
+        case .sepia: return Bundle.main.localizedString(forKey: "theme.label.sepia", value: "Sepia", table: nil)
+        case .mist:  return Bundle.main.localizedString(forKey: "theme.label.mist", value: "Mist", table: nil)
+        case .bold:  return Bundle.main.localizedString(forKey: "theme.label.bold", value: "Bold", table: nil)
+        case .dusk:  return Bundle.main.localizedString(forKey: "theme.label.dusk", value: "Dusk", table: nil)
+        case .amber: return Bundle.main.localizedString(forKey: "theme.label.amber", value: "Amber", table: nil)
+        case .ink:   return Bundle.main.localizedString(forKey: "theme.label.ink", value: "Dark", table: nil)
+        case .night: return Bundle.main.localizedString(forKey: "theme.label.night", value: "Night", table: nil)
         }
     }
 
-    // Eye-friendly, modern set: no pure white or black, warm low-blue-light
-    // tones, and a unified calm sage accent that ties to the NativRead brand.
+    // Eye-friendly set: no pure white, warm low-blue-light tones. Night is
+    // true black for OLED, Amber the lowest-blue-light page, Mist the
+    // Kindle-style sage, Bold the high-contrast page for readers who need it.
     var backgroundHex: String {
         switch self {
         case .paper: return "#F5F1E8"
         case .sepia: return "#F1E6CF"
-        case .dusk: return "#21252B"
-        case .ink: return "#181A18"
+        case .mist:  return "#E3EAE0"
+        case .bold:  return "#FBFAF7"
+        case .dusk:  return "#21252B"
+        case .amber: return "#2A1F16"
+        case .ink:   return "#181A18"
+        case .night: return "#000000"
         }
     }
 
@@ -33,8 +43,12 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .paper: return "#2B2A26"
         case .sepia: return "#3B3020"
-        case .dusk: return "#CBCED4"
-        case .ink: return "#E7E3D8"
+        case .mist:  return "#25312A"
+        case .bold:  return "#141311"
+        case .dusk:  return "#CBCED4"
+        case .amber: return "#E6CFAE"
+        case .ink:   return "#E7E3D8"
+        case .night: return "#CFC9BC"
         }
     }
 
@@ -42,8 +56,12 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .paper: return "#706E66"
         case .sepia: return "#8C7B5C"
-        case .dusk: return "#868B93"
-        case .ink: return "#9B9A8F"
+        case .mist:  return "#5C6B60"
+        case .bold:  return "#55524C"
+        case .dusk:  return "#868B93"
+        case .amber: return "#A8906E"
+        case .ink:   return "#9B9A8F"
+        case .night: return "#8F8A80"
         }
     }
 
@@ -51,10 +69,19 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .paper: return "#6F7E68"
         case .sepia: return "#6E7A5F"
-        case .dusk: return "#A6B49E"
-        case .ink: return "#A6B49E"
+        case .mist:  return "#4E6B58"
+        case .bold:  return "#8A2F22"
+        case .dusk:  return "#A6B49E"
+        case .amber: return "#D2A263"
+        case .ink:   return "#A6B49E"
+        case .night: return "#C39A68"
         }
     }
+
+    /// CSS `font-weight` for body text. Bold is the one theme that reads
+    /// heavier, not just darker; static faces (Charter, Georgia, Palatino)
+    /// resolve 500 to regular, so there it is contrast-only. Accepted.
+    var bodyFontWeight: Int { self == .bold ? 500 : 400 }
 
     /// Slightly raised fill vs the page background, for grouped wells.
     var surfaceHex: String {
@@ -71,17 +98,19 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
     /// Shadow strength tuned per theme: the dark page needs the strongest.
     var shadowOpacity: Double {
         switch self {
-        case .paper: return 0.10
+        case .paper, .bold, .mist: return 0.10
         case .sepia: return 0.12
         case .dusk:  return 0.30
+        case .amber: return 0.34
         case .ink:   return 0.38
+        case .night: return 0.42
         }
     }
 
     var isDark: Bool {
         switch self {
-        case .paper, .sepia: return false
-        case .dusk, .ink: return true
+        case .paper, .sepia, .mist, .bold: return false
+        case .dusk, .amber, .ink, .night: return true
         }
     }
 
