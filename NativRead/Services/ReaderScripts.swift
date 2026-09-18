@@ -58,14 +58,43 @@ enum ReaderScripts {
                   this.scroller().scrollHeight / window.innerHeight - 0.02
                 ));
               } else {
+                // The spacer (below) is part of the measured width: park
+                // it at the origin first so it never counts.
+                const spacer = this.extentSpacer();
+                spacer.style.left = "0px";
                 // body.scrollWidth, not the scrolling element's: the
                 // column boxes overflow the body and html clips them.
                 const total = Math.max(
                   document.body.scrollWidth,
                   document.scrollingElement.scrollWidth
                 );
-                this.pageCount = Math.max(1, Math.round(total / PW));
+                // ceil, not round: a column that overflows the last page
+                // by more than a hair is a page of its own. Rounding it
+                // away left the last page's target past the scroll range,
+                // so WebKit parked short of it — the page sat shifted with
+                // the previous column's tail showing, and the next sync
+                // rounded back a page, so turns bounced between the two.
+                this.pageCount = Math.max(1, Math.ceil(total / PW - 0.02));
+                // Pin the scroll extent to whole pages: the last page's
+                // target is then exactly the maximum scroll offset, and
+                // syncPagedPage's rounding always agrees with the engine.
+                spacer.style.left = (this.pageCount * PW - 1) + "px";
               }
+            },
+
+            // A 1px marker whose position defines the horizontal scroll
+            // extent of the column scroller (see layout).
+            extentSpacer() {
+              let spacer = document.getElementById("lumen-extent");
+              if (!spacer) {
+                spacer = document.createElement("div");
+                spacer.id = "lumen-extent";
+                spacer.style.cssText =
+                  "position:absolute;top:0;width:1px;height:1px;" +
+                  "pointer-events:none;visibility:hidden";
+                document.body.appendChild(spacer);
+              }
+              return spacer;
             },
 
             // `atRest` false marks a mid-scroll sample: the chrome may
@@ -270,22 +299,28 @@ enum ReaderScripts {
             // handlers at the bottom of the engine feed these.
             curlDrag: null,
 
-            curlDragBegin(forward, touchId) {
-              if (this.curlLive) { return; }
-              const atEdge = forward
+            atChapterEdge(forward) {
+              return forward
                 ? this.page >= this.pageCount - 1
                 : this.page <= 0;
-              if (atEdge) {
+            },
+
+            curlDragBegin(forward, touchId) {
+              if (this.atChapterEdge(forward)) {
                 // Chapter boundary: no in-chapter page to curl to. Track
                 // the pull and report it on release so Swift can advance
                 // the chapter (native overscroll is disabled in curl
-                // mode).
+                // mode). A settling curl does not block this: the
+                // engine page is already the last one, and the pull
+                // needs no sheet — swallowing it made the first swipe
+                // past a chapter end do nothing.
                 this.curlDrag = {
                   edge: forward ? "forward" : "backward",
-                  touchId: touchId, dx: 0
+                  touchId: touchId, dx: 0, t0: performance.now()
                 };
                 return;
               }
+              if (this.curlLive) { return; }
               if (this.curlBroken || !window.WebGLRenderingContext) {
                 // Degraded: no visual scrub, but a committed release
                 // still turns the page with the spring slide.
@@ -894,6 +929,28 @@ enum ReaderScripts {
               this.notify();
             },
 
+            // Paged flow: park the column scroller back on a whole
+            // column. Dragging a selection handle towards the edge makes
+            // WebKit autoscroll the scroller to keep the handle in view,
+            // and that offset is arbitrary — no native drag happened, so
+            // neither the pager's snap nor syncPagedPage's rounding ever
+            // moves the page back, and the chapter sits split between two
+            // columns. Nearest column, not the one we left: a selection
+            // carried onto the next page should land there.
+            snapToColumn() {
+              const left = this.scroller().scrollLeft;
+              const page = Math.min(Math.max(
+                Math.round(left / PW), 0
+              ), this.pageCount - 1);
+              if (Math.abs(left - page * PW) < 1) { return; }
+              this.releaseRestore();
+              this.page = page;
+              window.webkit.messageHandlers.lumen.postMessage({
+                type: "scroll", x: page * PW, animate: true
+              });
+              this.notify();
+            },
+
             // Concatenated body text with per-text-node offsets, the
             // basis for relayout-proof highlight anchoring.
             bodyTextMap() {
@@ -1104,11 +1161,12 @@ enum ReaderScripts {
             const dy = t.clientY - touch.y;
             const drag = lumen.curlDrag;
             if (!drag) {
-              // Horizontal intent only, and never while a turn plays or
-              // the reader is adjusting a text selection.
-              if (lumen.curlLive) { return; }
+              // Horizontal intent only, and never while a turn plays
+              // (except a chapter-edge pull, see curlDragBegin) or the
+              // reader is adjusting a text selection.
               if (Math.abs(dx) < 15
                   || Math.abs(dx) <= Math.abs(dy)) { return; }
+              if (lumen.curlLive && !lumen.atChapterEdge(dx < 0)) { return; }
               const sel = window.getSelection();
               if (sel && !sel.isCollapsed) { return; }
               lumen.curlDragBegin(dx < 0, touch.id);
@@ -1139,7 +1197,14 @@ enum ReaderScripts {
             if (!drag || drag.ended) { return; }
             if (drag.edge) {
               lumen.curlDrag = null;
-              if (!cancelled && Math.abs(drag.dx || 0) >= 70) {
+              // Same commit rule as an in-chapter turn: a flick along
+              // the turn commits regardless of distance, otherwise the
+              // pull has to be a deliberate one. Distance alone left a
+              // quick swipe at the chapter end doing nothing.
+              const dx = Math.abs(drag.dx || 0);
+              const edgeSpeed = dx
+                / Math.max(1, performance.now() - drag.t0);
+              if (!cancelled && (dx >= 70 || edgeSpeed > 0.3)) {
                 window.webkit.messageHandlers.lumen.postMessage({
                   type: "edgeDrag", direction: drag.edge
                 });
@@ -1164,6 +1229,31 @@ enum ReaderScripts {
           document.addEventListener("touchcancel", (e) => {
             curlTouchDone(e, true);
           }, { passive: true });
+
+          // Selection handles autoscroll the column scroller off a page
+          // boundary (see snapToColumn). Settle it when the finger comes
+          // off — only while a selection is live, so a native page drag
+          // keeps its own snap.
+          const settleSelectionScroll = () => {
+            if (MODE !== "paged") { return; }
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed) { return; }
+            // Lifting the handle stops the autoscroll; give it a couple of
+            // frames, then settle only if nothing else has taken the
+            // scroller over in the meantime (a page turn moves it too).
+            const parked = lumen.scroller().scrollLeft;
+            setTimeout(() => {
+              if (lumen.scroller().scrollLeft !== parked) { return; }
+              if (lumen.curlDrag || lumen.curlLive) { return; }
+              lumen.snapToColumn();
+            }, 120);
+          };
+          document.addEventListener(
+            "touchend", settleSelectionScroll, { passive: true }
+          );
+          document.addEventListener(
+            "touchcancel", settleSelectionScroll, { passive: true }
+          );
           // Backgrounding kills animation frames: resolve any live drag
           // instantly (commit past halfway, otherwise restore) so the
           // overlay and the drag latch can never survive into the next

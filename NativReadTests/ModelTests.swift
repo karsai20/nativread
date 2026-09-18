@@ -31,38 +31,44 @@ final class ModelTests: XCTestCase {
 
     // MARK: - Whole-book page estimate
 
-    func testEstimatedBookPagesScalesChapterDensityToWholeBook() {
-        // Chapter 1 (weight 2000 of 4000 total) measures 10 pages, so
-        // the whole book is estimated at 20.
+    func testEstimatedChapterPagesUsesMeasuredChaptersAndScalesTheRest() {
+        // Chapter 1 (weight 2000) measured 10 pages: 200 weight per page,
+        // so the unmeasured 1000-weight chapters estimate at 5 each.
         XCTAssertEqual(
-            Book.estimatedBookPages(
-                chapterPageCount: 10, spineIndex: 1,
-                weights: [1000, 2000, 1000]
+            Book.estimatedChapterPages(
+                measured: [1: 10], weights: [1000, 2000, 1000]
             ),
-            20
+            [5, 10, 5]
         )
     }
 
-    func testEstimatedBookPagesFallsBackToChapterCount() {
-        // No weights (TXT import edge) or a zero-weight chapter: the
-        // only trustworthy number is the measured chapter itself.
+    func testEstimatedChapterPagesKeepsMeasuredCountsAcrossChapters() {
+        // Real numbers from a tester's book: a 7728-byte translated chapter
+        // laid out to 15 pages, the 11647-byte English one after it to 22.
+        // Scaling the whole book from whichever chapter was open turned
+        // "37 / 847" into "36 / 824" on the next page. Measured chapters
+        // must keep their counts; the rest average over what is measured.
+        let pages = Book.estimatedChapterPages(
+            measured: [0: 15, 1: 22], weights: [7728, 11647, 9886]
+        )
+        XCTAssertEqual(Array(pages.prefix(2)), [15, 22])
+        // 37 pages over 19375 weight → 9886 weight ≈ 19 pages.
+        XCTAssertEqual(pages[2], 19)
+    }
+
+    func testEstimatedChapterPagesFallsBackToOnePagePerChapter() {
+        // Nothing measured yet, or degenerate weights: never zero pages.
         XCTAssertEqual(
-            Book.estimatedBookPages(
-                chapterPageCount: 7, spineIndex: 0, weights: []
-            ),
-            7
+            Book.estimatedChapterPages(measured: [:], weights: [100, 100]),
+            [1, 1]
         )
         XCTAssertEqual(
-            Book.estimatedBookPages(
-                chapterPageCount: 7, spineIndex: 1, weights: [100, 0, 100]
-            ),
-            7
+            Book.estimatedChapterPages(measured: [1: 7], weights: [100, 0, 100]),
+            [1, 7, 1]
         )
         XCTAssertEqual(
-            Book.estimatedBookPages(
-                chapterPageCount: 7, spineIndex: 9, weights: [100, 100]
-            ),
-            7
+            Book.estimatedChapterPages(measured: [9: 7], weights: []),
+            []
         )
     }
 

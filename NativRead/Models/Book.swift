@@ -303,20 +303,25 @@ struct Book: Codable, Equatable, Identifiable {
         return min(max((before + inside) / total, 0), 1)
     }
 
-    /// Whole-book page estimate scaled from the current chapter's
-    /// measured density (its page count vs its spine weight), so the
-    /// number tracks the live typography instead of a fixed chars-per-
-    /// page heuristic. Falls back to the measured chapter alone when
-    /// weights are missing or degenerate.
-    static func estimatedBookPages(
-        chapterPageCount: Int,
-        spineIndex: Int,
+    /// Pages per spine item at the current typography. A chapter the
+    /// engine has laid out this session keeps its measured count; the rest
+    /// are scaled from the measured chapters' average density (pages per
+    /// weight unit). Scaling the whole book from whichever chapter is open
+    /// made both numbers of "37 / 847" jump at every chapter boundary.
+    /// Empty when there are no weights (TXT import edge); never a zero.
+    static func estimatedChapterPages(
+        measured: [Int: Int],
         weights: [Double]
-    ) -> Int {
-        let total = weights.reduce(0, +)
-        guard spineIndex < weights.count, weights[spineIndex] > 0,
-              total > 0 else { return max(1, chapterPageCount) }
-        let scaled = Double(chapterPageCount) * total / weights[spineIndex]
-        return max(1, Int(scaled.rounded()))
+    ) -> [Int] {
+        let known = measured.filter {
+            weights.indices.contains($0.key) && weights[$0.key] > 0
+        }
+        let knownPages = known.values.reduce(0, +)
+        let knownWeight = known.keys.reduce(0.0) { $0 + weights[$1] }
+        let density = knownWeight > 0 ? Double(knownPages) / knownWeight : 0
+        return weights.indices.map { index in
+            if let pages = measured[index] { return max(1, pages) }
+            return max(1, Int((weights[index] * density).rounded()))
+        }
     }
 }

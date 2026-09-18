@@ -207,6 +207,7 @@ final class ReaderViewModel {
                     systemDark: self.systemDark
                 )
             )
+            self.measuredPageCounts = [:]
             guard self.parsed != nil else { return }
             self.loadChapter(at: self.spineIndex, fraction: fraction)
         }
@@ -265,6 +266,7 @@ final class ReaderViewModel {
             lastState = (page: state.page, pageCount: state.pageCount)
             page = state.page
             pageCount = state.pageCount
+            measuredPageCounts[spineIndex] = state.pageCount
         }
         // Mid-scroll samples and the not-yet-landed restore are not
         // reading positions; persisting either is how a saved scroll
@@ -391,22 +393,30 @@ final class ReaderViewModel {
     /// Full pages still ahead in this chapter.
     var pagesLeftInChapter: Int { max(0, pageCount - 1 - page) }
 
-    /// Whole-book page estimate at the current typography (see
-    /// `Book.estimatedBookPages`).
-    var estimatedBookPageCount: Int {
-        Book.estimatedBookPages(
-            chapterPageCount: pageCount,
-            spineIndex: spineIndex,
-            weights: book?.spineWeights ?? []
+    /// Chapter page counts the engine reported this session at the
+    /// current typography; reset whenever the layout changes.
+    private var measuredPageCounts: [Int: Int] = [:]
+
+    /// Per-chapter page counts, measured where known and estimated
+    /// elsewhere (see `Book.estimatedChapterPages`).
+    private var chapterPages: [Int] {
+        let pages = Book.estimatedChapterPages(
+            measured: measuredPageCounts, weights: book?.spineWeights ?? []
         )
+        return pages.isEmpty ? [max(1, pageCount)] : pages
     }
 
-    /// Estimated pages already read of `estimatedBookPageCount`,
-    /// clamped so an opened book always shows at least page 1.
+    /// Whole-book page estimate at the current typography.
+    var estimatedBookPageCount: Int { chapterPages.reduce(0, +) }
+
+    /// Pages already read of `estimatedBookPageCount`: every page of the
+    /// chapters before this one plus the page the reader is on. Measured
+    /// chapters keep their counts, so turning into the next chapter can
+    /// only move this forward.
     var estimatedBookPagesRead: Int {
-        let total = estimatedBookPageCount
-        let read = Int((bookFraction * Double(total)).rounded())
-        return min(total, max(1, read))
+        let pages = chapterPages
+        let before = pages.prefix(spineIndex).reduce(0, +)
+        return min(pages.reduce(0, +), before + page + 1)
     }
 
     /// The stored book file, for the share action in the reader menu.
@@ -589,6 +599,7 @@ final class ReaderViewModel {
     }
 
     private func reapplyStyle() {
+        measuredPageCounts = [:]
         controller.applySettings(
             css: ReaderStyle.css(
                 settings: settings,

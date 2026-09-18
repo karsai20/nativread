@@ -88,6 +88,66 @@ final class CurlEngineContractTests: XCTestCase {
         )
     }
 
+    /// A selection handle dragged towards the screen edge makes WebKit
+    /// autoscroll the column scroller, parking a paged chapter between two
+    /// columns. Nothing else snaps it back — no native drag ever happened
+    /// — so the engine has to settle it when the finger lifts.
+    func testSelectionAutoscrollSettlesBackOnAColumn() {
+        for token in [
+            "snapToColumn()",         // the settle itself
+            "settleSelectionScroll",  // hooked to touchend/touchcancel
+            "sel.isCollapsed"         // only while a selection is live
+        ] {
+            XCTAssertTrue(
+                engine.contains(token),
+                "Paged flow lost its \(token) selection-scroll settle"
+            )
+        }
+        // Scroll flow has no columns to land on: the settle must stay out.
+        XCTAssertTrue(
+            ReaderScripts.engine(
+                pageWidth: 393, flow: .scroll, transition: .slide
+            ).contains("MODE !== \"paged\""),
+            "Selection settle lost its paged-only gate"
+        )
+    }
+
+    /// A swipe past the chapter end used to do nothing on the first try:
+    /// a settling curl swallowed it, and a quick flick never reached the
+    /// 70px distance gate. The edge pull must start through a live turn
+    /// and commit on speed like an in-chapter turn.
+    func testChapterEdgePullSurvivesALiveCurlAndCommitsOnFlick() {
+        for token in [
+            "atChapterEdge(",                                     // edge check shared by drag start
+            "if (lumen.curlLive && !lumen.atChapterEdge(dx < 0))", // live turn only blocks in-chapter drags
+            "edgeSpeed > 0.3"                                     // flick commits the edge pull
+        ] {
+            XCTAssertTrue(
+                engine.contains(token),
+                "Chapter-edge pull lost its \(token) rule"
+            )
+        }
+    }
+
+    /// A translated chapter whose footnote block overflowed the last column
+    /// left its last page unreachable: the target sat past the scroll
+    /// range, WebKit parked short of it (page shifted, previous column
+    /// showing) and the next sync rounded back a page, so turns bounced.
+    /// The engine must count overflow as a page and pin the scroll extent
+    /// to whole pages.
+    func testPagedLayoutPinsScrollExtentToWholePages() {
+        for token in [
+            "Math.ceil(total / PW - 0.02)",  // overflow is a page, not a sliver
+            "lumen-extent",                  // the extent spacer
+            "(this.pageCount * PW - 1)"      // parked at the last page's far edge
+        ] {
+            XCTAssertTrue(
+                engine.contains(token),
+                "Paged layout lost its \(token) extent rule"
+            )
+        }
+    }
+
     func testCurlTurnsNeverRequestAnimatedScrollDirectly() {
         // The curl's instant jump must ride animate:false so Swift's
         // spring path can't fight the overlay animation.
