@@ -2,9 +2,9 @@ import SwiftUI
 
 /// The translate flow is not a screen you navigate to: the cover the reader
 /// tapped lifts off the shelf, the shelf dims and recedes, and a material
-/// flap rises under the cover. Spatial consistency — it came from the shelf,
-/// it goes back to the shelf — and everything on it can be grabbed, reversed
-/// and finished by the finger.
+/// flap rises from the bottom edge under the cover. Spatial consistency —
+/// it came from the shelf, it goes back to the shelf; the flap leaves the
+/// way it came. The flap is fixed: close is the X or the scrim.
 ///
 /// Hosts apply `.translationStage(book:namespace:)`; covers on the shelf
 /// apply `.translationHero(for:in:activeBookID:)` so the lift is a matched
@@ -34,7 +34,6 @@ struct TranslationStageModifier: ViewModifier {
                     onClose: { withAnimation(Self.liftAnimation) { presenter.dismiss() } }
                 )
                 .zIndex(1)
-                .transition(.opacity)
             }
         }
         .animation(reduceMotion ? .easeOut(duration: 0.2) : Self.liftAnimation, value: isActive)
@@ -75,7 +74,7 @@ extension View {
     }
 }
 
-/// Scrim, the lifted cover, the close button and the draggable flap.
+/// Scrim, the lifted cover, the close button and the flap.
 struct TranslationStage: View {
     let book: Book
     let heroID: String
@@ -89,15 +88,12 @@ struct TranslationStage: View {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.locale) private var locale
 
-    /// Live drag offset of the flap, in points below its rest position.
-    @State private var dragOffset: CGFloat = 0
     @State private var showsAddedToast = false
 
     private static let coverWidth: CGFloat = 132
     private static let coverTop: CGFloat = 84
     /// How far the cover overlaps the flap's top edge.
     private static let coverOverlap: CGFloat = 34
-    private static let dismissFraction: CGFloat = 0.45
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -118,22 +114,22 @@ struct TranslationStage: View {
             Color.black.opacity(0.62)
                 .ignoresSafeArea()
                 .onTapGesture(perform: onClose)
+                .transition(.opacity)
 
             flap
                 .frame(height: max(320, proxy.size.height - flapTop))
-                .offset(y: dragOffset)
-                .gesture(flapDrag)
+                .transition(.move(edge: .bottom))
 
             cover
                 .frame(maxHeight: .infinity, alignment: .top)
                 .padding(.top, Self.coverTop)
-                .offset(y: dragOffset * 0.35)
                 .allowsHitTesting(false)
 
             closeButton
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 .padding(.trailing, Spacing.md)
                 .padding(.top, Spacing.xs)
+                .transition(.opacity)
 
             if showsAddedToast { toast }
         }
@@ -185,7 +181,6 @@ struct TranslationStage: View {
         Color.clear
             .overlay { BookCard.cover(book: book, coverURL: library.coverURL(for: book)) }
             .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .overlay(alignment: .topTrailing) { ribbon }
     }
 
     /// The translated jacket: same art, the edition named along the bottom.
@@ -210,28 +205,17 @@ struct TranslationStage: View {
         String(localized: "\(job.targetLanguage.localizedName(in: locale)) edition")
     }
 
-    private var ribbon: some View {
-        Text(verbatim: editionName)
-            .font(Typography.control(8.5, weight: .semibold))
-            .tracking(1)
-            .textCase(.uppercase)
-            .foregroundStyle(Color(hex: "#5E5641"))
-            .lineLimit(1)
-            .fixedSize()
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(palette.noteSoft)
-            .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 3))
-            .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
-            .offset(x: 7, y: 14)
-    }
-
     // MARK: - Flap
 
+    /// Scrolls only when the flap is shorter than its content (small phones,
+    /// large type); otherwise it does not move under the finger at all.
     private var flap: some View {
-        TranslationSheet(book: book)
-            .padding(.top, Self.coverOverlap + Spacing.lg)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        ScrollView {
+            TranslationSheet(book: book)
+                .padding(.top, Self.coverOverlap + Spacing.lg)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background {
                 flapMaterial
                     .clipShape(UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30, style: .continuous))
@@ -242,9 +226,6 @@ struct TranslationStage: View {
                     }
                     .shadow(color: .black.opacity(0.35), radius: 30, y: -10)
                     .ignoresSafeArea(edges: .bottom)
-            }
-            .overlay(alignment: .top) {
-                Capsule().fill(palette.text.opacity(0.18)).frame(width: 36, height: 5).padding(.top, 10)
             }
     }
 
@@ -260,33 +241,6 @@ struct TranslationStage: View {
             Rectangle().fill(.ultraThinMaterial)
                 .overlay(palette.surface.opacity(0.55))
         }
-    }
-
-    /// 1:1 tracking, a rubber band above rest, and momentum decides the
-    /// release: the finger's projected end (Apple's deceleration model) past
-    /// half the flap dismisses, anything else springs home — with the drag's
-    /// velocity carried into the spring, so there is no seam.
-    private var flapDrag: some Gesture {
-        DragGesture(minimumDistance: 6, coordinateSpace: .local)
-            .onChanged { value in
-                let y = value.translation.height
-                dragOffset = y >= 0 ? y : rubberBand(y)
-            }
-            .onEnded { value in
-                let projected = value.predictedEndTranslation.height
-                if projected > 260 * Self.dismissFraction || value.velocity.height > 1200 {
-                    onClose()
-                } else {
-                    withAnimation(.interactiveSpring(response: 0.42, dampingFraction: 1, blendDuration: 0)) {
-                        dragOffset = 0
-                    }
-                }
-            }
-    }
-
-    private func rubberBand(_ overshoot: CGFloat) -> CGFloat {
-        let dimension: CGFloat = 520, constant: CGFloat = 0.55
-        return (overshoot * dimension * constant) / (dimension + constant * abs(overshoot))
     }
 
     // MARK: - Chrome

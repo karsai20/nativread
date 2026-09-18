@@ -46,24 +46,7 @@ struct TranslateBookRow: View {
                         .foregroundStyle(palette.secondaryText)
                         .lineLimit(1)
 
-                    if languageLabel == nil {
-                        // The verb, not a chevron: nothing is pushed — the
-                        // cover lifts onto the stage, where this same
-                        // capsule grows into the one action. Below the
-                        // author so the title keeps the row's full width.
-                        Label {
-                            Text("Translate")
-                        } icon: {
-                            Icon(icon, size: 12)
-                        }
-                        .font(Typography.control(13, weight: .semibold))
-                        .foregroundStyle(Color(hex: "#F7F5EE"))
-                        .padding(.horizontal, Spacing.sm)
-                        .padding(.vertical, 6)
-                        .background(palette.accent)
-                        .clipShape(Capsule(style: .continuous))
-                        .padding(.top, 4)
-                    } else if let languageLabel {
+                    if let languageLabel {
                         Label {
                             Text(languageLabel)
                         } icon: {
@@ -80,10 +63,8 @@ struct TranslateBookRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                if languageLabel != nil {
-                    Icon(.chevronRight, size: 13)
-                        .foregroundStyle(palette.tertiaryText)
-                }
+                Icon(.chevronRight, size: 13)
+                    .foregroundStyle(palette.tertiaryText)
             }
             .padding(Spacing.sm)
             .background(background)
