@@ -1853,6 +1853,16 @@
         }
       }
     },
+    "Ready in %@" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kész %@ alatt"
+          }
+        }
+      }
+    },
     "Ready to translate" : {
       "extractionState" : "stale",
       "localizations" : {

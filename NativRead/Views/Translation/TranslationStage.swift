@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// The translate flow is not a screen you navigate to: the cover the reader
-/// tapped lifts off the shelf, the shelf dims and recedes, and a material
-/// flap rises from the bottom edge under the cover. Spatial consistency —
-/// it came from the shelf, it goes back to the shelf; the flap leaves the
-/// way it came. The flap is fixed: close is the X or the scrim.
+/// The translate flow is a book page, the way a store shows one title: the
+/// cover the reader tapped lifts off the shelf onto a paper page that fades
+/// in beneath it — no scrim, no glass. Spatial consistency: it came from the
+/// shelf, it goes back to the shelf. Nothing drags; close is the X.
 ///
 /// Hosts apply `.translationStage(book:namespace:)`; covers on the shelf
 /// apply `.translationHero(for:in:activeBookID:)` so the lift is a matched
@@ -21,8 +20,7 @@ struct TranslationStageModifier: ViewModifier {
         let isActive = presenter.book != nil
         ZStack {
             content
-                .scaleEffect(isActive && !reduceMotion ? 0.94 : 1)
-                .blur(radius: isActive && !reduceMotion ? 6 : 0)
+                .scaleEffect(isActive && !reduceMotion ? 0.96 : 1)
                 .allowsHitTesting(!isActive)
                 .accessibilityHidden(isActive)
 
@@ -74,7 +72,7 @@ extension View {
     }
 }
 
-/// Scrim, the lifted cover, the close button and the flap.
+/// Paper page: the lifted cover, the book's details, the close button.
 struct TranslationStage: View {
     let book: Book
     let heroID: String
@@ -85,15 +83,11 @@ struct TranslationStage: View {
     @Environment(TranslationStore.self) private var translations
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.locale) private var locale
 
     @State private var showsAddedToast = false
 
-    private static let coverWidth: CGFloat = 132
-    private static let coverTop: CGFloat = 84
-    /// How far the cover overlaps the flap's top edge.
-    private static let coverOverlap: CGFloat = 34
+    private static let coverWidth: CGFloat = 150
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -109,30 +103,30 @@ struct TranslationStage: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-        ZStack(alignment: .bottom) {
-            Color.black.opacity(0.62)
+        ZStack(alignment: .topTrailing) {
+            palette.background
                 .ignoresSafeArea()
-                .onTapGesture(perform: onClose)
                 .transition(.opacity)
 
-            flap
-                .frame(height: max(320, proxy.size.height - flapTop))
-                .transition(.move(edge: .bottom))
+            VStack(spacing: 0) {
+                cover
+                    .padding(.top, Spacing.xl)
+                    .transition(.identity)
 
-            cover
-                .frame(maxHeight: .infinity, alignment: .top)
-                .padding(.top, Self.coverTop)
-                .allowsHitTesting(false)
+                TranslationSheet(book: book)
+                    .padding(.top, Spacing.lg)
+                    .frame(maxHeight: .infinity)
+                    .transition(.opacity)
+            }
 
             closeButton
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(.trailing, Spacing.md)
+                .padding(.trailing, Spacing.lg)
                 .padding(.top, Spacing.xs)
                 .transition(.opacity)
 
-            if showsAddedToast { toast }
-        }
+            if showsAddedToast {
+                toast.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            }
         }
         .accessibilityIdentifier("translation.sheet")
         .onChange(of: job.phase) { _, phase in
@@ -158,21 +152,8 @@ struct TranslationStage: View {
                 .opacity(isFlipped ? 1 : 0)
         }
         .frame(width: Self.coverWidth, height: Self.coverWidth * 1.5)
-        .rotation3DEffect(
-            .degrees(isFlipped ? 180 : (reduceMotion ? 0 : -9)),
-            axis: (x: 0, y: 1, z: 0), perspective: 0.6
-        )
-        .rotation3DEffect(.degrees(reduceMotion ? 0 : 2), axis: (x: 1, y: 0, z: 0), perspective: 0.6)
-        .shadow(color: .black.opacity(0.55), radius: 22, y: 18)
-        .background {
-            // Spotlight: the one place the stage spends its light.
-            RadialGradient(
-                colors: [Color(hex: "#CFE3D6").opacity(0.22), .clear],
-                center: .center, startRadius: 10, endRadius: 210
-            )
-            .frame(width: 420, height: 420)
-            .allowsHitTesting(false)
-        }
+        .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
+        .shadow(color: .black.opacity(palette.isDark ? 0.5 : 0.22), radius: 18, y: 10)
         .animation(.spring(response: 0.6, dampingFraction: 0.86), value: isFlipped)
         .matchedGeometryEffect(id: heroID, in: namespace, isSource: true)
     }
@@ -205,55 +186,16 @@ struct TranslationStage: View {
         String(localized: "\(job.targetLanguage.localizedName(in: locale)) edition")
     }
 
-    // MARK: - Flap
-
-    /// Scrolls only when the flap is shorter than its content (small phones,
-    /// large type); otherwise it does not move under the finger at all.
-    private var flap: some View {
-        ScrollView {
-            TranslationSheet(book: book)
-                .padding(.top, Self.coverOverlap + Spacing.lg)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background {
-                flapMaterial
-                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30, style: .continuous))
-                    .overlay(alignment: .top) {
-                        UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30, style: .continuous)
-                            .strokeBorder(.white.opacity(0.6), lineWidth: 1)
-                            .mask(alignment: .top) { Rectangle().frame(height: 60) }
-                    }
-                    .shadow(color: .black.opacity(0.35), radius: 30, y: -10)
-                    .ignoresSafeArea(edges: .bottom)
-            }
-    }
-
-    /// Where the flap's top edge sits relative to the cover: overlapping its
-    /// lower third, so the cover reads as resting on the flap.
-    private var flapTop: CGFloat { Self.coverTop + Self.coverWidth * 1.5 - Self.coverOverlap }
-
-    @ViewBuilder
-    private var flapMaterial: some View {
-        if reduceTransparency {
-            palette.background
-        } else {
-            Rectangle().fill(.ultraThinMaterial)
-                .overlay(palette.surface.opacity(0.55))
-        }
-    }
-
     // MARK: - Chrome
 
     private var closeButton: some View {
         Button(action: onClose) {
             Icon(.x, size: 16)
-                .foregroundStyle(Color(hex: "#F4F1E9"))
+                .foregroundStyle(palette.text)
                 .frame(width: 38, height: 38)
-                .background(.ultraThinMaterial.opacity(reduceTransparency ? 0 : 1))
-                .background(.white.opacity(reduceTransparency ? 0.3 : 0.12))
+                .background(palette.surface)
                 .clipShape(Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.35)))
+                .overlay(Circle().strokeBorder(palette.hairline))
         }
         .buttonStyle(PressScaleButtonStyle(reduceMotion: reduceMotion))
         .accessibilityLabel("Close")
@@ -268,7 +210,7 @@ struct TranslationStage: View {
             .padding(.vertical, Spacing.sm)
             .background(palette.text.opacity(0.92))
             .clipShape(Capsule())
-            .padding(.bottom, 104)
+            .padding(.bottom, Spacing.xl)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .accessibilityIdentifier("translation.addedToast")
     }

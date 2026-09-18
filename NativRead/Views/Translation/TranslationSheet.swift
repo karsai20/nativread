@@ -43,10 +43,9 @@ struct TranslationSheet: View {
     }
 
 
-    /// Everything on the flap is something the reader uses: the languages (a
-    /// choice), two facts, one action, one free sample — no cards, no bands,
-    /// no checkbox paragraph. The stage around it (cover, scrim, drag) lives in
-    /// `TranslationStage`; this view is the jacket flap under the cover.
+    /// Everything on the page is something the reader uses: the title and
+    /// its facts, the languages (one choice), one action, one free sample.
+    /// The cover above it lives in `TranslationStage`.
     var body: some View {
         VStack(spacing: 0) {
             Text(kicker)
@@ -69,13 +68,10 @@ struct TranslationSheet: View {
                 .foregroundStyle(palette.secondaryText)
                 .padding(.top, Spacing.xxs)
 
-            languageRow
-                .padding(.top, Spacing.md)
+            languageCard
+                .padding(.top, Spacing.lg)
 
-            factsStrip
-                .padding(.top, Spacing.sm)
-
-            Spacer(minLength: Spacing.md)
+            Spacer(minLength: Spacing.lg)
 
             actionArea
                 .animation(.easeInOut(duration: 0.22), value: hasBackendIdentity)
@@ -87,7 +83,7 @@ struct TranslationSheet: View {
                 .padding(.top, Spacing.xs)
         }
         .padding(.horizontal, Spacing.lg)
-        .padding(.bottom, Spacing.lg)
+        .padding(.bottom, Spacing.sm)
         .frame(maxWidth: 520)
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
@@ -136,23 +132,31 @@ struct TranslationSheet: View {
         }
     }
 
+    /// Author, length in chapters and in hours — the facts a reader weighs
+    /// before paying for a whole book, on one line under the title.
     private var authorLine: String {
         let chapters = max(1, book.spineWeights.count)
-        return "\(book.author) · " + String.localizedStringWithFormat(
+        var parts = [book.author, String.localizedStringWithFormat(
             String(localized: "%lld chapters", locale: locale), chapters
-        )
+        )]
+        if let hours = readingHours {
+            parts.append(String.localizedStringWithFormat(
+                String(localized: "%lld h", locale: locale), hours
+            ))
+        }
+        return parts.joined(separator: " · ")
     }
 
-    /// "From" is what the app detected and is only shown; "Into" is the one
-    /// choice on the flap.
-    private var languageRow: some View {
-        HStack(alignment: .bottom, spacing: Spacing.sm) {
-            VStack(alignment: .leading, spacing: Spacing.xxs + 2) {
-                flapLabel("From")
+    /// One grouped row: what the app detected on the left, the one choice on
+    /// the right. "From" is shown, never asked.
+    private var languageCard: some View {
+        HStack(spacing: Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                pageLabel("From")
                 Text(verbatim: sourceLanguageName)
                     .font(Typography.control(16, weight: .medium))
                     .foregroundStyle(palette.text)
-                    .frame(minHeight: 42, alignment: .leading)
+                    .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
@@ -160,23 +164,26 @@ struct TranslationSheet: View {
 
             Icon(.arrowRight, size: 14)
                 .foregroundStyle(palette.tertiaryText)
-                .frame(minHeight: 42)
 
-            VStack(alignment: .leading, spacing: Spacing.xxs + 2) {
-                flapLabel("Into")
-                targetLanguageMenu
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            targetLanguageMenu
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(.horizontal, Spacing.md)
+        .padding(.vertical, Spacing.sm + 2)
+        .background(palette.surface)
+        .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusGroup, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Spacing.radiusGroup, style: .continuous)
+                .strokeBorder(palette.hairline)
+        )
     }
 
-    private func flapLabel(_ key: LocalizedStringKey) -> some View {
+    private func pageLabel(_ key: LocalizedStringKey) -> some View {
         Text(key)
             .font(Typography.control(10, weight: .semibold))
             .tracking(1.2)
             .textCase(.uppercase)
             .foregroundStyle(palette.tertiaryText)
-            .padding(.leading, 2)
     }
 
     private var sourceLanguageName: String {
@@ -210,53 +217,20 @@ struct TranslationSheet: View {
                 .disabled(!isAvailable || job.phase.isInFlight)
             }
         } label: {
-            HStack(spacing: Spacing.xs) {
-                Text(verbatim: job.targetLanguage.localizedName(in: locale))
-                    .font(Typography.control(16, weight: .medium))
-                    .foregroundStyle(palette.text)
-                Spacer(minLength: 0)
-                Icon(.chevronDown, size: 12)
-                    .foregroundStyle(palette.secondaryText)
+            VStack(alignment: .leading, spacing: 2) {
+                pageLabel("Into")
+                HStack(spacing: Spacing.xs) {
+                    Text(verbatim: job.targetLanguage.localizedName(in: locale))
+                        .font(Typography.control(16, weight: .medium))
+                        .foregroundStyle(palette.accent)
+                        .lineLimit(1)
+                    Icon(.chevronDown, size: 12)
+                        .foregroundStyle(palette.accent)
+                }
             }
-            .padding(.horizontal, Spacing.sm)
-            .frame(minHeight: 42)
-            .background(palette.surface.opacity(0.85))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(palette.hairline)
-            )
+            .contentShape(Rectangle())
         }
         .accessibilityIdentifier("translation.targetLanguage")
-    }
-
-    /// Two numbers the reader actually weighs: how long the book is to read,
-    /// and how long until the translation lands.
-    private var factsStrip: some View {
-        HStack(spacing: 0) {
-            fact(value: readingTimeText, caption: "of reading")
-            Rectangle().fill(palette.hairline).frame(width: Spacing.hairlineWidth, height: 34)
-            fact(value: readyInText, caption: "until ready")
-        }
-        .padding(.vertical, Spacing.xs)
-        .overlay(alignment: .top) { Rectangle().fill(palette.hairline).frame(height: Spacing.hairlineWidth) }
-        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: Spacing.hairlineWidth) }
-        .accessibilityElement(children: .combine)
-    }
-
-    private func fact(value: String, caption: LocalizedStringKey) -> some View {
-        VStack(spacing: 3) {
-            Text(verbatim: value)
-                .font(Typography.body(16))
-                .foregroundStyle(palette.text)
-                .monospacedDigit()
-            Text(caption)
-                .font(Typography.control(9.5, weight: .medium))
-                .tracking(1)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.tertiaryText)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     /// Source characters the flap knows about — the library's count, or the
@@ -270,14 +244,13 @@ struct TranslationSheet: View {
     private static let charactersPerReadingHour = 68_000.0
     private static let charactersPerTranslatorMinute = 200_000.0
 
-    private var readingTimeText: String {
-        guard let characters = knownSourceCharacters, characters > 0 else { return "—" }
-        let hours = max(1, Int((Double(characters) / Self.charactersPerReadingHour).rounded()))
-        return String.localizedStringWithFormat(String(localized: "%lld h", locale: locale), hours)
+    private var readingHours: Int? {
+        guard let characters = knownSourceCharacters, characters > 0 else { return nil }
+        return max(1, Int((Double(characters) / Self.charactersPerReadingHour).rounded()))
     }
 
-    private var readyInText: String {
-        guard let characters = knownSourceCharacters, characters > 0 else { return "—" }
+    private var readyInText: String? {
+        guard let characters = knownSourceCharacters, characters > 0 else { return nil }
         let minutes = max(3, Int((Double(characters) / Self.charactersPerTranslatorMinute).rounded()))
         return "≈ " + String.localizedStringWithFormat(String(localized: "%lld min", locale: locale), minutes)
     }
@@ -463,7 +436,10 @@ struct TranslationSheet: View {
     }
 
     private var finePrintText: AttributedString {
-        let markdown = String(localized: "Yours for good, no subscription · by continuing you confirm you own this book · [Terms of Use](nativread://terms)")
+        var markdown = String(localized: "Yours for good, no subscription · by continuing you confirm you own this book · [Terms of Use](nativread://terms)")
+        if let readyInText, !job.isBackendActive, !job.hasFullTranslation {
+            markdown = String(localized: "Ready in \(readyInText)") + " · " + markdown
+        }
         guard var text = try? AttributedString(markdown: markdown) else {
             return AttributedString(markdown)
         }
