@@ -18,6 +18,7 @@ struct TranslateBookRow: View {
     var heroPresenter: TranslationPresenter? = nil
     let action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var tint: Color?
 
     private var fallbackTint: Color { GeneratedCover.palette(for: book.title).0 }
@@ -26,9 +27,9 @@ struct TranslateBookRow: View {
         Button(action: action) {
             HStack(spacing: Spacing.sm) {
                 BookCard.cover(book: book, coverURL: coverURL)
-                    .frame(width: 46, height: 69)
+                    .frame(width: 56, height: 84)
                     .clipShape(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
                     )
                     .modifier(RowHeroSource(book: book, namespace: heroNamespace, presenter: heroPresenter))
                     .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 3)
@@ -45,7 +46,24 @@ struct TranslateBookRow: View {
                         .foregroundStyle(palette.secondaryText)
                         .lineLimit(1)
 
-                    if let languageLabel {
+                    if languageLabel == nil {
+                        // The verb, not a chevron: nothing is pushed — the
+                        // cover lifts onto the stage, where this same
+                        // capsule grows into the one action. Below the
+                        // author so the title keeps the row's full width.
+                        Label {
+                            Text("Translate")
+                        } icon: {
+                            Icon(icon, size: 12)
+                        }
+                        .font(Typography.control(13, weight: .semibold))
+                        .foregroundStyle(Color(hex: "#F7F5EE"))
+                        .padding(.horizontal, Spacing.sm)
+                        .padding(.vertical, 6)
+                        .background(palette.accent)
+                        .clipShape(Capsule(style: .continuous))
+                        .padding(.top, 4)
+                    } else if let languageLabel {
                         Label {
                             Text(languageLabel)
                         } icon: {
@@ -62,8 +80,10 @@ struct TranslateBookRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Icon(.chevronRight, size: 13)
-                    .foregroundStyle(palette.tertiaryText)
+                if languageLabel != nil {
+                    Icon(.chevronRight, size: 13)
+                        .foregroundStyle(palette.tertiaryText)
+                }
             }
             .padding(Spacing.sm)
             .background(background)
@@ -73,7 +93,8 @@ struct TranslateBookRow: View {
                 )
             )
         }
-        .buttonStyle(.plain)
+        // Answers on touch-down; the lift itself follows on release.
+        .buttonStyle(PressScaleButtonStyle(reduceMotion: reduceMotion))
         .task(id: coverURL?.path) {
             tint = await CoverTint.load(coverURL)
         }

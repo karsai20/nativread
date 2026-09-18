@@ -57,8 +57,8 @@ struct AppTabBar<Tab: Hashable & CaseIterable>: View where Tab.AllCases: RandomA
         } else if #available(iOS 26, *) {
             Color.clear.glassEffect(.regular, in: Capsule(style: .continuous))
         } else {
-            Rectangle().fill(.ultraThinMaterial)
-                .overlay(palette.surface.opacity(0.35))
+            Rectangle().fill(.regularMaterial)
+                .overlay(palette.surface.opacity(0.5))
         }
     }
 
@@ -79,10 +79,13 @@ struct AppTabBar<Tab: Hashable & CaseIterable>: View where Tab.AllCases: RandomA
                 )
                     .frame(width: 30, height: 26)
                 Text(item.title)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
                     .lineLimit(1)
             }
-            .foregroundStyle(isSelected ? palette.accent : palette.secondaryText)
+            // Ink, not the accent: the bar floats over covers and pages,
+            // where the mid-tone accent and secondary text both wash out.
+            // Selection reads from the pill and the full-strength ink.
+            .foregroundStyle(isSelected ? palette.text : palette.text.opacity(0.62))
             .frame(maxWidth: .infinity, minHeight: 50)
             .background {
                 if isSelected {
