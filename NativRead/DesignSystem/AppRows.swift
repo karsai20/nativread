@@ -48,7 +48,7 @@ struct AppSettingsSection<Content: View>: View {
 /// One line in an `AppSettingsSection`. A row with an `action` behaves as a
 /// button and shows a chevron unless it carries its own trailing control.
 struct AppSettingsRow<Trailing: View>: View {
-    let systemImage: String?
+    let icon: LucideIcon?
     let title: LocalizedStringKey
     var value: String? = nil
     var isDestructive: Bool = false
@@ -79,7 +79,7 @@ struct AppSettingsRow<Trailing: View>: View {
 
     private var content: some View {
         AppSettingsRowLabel(
-            systemImage: systemImage,
+            icon: icon,
             title: title,
             value: value,
             isDestructive: isDestructive,
@@ -94,7 +94,7 @@ struct AppSettingsRow<Trailing: View>: View {
 
 /// The same row, but pushing a destination instead of running a closure.
 struct AppSettingsLink<Destination: View>: View {
-    let systemImage: String?
+    let icon: LucideIcon?
     let title: LocalizedStringKey
     var value: String? = nil
     var hidesSeparator: Bool = false
@@ -107,7 +107,7 @@ struct AppSettingsLink<Destination: View>: View {
                 destination
             } label: {
                 AppSettingsRowLabel(
-                    systemImage: systemImage,
+                    icon: icon,
                     title: title,
                     value: value,
                     isDestructive: false,
@@ -133,7 +133,7 @@ struct AppSettingsLink<Destination: View>: View {
 /// The visual contents of a settings row, shared by the tappable and the
 /// navigating variants so the two can never drift apart.
 struct AppSettingsRowLabel<Trailing: View>: View {
-    let systemImage: String?
+    let icon: LucideIcon?
     let title: LocalizedStringKey
     let value: String?
     let isDestructive: Bool
@@ -143,9 +143,8 @@ struct AppSettingsRowLabel<Trailing: View>: View {
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            if let systemImage {
-                Image(systemName: systemImage)
-                    .font(.system(size: 15, weight: .medium))
+            if let icon {
+                Icon(icon, size: 15)
                     .foregroundStyle(isDestructive ? palette.danger : palette.accent)
                     .frame(width: 30, height: 30)
                     .background(isDestructive ? palette.noteSoft : palette.accentSoft)
@@ -168,8 +167,7 @@ struct AppSettingsRowLabel<Trailing: View>: View {
                 }
                 trailing
                 if showsChevron {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
+                    Icon(.chevronRight, size: 13)
                         .foregroundStyle(palette.tertiaryText)
                 }
             }
@@ -183,7 +181,7 @@ struct AppSettingsRowLabel<Trailing: View>: View {
 
 extension AppSettingsRow where Trailing == EmptyView {
     init(
-        systemImage: String? = nil,
+        icon: LucideIcon? = nil,
         title: LocalizedStringKey,
         value: String? = nil,
         isDestructive: Bool = false,
@@ -192,7 +190,7 @@ extension AppSettingsRow where Trailing == EmptyView {
         palette: BrandPalette
     ) {
         self.init(
-            systemImage: systemImage,
+            icon: icon,
             title: title,
             value: value,
             isDestructive: isDestructive,

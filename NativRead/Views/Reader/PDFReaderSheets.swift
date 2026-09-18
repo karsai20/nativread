@@ -31,7 +31,7 @@ struct PDFContentsSheet: View {
         let toc = viewModel.toc
         if toc.isEmpty {
             emptyState(
-                icon: "list.bullet",
+                icon: .list,
                 title: "No contents",
                 detail: "This PDF has no embedded outline"
             )
@@ -71,7 +71,7 @@ struct PDFContentsSheet: View {
         let bookmarks = viewModel.book?.bookmarks ?? []
         if bookmarks.isEmpty {
             emptyState(
-                icon: "bookmark",
+                icon: .bookmark,
                 title: "No bookmarks yet",
                 detail: nil
             )
@@ -102,7 +102,7 @@ struct PDFContentsSheet: View {
                             Button(role: .destructive) {
                                 viewModel.removeBookmark(bookmark)
                             } label: {
-                                Label("Remove", systemImage: "trash")
+                                Label { Text("Remove") } icon: { Icon(.trash2, size: 16) }
                             }
                         }
                     }
@@ -112,11 +112,10 @@ struct PDFContentsSheet: View {
     }
 
     private func emptyState(
-        icon: String, title: String, detail: String?
+        icon: LucideIcon, title: String, detail: String?
     ) -> some View {
         VStack(spacing: Spacing.xs) {
-            Image(systemName: icon)
-                .font(.system(size: 28))
+            Icon(icon, size: 28)
                 .foregroundStyle(palette.secondaryText)
             Text(LocalizedStringKey(title))
                 .font(Typography.title())
@@ -141,7 +140,7 @@ struct PDFSearchSheet: View {
     var body: some View {
         VStack(spacing: Spacing.md) {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: "magnifyingglass")
+                Icon(.search, size: 18)
                     .foregroundStyle(palette.secondaryText)
                 TextField("Search in book", text: $viewModel.searchQuery)
                     .focused($isFieldFocused)
@@ -154,7 +153,7 @@ struct PDFSearchSheet: View {
                     Button {
                         viewModel.searchQuery = ""
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        Icon(.circleX, size: 18)
                             .foregroundStyle(palette.secondaryText)
                     }
                 }
@@ -196,8 +195,7 @@ struct PDFSearchSheet: View {
 
     private var emptyState: some View {
         VStack(spacing: Spacing.xs) {
-            Image(systemName: "text.page.badge.magnifyingglass")
-                .font(.system(size: 28))
+            Icon(.fileSearch, size: 28)
                 .foregroundStyle(palette.secondaryText)
             Text(emptyStateMessage)
                 .font(Typography.title())
@@ -269,10 +267,10 @@ struct PDFAppearanceSheet: View {
 
     private var palette: ReaderPalette { viewModel.palette }
 
-    private let modes: [(label: String, theme: ReaderTheme, icon: String)] = [
-        ("Light", .paper, "sun.max"),
-        ("Sepia", .sepia, "book.closed"),
-        ("Dark", .ink, "moon.stars")
+    private let modes: [(label: String, theme: ReaderTheme, icon: LucideIcon)] = [
+        ("Light", .paper, .sun),
+        ("Sepia", .sepia, .book),
+        ("Dark", .ink, .moonStar)
     ]
 
     var body: some View {
@@ -300,7 +298,7 @@ struct PDFAppearanceSheet: View {
                 .textCase(.uppercase)
                 .foregroundStyle(palette.secondaryText)
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "sun.min")
+                Icon(.sunDim, size: 18)
                     .foregroundStyle(palette.secondaryText)
                 Slider(value: $brightness, in: 0...1) { _ in } // continuous
                     .tint(palette.accent)
@@ -308,7 +306,7 @@ struct PDFAppearanceSheet: View {
                         UIScreen.main.brightness = CGFloat(brightness)
                     }
                     .accessibilityIdentifier("appearance.brightness")
-                Image(systemName: "sun.max")
+                Icon(.sun, size: 18)
                     .foregroundStyle(palette.secondaryText)
             }
         }
@@ -330,15 +328,14 @@ struct PDFAppearanceSheet: View {
     }
 
     private func modeButton(
-        _ mode: (label: String, theme: ReaderTheme, icon: String)
+        _ mode: (label: String, theme: ReaderTheme, icon: LucideIcon)
     ) -> some View {
         let isSelected = viewModel.currentTheme == mode.theme
         return Button {
             viewModel.setTheme(mode.theme)
         } label: {
             VStack(spacing: Spacing.xxs) {
-                Image(systemName: mode.icon)
-                    .font(.system(size: 18))
+                Icon(mode.icon, size: 18)
                 Text(LocalizedStringKey(mode.label))
                     .font(Typography.meta(12))
             }

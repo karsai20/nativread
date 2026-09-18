@@ -23,7 +23,7 @@ struct TermsOfUseView: View {
                 header
 
 #if DEBUG
-                Label(copy.draftNotice, systemImage: "wrench.and.screwdriver")
+                Label { Text(copy.draftNotice) } icon: { Icon(.wrench, size: 16) }
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
                     .padding(Spacing.md)
@@ -48,7 +48,11 @@ struct TermsOfUseView: View {
                         .foregroundStyle(palette.secondaryText)
 
                     Link(destination: TranslationTerms.appleStandardEULAURL) {
-                        Label(copy.appleEULALink, systemImage: "arrow.up.right")
+                        Label {
+                            Text(copy.appleEULALink)
+                        } icon: {
+                            Icon(.arrowUpRight, size: 16)
+                        }
                             .font(Typography.control(16, weight: .semibold))
                             .foregroundStyle(palette.accent)
                     }
@@ -67,8 +71,7 @@ struct TermsOfUseView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Image(systemName: "doc.text")
-                .font(.system(size: 24, weight: .semibold))
+            Icon(.fileText, size: 24)
                 .foregroundStyle(palette.accent)
                 .frame(width: 52, height: 52)
                 .background(palette.accent.opacity(0.12), in: Circle())

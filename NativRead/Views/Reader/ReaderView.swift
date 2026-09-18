@@ -168,8 +168,7 @@ struct ReaderView: View {
                     viewModel.goToNextChapter()
                 } label: {
                     HStack(spacing: Spacing.xxs + 3) {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
+                        Icon(.chevronDown, size: 12)
                         Text(viewModel.nextChapterTitle.isEmpty
                             ? "Next chapter"
                             : viewModel.nextChapterTitle)
@@ -308,7 +307,7 @@ struct ReaderView: View {
             HStack {
                 Spacer()
                 floatingCircle(
-                    icon: "xmark", identifier: "reader.back"
+                    icon: .x, identifier: "reader.back"
                 ) {
                     dismiss()
                 }
@@ -320,14 +319,13 @@ struct ReaderView: View {
 
     /// A small floating circular control, the Books-style chrome unit.
     private func floatingCircle(
-        icon: String,
+        icon: LucideIcon,
         identifier: String,
         isActive: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+            Icon(icon, size: 18)
                 .foregroundStyle(isActive ? palette.accent : palette.text)
                 .frame(width: 48, height: 48)
                 .background(floatingCircleBackground(isActive: isActive))
@@ -398,7 +396,7 @@ struct ReaderView: View {
             if isMenuOpen {
                 Group {
                     floatingCircle(
-                        icon: "list.bullet", identifier: "reader.contents"
+                        icon: .list, identifier: "reader.contents"
                     ) {
                         viewModel.activeSheet = .contents
                     }
@@ -406,7 +404,7 @@ struct ReaderView: View {
                     .transition(fanTransition(delay: 0.15))
 
                     floatingCircle(
-                        icon: "magnifyingglass", identifier: "reader.search"
+                        icon: .search, identifier: "reader.search"
                     ) {
                         viewModel.activeSheet = .search
                     }
@@ -431,10 +429,7 @@ struct ReaderView: View {
                     HStack(spacing: Spacing.sm) {
                         if let url = viewModel.bookFileURL {
                             ShareLink(item: url) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(
-                                        size: 18, weight: .semibold
-                                    ))
+                                Icon(.share, size: 18)
                                     .foregroundStyle(palette.text)
                                     .frame(width: 48, height: 48)
                                     .background(floatingCircleBackground())
@@ -446,7 +441,7 @@ struct ReaderView: View {
 
                         floatingCircle(
                             icon: viewModel.isOrientationLocked
-                                ? "lock.rotation" : "rotate.right",
+                                ? .lock : .rotateCw,
                             identifier: "reader.rotationLock",
                             isActive: viewModel.isOrientationLocked
                         ) {
@@ -461,9 +456,9 @@ struct ReaderView: View {
                         ))
 
                         floatingCircle(
-                            icon: viewModel.currentBookmark != nil
-                                ? "bookmark.fill" : "bookmark",
-                            identifier: "reader.bookmark"
+                            icon: .bookmark,
+                            identifier: "reader.bookmark",
+                            isActive: viewModel.currentBookmark != nil
                         ) {
                             viewModel.toggleBookmark()
                         }
@@ -477,7 +472,7 @@ struct ReaderView: View {
             }
 
             floatingCircle(
-                icon: isMenuOpen ? "chevron.down" : "ellipsis",
+                icon: isMenuOpen ? .chevronDown : .ellipsis,
                 identifier: "reader.menu"
             ) {
                 isMenuOpen.toggle()
@@ -513,8 +508,7 @@ struct ReaderView: View {
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: Spacing.md) {
-            Image(systemName: "book.closed")
-                .font(.system(size: 40))
+            Icon(.book, size: 40)
                 .foregroundStyle(palette.secondaryText)
             Text("This book could not be opened")
                 .font(Typography.title(17))
@@ -581,7 +575,7 @@ private struct ReadingPositionSheet: View {
             HStack(spacing: Spacing.sm) {
                 chapterButton(
                     title: "Previous chapter",
-                    icon: "chevron.left",
+                    icon: .chevronLeft,
                     identifier: "reader.position.previousChapter",
                     enabled: viewModel.spineIndex > 0
                 ) {
@@ -591,7 +585,7 @@ private struct ReadingPositionSheet: View {
                 }
                 chapterButton(
                     title: "Next chapter",
-                    icon: "chevron.right",
+                    icon: .chevronRight,
                     identifier: "reader.position.nextChapter",
                     enabled: viewModel.hasNextChapter
                 ) {
@@ -638,13 +632,17 @@ private struct ReadingPositionSheet: View {
 
     private func chapterButton(
         title: LocalizedStringKey,
-        icon: String,
+        icon: LucideIcon,
         identifier: String,
         enabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label(title, systemImage: icon)
+            Label {
+                Text(title)
+            } icon: {
+                Icon(icon, size: 14)
+            }
                 .font(Typography.body(14))
                 .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget)
                 .contentShape(Rectangle())

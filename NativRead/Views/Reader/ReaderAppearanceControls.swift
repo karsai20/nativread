@@ -16,8 +16,8 @@ struct EditorialSlider: View {
     let value: Double
     let range: ClosedRange<Double>
     let step: Double
-    var leadingSymbol: String? = nil
-    var trailingSymbol: String? = nil
+    var leadingIcon: LucideIcon? = nil
+    var trailingIcon: LucideIcon? = nil
     let palette: ReaderPalette
     let onChange: (Double) -> Void
 
@@ -26,21 +26,20 @@ struct EditorialSlider: View {
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            if let leadingSymbol {
-                glyph(leadingSymbol, size: 13)
+            if let leadingIcon {
+                glyph(leadingIcon, size: 13)
             }
             track
-            if let trailingSymbol {
-                glyph(trailingSymbol, size: 18)
+            if let trailingIcon {
+                glyph(trailingIcon, size: 18)
             }
         }
         .frame(height: thumbSize)
         .sensoryFeedback(.selection, trigger: value)
     }
 
-    private func glyph(_ name: String, size: CGFloat) -> some View {
-        Image(systemName: name)
-            .font(.system(size: size, weight: .regular))
+    private func glyph(_ icon: LucideIcon, size: CGFloat) -> some View {
+        Icon(icon, size: size)
             .foregroundStyle(palette.secondaryText)
             .frame(width: 20)
     }
@@ -98,13 +97,17 @@ struct EditorialSlider: View {
 /// for each slider group.
 struct ControlLabel: View {
     let title: LocalizedStringKey
-    let icon: String
+    let icon: LucideIcon
     var value: String? = nil
     let palette: ReaderPalette
 
     var body: some View {
         HStack {
-            Label(title, systemImage: icon)
+            Label {
+                Text(title)
+            } icon: {
+                Icon(icon, size: 14)
+            }
                 .font(Typography.eyebrow)
                 .tracking(Typography.eyebrowTracking)
                 .textCase(.uppercase)

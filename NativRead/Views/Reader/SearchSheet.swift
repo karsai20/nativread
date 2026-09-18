@@ -11,7 +11,7 @@ struct SearchSheet: View {
     var body: some View {
         VStack(spacing: Spacing.md) {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: "magnifyingglass")
+                Icon(.search, size: 18)
                     .foregroundStyle(palette.secondaryText)
                 TextField("Search in book", text: $viewModel.searchQuery)
                     .focused($isFieldFocused)
@@ -24,7 +24,7 @@ struct SearchSheet: View {
                     Button {
                         viewModel.searchQuery = ""
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        Icon(.circleX, size: 18)
                             .foregroundStyle(palette.secondaryText)
                     }
                 }
@@ -69,8 +69,7 @@ struct SearchSheet: View {
     /// Shown before a search runs (hint) or after one finds nothing.
     private var emptyState: some View {
         VStack(spacing: Spacing.xs) {
-            Image(systemName: "text.page.badge.magnifyingglass")
-                .font(.system(size: 28))
+            Icon(.fileSearch, size: 28)
                 .foregroundStyle(palette.secondaryText)
             Text(emptyStateMessage)
                 .font(Typography.title())

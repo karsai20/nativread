@@ -17,7 +17,7 @@ struct AppPrimaryButton: View {
     }
 
     let title: LocalizedStringKey
-    var systemImage: String? = nil
+    var icon: LucideIcon? = nil
     var tone: Tone = .accent
     var isEnabled: Bool = true
     let action: () -> Void
@@ -40,21 +40,19 @@ struct AppPrimaryButton: View {
     /// Directional glyphs describe what happens next, so they follow the label;
     /// every other icon names the thing being acted on and leads it.
     private var iconTrails: Bool {
-        systemImage?.hasPrefix("arrow.") ?? false
+        icon == .arrowRight
     }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: Spacing.xs) {
-                if let systemImage, !iconTrails {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 18, weight: .semibold))
+                if let icon, !iconTrails {
+                    Icon(icon, size: 18)
                 }
                 Text(title)
                     .font(Typography.control(17, weight: .bold))
-                if let systemImage, iconTrails {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 18, weight: .semibold))
+                if let icon, iconTrails {
+                    Icon(icon, size: 18)
                 }
             }
             .foregroundStyle(foreground)
@@ -92,7 +90,7 @@ struct PressScaleButtonStyle: ButtonStyle {
 /// A round, surface-filled control for header and toolbar actions. `isSelected`
 /// switches it to the accent wash — used for toggles like bookmark or lock.
 struct AppIconButton: View {
-    let systemImage: String
+    let icon: LucideIcon
     let label: LocalizedStringKey
     var size: CGFloat = Spacing.minTapTarget
     var isSelected: Bool = false
@@ -101,8 +99,7 @@ struct AppIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: size * 0.42, weight: .medium))
+            Icon(icon, size: size * 0.42)
                 .foregroundStyle(isSelected ? palette.accent : palette.text)
                 .frame(width: size, height: size)
                 .background(isSelected ? palette.accentSoft : palette.surface)

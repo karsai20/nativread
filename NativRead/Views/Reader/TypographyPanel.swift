@@ -129,7 +129,7 @@ struct TypographyPanel: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             ControlLabel(
                 title: "Text size",
-                icon: "textformat.size",
+                icon: .aLargeSmall,
                 palette: palette
             )
             SizeStepper(
@@ -155,13 +155,13 @@ struct TypographyPanel: View {
     private var brightnessGroup: some View {
         sliderGroup(
             title: "Brightness",
-            icon: "sun.max",
+            icon: .sun,
             valueText: "\(Int((brightness * 100).rounded()))%",
             value: brightness,
             range: 0.05...1,
             step: 0.05,
-            leadingSymbol: "sun.min",
-            trailingSymbol: "sun.max"
+            leadingIcon: .sunDim,
+            trailingIcon: .sun
         ) { newValue in
             brightness = newValue
             UIScreen.main.brightness = newValue
@@ -174,13 +174,13 @@ struct TypographyPanel: View {
     private var warmthGroup: some View {
         sliderGroup(
             title: "Warm light",
-            icon: "thermometer.sun",
+            icon: .thermometerSun,
             valueText: "\(Int((settings.warmth * 100).rounded()))%",
             value: settings.warmth,
             range: ReaderSettings.warmthRange,
             step: 0.05,
-            leadingSymbol: "moon",
-            trailingSymbol: "thermometer.sun"
+            leadingIcon: .moon,
+            trailingIcon: .thermometerSun
         ) { newValue in
             updateSettings { $0.warmth = newValue }
         }
@@ -190,13 +190,13 @@ struct TypographyPanel: View {
     private var lineSpacingGroup: some View {
         sliderGroup(
             title: "Line spacing",
-            icon: "arrow.up.and.down.text.horizontal",
+            icon: .unfoldVertical,
             valueText: String(format: "%.2f", settings.lineHeight),
             value: settings.lineHeight,
             range: ReaderSettings.lineHeightRange,
             step: 0.05,
-            leadingSymbol: "text.alignleft",
-            trailingSymbol: "text.justify"
+            leadingIcon: .alignLeft,
+            trailingIcon: .alignJustify
         ) { newValue in
             updateSettings { $0.lineHeight = newValue }
         }
@@ -205,13 +205,13 @@ struct TypographyPanel: View {
     private var marginsGroup: some View {
         sliderGroup(
             title: "Margins",
-            icon: "rectangle.compress.vertical",
+            icon: .foldVertical,
             valueText: "\(Int(settings.horizontalMargin.rounded())) pt",
             value: settings.horizontalMargin,
             range: ReaderSettings.marginRange,
             step: 2,
-            leadingSymbol: "rectangle.compress.vertical",
-            trailingSymbol: "rectangle.expand.vertical"
+            leadingIcon: .foldVertical,
+            trailingIcon: .unfoldVertical
         ) { newValue in
             updateSettings { $0.horizontalMargin = newValue }
         }
@@ -224,7 +224,7 @@ struct TypographyPanel: View {
             get: { settings.isJustified },
             set: { newValue in updateSettings { $0.isJustified = newValue } }
         )) {
-            Label("Justified text", systemImage: "text.justify")
+            Label { Text("Justified text") } icon: { Icon(.alignJustify, size: 16) }
                 .font(Typography.body(15))
         }
         .tint(palette.accent)
@@ -235,7 +235,7 @@ struct TypographyPanel: View {
             get: { settings.twoPageSpread },
             set: { newValue in updateSettings { $0.twoPageSpread = newValue } }
         )) {
-            Label("Two pages in landscape", systemImage: "book")
+            Label { Text("Two pages in landscape") } icon: { Icon(.book, size: 16) }
                 .font(Typography.body(15))
         }
         .tint(palette.accent)
@@ -252,8 +252,11 @@ struct TypographyPanel: View {
                     updateSettings { $0.allowsMotionWhenReduced = newValue }
                 }
             )) {
-                Label("Animate page turns anyway",
-                      systemImage: "figure.walk.motion")
+                Label {
+                    Text("Animate page turns anyway")
+                } icon: {
+                    Icon(.accessibility, size: 16)
+                }
                     .font(Typography.body(15))
             }
             .tint(palette.accent)
@@ -273,8 +276,11 @@ struct TypographyPanel: View {
                 updateSettings { $0.themeMode = isOn ? .system : .manual }
             }
         )) {
-            Label("Match system appearance",
-                  systemImage: "circle.lefthalf.filled")
+            Label {
+                Text("Match system appearance")
+            } icon: {
+                Icon(.contrast, size: 16)
+            }
                 .font(Typography.body(15))
         }
         .tint(palette.accent)
@@ -285,7 +291,7 @@ struct TypographyPanel: View {
 
     private var flowGroup: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            ControlLabel(title: "Page flow", icon: "book.pages", palette: palette)
+            ControlLabel(title: "Page flow", icon: .bookOpen, palette: palette)
             flowRow
         }
     }
@@ -296,7 +302,7 @@ struct TypographyPanel: View {
                 Button {
                     updateSettings { $0.pageFlow = candidate }
                 } label: {
-                    Label(candidate.label, systemImage: candidate.icon)
+                    Label { Text(candidate.label) } icon: { Icon(candidate.icon, size: 14) }
                         .font(Typography.body(14))
                         .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget - 6)
                 }
@@ -313,7 +319,11 @@ struct TypographyPanel: View {
         // Four options no longer fit beside the eyebrow label; stack them
         // under it like flowGroup, pills sharing the width equally.
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Label("Page turn", systemImage: "arrow.right.square")
+            Label {
+                Text("Page turn")
+            } icon: {
+                Icon(.squareArrowRight, size: 13)
+            }
                 .font(Typography.eyebrow)
                 .tracking(Typography.eyebrowTracking)
                 .textCase(.uppercase)
@@ -349,13 +359,12 @@ struct TypographyPanel: View {
                 isTypefaceListExpanded.toggle()
             } label: {
                 HStack {
-                    ControlLabel(title: "appearance.typeface", icon: "textformat", palette: palette)
+                    ControlLabel(title: "appearance.typeface", icon: .type, palette: palette)
                     Spacer()
                     Text(settings.font.label)
                         .font(settings.font.previewFont(size: 15))
                         .foregroundStyle(palette.text)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                    Icon(.chevronDown, size: 12)
                         .foregroundStyle(palette.secondaryText)
                         .rotationEffect(.degrees(isTypefaceListExpanded ? 180 : 0))
                 }
@@ -387,8 +396,7 @@ struct TypographyPanel: View {
                             .font(candidate.previewFont())
                         Spacer()
                         if candidate == settings.font {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 13, weight: .semibold))
+                            Icon(.check, size: 13)
                                 .foregroundStyle(palette.accent)
                         }
                     }
@@ -418,13 +426,13 @@ struct TypographyPanel: View {
     /// One slider section: eyebrow label + readout, then an `EditorialSlider`.
     private func sliderGroup(
         title: LocalizedStringKey,
-        icon: String,
+        icon: LucideIcon,
         valueText: String,
         value: Double,
         range: ClosedRange<Double>,
         step: Double,
-        leadingSymbol: String,
-        trailingSymbol: String,
+        leadingIcon: LucideIcon,
+        trailingIcon: LucideIcon,
         onChange: @escaping (Double) -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -435,8 +443,8 @@ struct TypographyPanel: View {
                 value: value,
                 range: range,
                 step: step,
-                leadingSymbol: leadingSymbol,
-                trailingSymbol: trailingSymbol,
+                leadingIcon: leadingIcon,
+                trailingIcon: trailingIcon,
                 palette: palette,
                 onChange: onChange
             )

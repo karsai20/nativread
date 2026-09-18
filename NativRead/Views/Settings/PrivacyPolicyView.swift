@@ -23,7 +23,7 @@ struct PrivacyPolicyView: View {
                 header
 
 #if DEBUG
-                Label(copy.draftNotice, systemImage: "wrench.and.screwdriver")
+                Label { Text(copy.draftNotice) } icon: { Icon(.wrench, size: 16) }
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
                     .padding(Spacing.md)
@@ -44,7 +44,11 @@ struct PrivacyPolicyView: View {
 
                 if let url = TranslationPrivacy.publicPolicyURL {
                     Link(destination: url) {
-                        Label(copy.publicLink, systemImage: "arrow.up.right")
+                        Label {
+                            Text(copy.publicLink)
+                        } icon: {
+                            Icon(.arrowUpRight, size: 16)
+                        }
                             .font(Typography.control(16, weight: .semibold))
                             .foregroundStyle(palette.accent)
                     }
@@ -64,8 +68,7 @@ struct PrivacyPolicyView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Image(systemName: "hand.raised.fill")
-                .font(.system(size: 23, weight: .semibold))
+            Icon(.hand, size: 23)
                 .foregroundStyle(palette.accent)
                 .frame(width: 52, height: 52)
                 .background(palette.accent.opacity(0.12), in: Circle())

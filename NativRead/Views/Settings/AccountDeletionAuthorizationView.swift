@@ -25,8 +25,7 @@ struct AccountDeletionAuthorizationView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: Spacing.lg) {
-                Image(systemName: "person.crop.circle.badge.xmark")
-                    .font(.system(size: 25, weight: .semibold))
+                Icon(.userX, size: 25)
                     .foregroundStyle(Color.red)
                     .frame(width: 56, height: 56)
                     .background(Color.red.opacity(0.10), in: Circle())
@@ -61,7 +60,11 @@ struct AccountDeletionAuthorizationView: View {
                     .font(Typography.meta())
                     .foregroundStyle(palette.secondaryText)
                 } else if let errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle")
+                    Label {
+                        Text(errorMessage)
+                    } icon: {
+                        Icon(.triangleAlert, size: 16)
+                    }
                         .font(Typography.meta())
                         .foregroundStyle(Color.red)
                         .fixedSize(horizontal: false, vertical: true)

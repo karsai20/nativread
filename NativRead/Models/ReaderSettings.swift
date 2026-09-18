@@ -215,10 +215,10 @@ enum PageFlow: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var icon: String {
+    var icon: LucideIcon {
         switch self {
-        case .paged: return "book.pages"
-        case .scroll: return "arrow.up.and.down.text.horizontal"
+        case .paged: return .bookOpen
+        case .scroll: return .unfoldVertical
         }
     }
 }

@@ -77,8 +77,7 @@ struct ContentsSheet: View {
             let highlights = viewModel.book?.highlights ?? []
             if highlights.isEmpty {
                 VStack(spacing: Spacing.xs) {
-                    Image(systemName: "highlighter")
-                        .font(.system(size: 28))
+                    Icon(.highlighter, size: 28)
                         .foregroundStyle(palette.secondaryText)
                     Text("No highlights yet")
                         .font(Typography.title())
@@ -111,16 +110,20 @@ struct ContentsSheet: View {
                 Menu {
                     if let markdownURL = exportURL(for: book, format: .markdown) {
                         ShareLink(item: markdownURL) {
-                            Label("Markdown", systemImage: "doc.richtext")
+                            Label { Text("Markdown") } icon: { Icon(.fileText, size: 16) }
                         }
                     }
                     if let csvURL = exportURL(for: book, format: .csv) {
                         ShareLink(item: csvURL) {
-                            Label("CSV", systemImage: "tablecells")
+                            Label { Text("CSV") } icon: { Icon(.table, size: 16) }
                         }
                     }
                 } label: {
-                    Label("Export", systemImage: "square.and.arrow.up")
+                    Label {
+                        Text("Export")
+                    } icon: {
+                        Icon(.share, size: 13)
+                    }
                         .font(Typography.meta(13))
                         .foregroundStyle(palette.accent)
                 }
@@ -164,7 +167,7 @@ struct ContentsSheet: View {
                                             Text(note)
                                                 .multilineTextAlignment(.leading)
                                         } icon: {
-                                            Image(systemName: "note.text")
+                                            Icon(.stickyNote, size: 14)
                                         }
                                         .font(Typography.meta())
                                         .foregroundStyle(palette.secondaryText)
@@ -182,11 +185,14 @@ struct ContentsSheet: View {
                                 Button {
                                     editingNoteFor = highlight
                                 } label: {
-                                    Label(
-                                        highlight.trimmedNote == nil
-                                            ? "Add Note" : "Edit Note",
-                                        systemImage: "note.text"
-                                    )
+                                    Label {
+                                        Text(
+                                            highlight.trimmedNote == nil
+                                                ? "Add Note" : "Edit Note"
+                                        )
+                                    } icon: {
+                                        Icon(.stickyNote, size: 16)
+                                    }
                                 }
                                 .accessibilityIdentifier(
                                     "contents.highlights.note.edit"
@@ -194,7 +200,7 @@ struct ContentsSheet: View {
                                 Button(role: .destructive) {
                                     viewModel.removeHighlight(highlight)
                                 } label: {
-                                    Label("Remove", systemImage: "trash")
+                                    Label { Text("Remove") } icon: { Icon(.trash2, size: 16) }
                                 }
                             }
                         }
@@ -209,8 +215,7 @@ struct ContentsSheet: View {
             let bookmarks = viewModel.book?.bookmarks ?? []
             if bookmarks.isEmpty {
                 VStack(spacing: Spacing.xs) {
-                    Image(systemName: "bookmark")
-                        .font(.system(size: 28))
+                    Icon(.bookmark, size: 28)
                         .foregroundStyle(palette.secondaryText)
                     Text("No bookmarks yet")
                         .font(Typography.title())
@@ -247,7 +252,7 @@ struct ContentsSheet: View {
                                 Button(role: .destructive) {
                                     viewModel.removeBookmark(bookmark)
                                 } label: {
-                                    Label("Remove", systemImage: "trash")
+                                    Label { Text("Remove") } icon: { Icon(.trash2, size: 16) }
                                 }
                             }
                         }
