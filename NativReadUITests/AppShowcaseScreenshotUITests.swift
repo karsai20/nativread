@@ -191,23 +191,12 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         )
         capture(locale, 17, "translation-overview")
 
-        app.buttons["translation.termsAcceptance"].tap()
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(localAccount.waitForExistence(timeout: 10))
         localAccount.tap()
-
-        let wholeBookPlan = app.buttons["translation.plan.wholeBook"]
-        scrollUntilHittable(wholeBookPlan, direction: .up, attempts: 6)
-        XCTAssertTrue(wholeBookPlan.isHittable)
-        wholeBookPlan.tap()
         capture(locale, 19, "translation-whole-book-options")
 
-        let freeChapterPlan = app.buttons["translation.plan.freeChapter"]
-        scrollUntilHittable(freeChapterPlan, direction: .up, attempts: 4)
-        freeChapterPlan.tap()
-
         let freeChapter = app.buttons["translation.freeChapter"]
-        scrollUntilHittable(freeChapter, direction: .down, attempts: 7)
         XCTAssertTrue(freeChapter.isHittable)
         freeChapter.tap()
 

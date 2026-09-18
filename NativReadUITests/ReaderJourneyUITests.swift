@@ -311,6 +311,48 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(flow.isHittable, "layout section should be reachable")
     }
 
+    /// Curl mode owns the horizontal touches, so a chapter-edge pull is
+    /// detected by the engine, not the scroll view. A quick short flick
+    /// at the last page used to do nothing (70px distance gate, and a
+    /// settling curl swallowed it); it must turn the chapter.
+    func testCurlQuickFlickAtChapterEndAdvancesChapter() {
+        app.terminate()
+        app.launchArguments = [
+            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-forceTransition", "curl", "-skipOnboarding"
+        ]
+        app.launch()
+        openSampleBook()
+
+        let window = app.windows.firstMatch
+        let title = app.staticTexts["reader.chapterTitle"]
+        let firstChapter = title.label
+        let pagesLeft = app.staticTexts["reader.chapterPagesLeft"]
+        // Tap to the last page of the chapter.
+        for _ in 0..<40 where !pagesLeft.label.hasPrefix("0 ") {
+            window.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)
+            ).tap()
+            _ = pagesLeft.waitForExistence(timeout: 2)
+        }
+        XCTAssertTrue(pagesLeft.label.hasPrefix("0 "),
+                      "should reach the chapter's last page")
+
+        // A short, fast flick: ~50pt, well under the old 70px gate.
+        let start = window.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)
+        )
+        let end = start.withOffset(CGVector(dx: -50, dy: 0))
+        start.press(
+            forDuration: 0.02, thenDragTo: end,
+            withVelocity: .fast, thenHoldForDuration: 0
+        )
+
+        let changed = NSPredicate(format: "label != %@", firstChapter)
+        expectation(for: changed, evaluatedWith: title)
+        waitForExpectations(timeout: 8)
+    }
+
     func testFlowAndTransitionPickersPersist() {
         openSampleBook()
         openLayoutSection()
@@ -401,27 +443,23 @@ final class ReaderJourneyUITests: XCTestCase {
         readyBook.tap()
     }
 
-    func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
+    func testTranslateSheetRequiresAppleLoginBeforeFreeChapter() {
         openTranslationSheet()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 6)
         )
+        // No account yet: the flap leads with Sign in with Apple, the free
+        // chapter line is present but inert, and the attestation is fine
+        // print with the Terms link inline — no checkbox to tick first.
+        XCTAssertTrue(
+            app.buttons["translation.signInWithApple"].waitForExistence(timeout: 6)
+        )
         let freeChapter = app.buttons["translation.freeChapter"]
         XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
         XCTAssertFalse(freeChapter.isEnabled)
-
-        let termsAcceptance = app.buttons["translation.termsAcceptance"]
-        XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
-        // The Terms link now lives inline in the attestation sentence.
         XCTAssertTrue(app.staticTexts["translation.terms.link"].exists)
-        XCTAssertFalse(app.buttons["translation.signInWithApple"].exists)
-        termsAcceptance.tap()
-        XCTAssertFalse(freeChapter.isEnabled)
-        XCTAssertTrue(
-            app.buttons["translation.signInWithApple"]
-                .waitForExistence(timeout: 6)
-        )
+        XCTAssertFalse(app.buttons["translation.termsAcceptance"].exists)
 
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "translation-sheet"
@@ -440,10 +478,6 @@ final class ReaderJourneyUITests: XCTestCase {
 
         openTranslationSheet()
 
-        let termsAcceptance = app.buttons["translation.termsAcceptance"]
-        XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
-        termsAcceptance.tap()
-
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(
             localAccount.waitForExistence(timeout: 6),
@@ -451,14 +485,8 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         localAccount.tap()
 
-        let wholeBookPlan = app.buttons["translation.plan.wholeBook"]
-        XCTAssertTrue(wholeBookPlan.waitForExistence(timeout: 6))
-        wholeBookPlan.tap()
-
+        // Tapping the capsule is the terms acceptance; there is no checkbox.
         let quote = app.buttons["translation.calculateQuote"]
-        for _ in 0..<4 where !quote.exists {
-            app.swipeUp(velocity: .fast)
-        }
         XCTAssertTrue(quote.waitForExistence(timeout: 6))
         XCTAssertTrue(quote.isEnabled)
         quote.tap()
@@ -478,11 +506,11 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["translation.aiConsent.privacy"].exists)
         allowAI.tap()
 
-        XCTAssertTrue(
-            app.staticTexts["Added to your library."]
-                .waitForExistence(timeout: 30),
-            "the fake backend result should be consumed and imported by the app"
+        let added = NSPredicate(format: "label CONTAINS[c] 'Added to your shelf'")
+        expectation(
+            for: added, evaluatedWith: app.buttons["translation.fullBook"]
         )
+        waitForExpectations(timeout: 30)
     }
 
     func testHungarianAIPermissionCanBeDeclinedBeforeUpload() {
@@ -499,10 +527,6 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         tab(.translate).tap()
         app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
-
-        let terms = app.buttons["translation.termsAcceptance"]
-        XCTAssertTrue(terms.waitForExistence(timeout: 6))
-        terms.tap()
 
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(localAccount.waitForExistence(timeout: 6))

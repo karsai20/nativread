@@ -699,17 +699,6 @@
         }
       }
     },
-    "Change this later in the reading menu." : {
-      "comment" : "Footnote under the reading-mode choice on the welcome screen.",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ezt később az olvasás menüben módosíthatod."
-          }
-        }
-      }
-    },
     "Chapter %@" : {
       "comment" : "Chapter position in the expanded reading-position sheet.",
       "localizations" : {
@@ -1214,16 +1203,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kiemelések"
-          }
-        }
-      }
-    },
-    "How do you like to read?" : {
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hogyan szeretsz olvasni?"
           }
         }
       }
@@ -1736,17 +1715,6 @@
         }
       }
     },
-    "Page curl" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lapozás behajlással"
-          }
-        }
-      }
-    },
     "Page flow" : {
       "comment" : "Typography panel control label for how pages advance.",
       "extractionState" : "stale",
@@ -1767,28 +1735,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Lapozás"
-          }
-        }
-      }
-    },
-    "Pages curl like real paper." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Az oldalak úgy hajlanak, mint az igazi papír."
-          }
-        }
-      }
-    },
-    "Pages slide side to side." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Az oldalak oldalra csúsznak."
           }
         }
       }
@@ -2305,6 +2251,7 @@
     },
     "Swipe or tap to turn" : {
       "comment" : "Hint under the reading-mode preview.",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -2679,16 +2626,6 @@
     },
     "Turn page" : {
       "comment" : "Accessibility action that turns the preview page.",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lapozás"
-          }
-        }
-      }
-    },
-    "Turn pages" : {
       "extractionState" : "stale",
       "localizations" : {
         "hu" : {
@@ -3096,6 +3033,270 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ez a fejezet folyton összeomlasztja az oldalmegjelenítőt. Próbálj egy másik fejezetet, vagy nyisd meg újra a könyvet."
+          }
+        }
+      }
+    },
+    "%@ edition" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kiadás"
+          }
+        }
+      }
+    },
+    "%@ · soon" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · hamarosan"
+          }
+        }
+      }
+    },
+    "%lld chapters" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fejezet"
+          }
+        }
+      }
+    },
+    "%lld h" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ó"
+          }
+        }
+      }
+    },
+    "%lld min" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld perc"
+          }
+        }
+      }
+    },
+    "Added to your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A polcodra került"
+          }
+        }
+      }
+    },
+    "Adding to your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polcra tesszük"
+          }
+        }
+      }
+    },
+    "Adding to your shelf…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polcra tesszük…"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezárás"
+          }
+        }
+      }
+    },
+    "Detected on upload" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feltöltéskor felismerjük"
+          }
+        }
+      }
+    },
+    "First chapter is on your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az első fejezet a polcodon van"
+          }
+        }
+      }
+    },
+    "From" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ebből"
+          }
+        }
+      }
+    },
+    "Get the price" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ár lekérése"
+          }
+        }
+      }
+    },
+    "Getting the price…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ár lekérése…"
+          }
+        }
+      }
+    },
+    "Into" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erre"
+          }
+        }
+      }
+    },
+    "On your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A polcodon"
+          }
+        }
+      }
+    },
+    "Read it in your language." : {
+      "comment" : "Welcome screen headline, second step: the translation demo.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olvasd a saját nyelveden."
+          }
+        }
+      }
+    },
+    "Sign in with Apple to start — it ties the purchase to you, nothing else." : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kezdéshez jelentkezz be Apple-lel – csak a vásárlást köti hozzád, mást nem."
+          }
+        }
+      }
+    },
+    "The translation arrives as a new book on your shelf. The original stays exactly as it was." : {
+      "comment" : "Welcome screen, second step: what happens after a translation finishes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordítás új könyvként kerül a polcodra. Az eredeti pontosan úgy marad, ahogy volt."
+          }
+        }
+      }
+    },
+    "Translating…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fordítás…"
+          }
+        }
+      }
+    },
+    "Try the first chapter for free" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próbáld ki az első fejezetet ingyen"
+          }
+        }
+      }
+    },
+    "Uploading %lld%…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feltöltés %lld%…"
+          }
+        }
+      }
+    },
+    "Uploading…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feltöltés…"
+          }
+        }
+      }
+    },
+    "Yours for good, no subscription · by continuing you confirm you own this book · [Terms of Use](nativread://terms)" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Örökre a tiéd, nincs előfizetés · a folytatással megerősíted, hogy a könyv a tiéd · [Felhasználási feltételek](nativread://terms)"
+          }
+        }
+      }
+    },
+    "of reading" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "olvasás"
+          }
+        }
+      }
+    },
+    "until ready" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "és kész"
           }
         }
       }

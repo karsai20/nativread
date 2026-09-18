@@ -33,11 +33,13 @@ struct OnboardingPaperBackground: View {
 // MARK: - The shelf
 
 /// A shelf that never ends: two rows of covers drifting in opposite
-/// directions, fading out at both edges. It shows what the app is for — books
-/// in languages you do and do not read — without putting anything tappable on
-/// a screen whose only action is Continue. An earlier version drew the
-/// library's real "Add a book" tile here; testers tried to press it.
+/// directions, fading out at both edges. It shows what the app is for —
+/// books the reader already loves, in their own language — without putting
+/// anything tappable on a screen whose only action is Continue. An earlier
+/// version drew the library's real "Add a book" tile here; testers tried to
+/// press it.
 struct OnboardingShelfScene: View {
+    let books: OnboardingShelf.Rows
     let palette: BrandPalette
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -45,12 +47,12 @@ struct OnboardingShelfScene: View {
     var body: some View {
         VStack(spacing: Spacing.sm) {
             DriftingShelfRow(
-                books: OnboardingSampleJob.topRow,
+                covers: books.top,
                 reversed: false,
                 reduceMotion: reduceMotion
             )
             DriftingShelfRow(
-                books: OnboardingSampleJob.bottomRow,
+                covers: books.bottom,
                 reversed: true,
                 reduceMotion: reduceMotion
             )
@@ -73,11 +75,17 @@ struct OnboardingShelfScene: View {
     }
 }
 
-/// One row of covers, looping seamlessly. The row holds two copies of its
-/// books and travels exactly one copy's width, so the moment the animation
-/// repeats the second copy is standing where the first began.
+/// One row of covers, looping seamlessly. The row travels exactly one loop's
+/// width and holds two loops, so the moment the animation repeats the second
+/// loop is standing where the first began.
+///
+/// A loop is the book list repeated as many times as it takes to be at least
+/// as wide as the row itself. Two copies of a short list is not enough: the
+/// travel would end with the row's tail short of its right edge, and a shelf
+/// with six books — or an iPad — would show the gap.
 private struct DriftingShelfRow: View {
-    let books: [OnboardingSampleJob.Book]
+    /// Asset-catalog names, in shelf order.
+    let covers: [String]
     /// Drifts right instead of left, so the two rows move against each other.
     let reversed: Bool
     let reduceMotion: Bool
@@ -86,65 +94,71 @@ private struct DriftingShelfRow: View {
 
     private static let coverWidth: CGFloat = 76
     private static let spacing = Spacing.sm
+    private static let pitch = coverWidth + spacing
     /// Slow enough to read as ambient rather than as something to look at.
     private static let secondsPerCover: Double = 4.5
 
-    private var cycle: CGFloat {
-        CGFloat(books.count) * (Self.coverWidth + Self.spacing)
+    private func loops(toFill width: CGFloat) -> Int {
+        let listWidth = CGFloat(covers.count) * Self.pitch
+        guard listWidth > 0 else { return 1 }
+        return max(1, Int((width / listWidth).rounded(.up)))
     }
 
-    private var offset: CGFloat {
+    private func offset(cycle: CGFloat) -> CGFloat {
         let progress = travelled ? cycle : 0
         return reversed ? progress - cycle : -progress
     }
 
     var body: some View {
         // The row is an overlay on an empty box of the right height, so its
-        // full natural width — eight covers, far wider than the screen — never
+        // full natural width — many covers, far wider than the screen — never
         // reaches the layout. Sizing the parent off it instead pushed the
         // headline and value line off the right edge.
-        Color.clear
-            .frame(height: Self.coverWidth * 1.5)
-            .overlay(alignment: .leading) {
-                HStack(spacing: Self.spacing) {
-                    // Two passes: the row must never run out of covers mid-loop.
-                    ForEach(0 ..< 2, id: \.self) { copy in
-                        ForEach(Array(books.enumerated()), id: \.offset) { index, book in
-                            cover(book).id("\(copy)-\(index)")
+        GeometryReader { proxy in
+            let loops = loops(toFill: proxy.size.width)
+            let perLoop = loops * covers.count
+            let cycle = CGFloat(perLoop) * Self.pitch
+
+            Color.clear
+                .overlay(alignment: .leading) {
+                    HStack(spacing: Self.spacing) {
+                        // Two loops: the row must never run out of covers
+                        // mid-travel.
+                        ForEach(0 ..< (loops * 2), id: \.self) { copy in
+                            ForEach(Array(covers.enumerated()), id: \.offset) { index, name in
+                                cover(name).id("\(copy)-\(index)")
+                            }
                         }
                     }
+                    .fixedSize()
+                    .offset(x: offset(cycle: cycle))
                 }
-                .fixedSize()
-                .offset(x: offset)
-            }
-            .onAppear {
-                guard !reduceMotion else { return }
-                withAnimation(
-                    .linear(duration: Double(books.count) * Self.secondsPerCover)
-                        .repeatForever(autoreverses: false)
-                ) {
-                    travelled = true
+                .onAppear {
+                    guard !reduceMotion else { return }
+                    // Duration scales with the loop so every shelf drifts at
+                    // the same speed, however many books it holds.
+                    withAnimation(
+                        .linear(duration: Double(perLoop) * Self.secondsPerCover)
+                            .repeatForever(autoreverses: false)
+                    ) {
+                        travelled = true
+                    }
                 }
-            }
+        }
+        .frame(height: Self.coverWidth * 1.5)
     }
 
-    private func cover(_ book: OnboardingSampleJob.Book) -> some View {
-        Group {
-            if let asset = book.coverAsset {
-                Image(asset)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                // The shelf's own generated cover, so a scene book and a real
-                // book without artwork are drawn by the same code.
-                GeneratedCover(title: book.title, author: book.author)
-            }
-        }
-        .frame(width: Self.coverWidth, height: Self.coverWidth * 1.5)
+    private func cover(_ name: String) -> some View {
+        Image(name)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: Self.coverWidth, height: Self.coverWidth * 1.5)
         .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
+        // Antiquarian jackets are often near-white; without a firmer edge the
+        // pale ones dissolve into the welcome's paper background.
         .overlay(
             RoundedRectangle(cornerRadius: Spacing.radiusSmall)
-                .strokeBorder(.black.opacity(0.08))
+                .strokeBorder(.black.opacity(0.16))
         )
         .shadow(color: .black.opacity(0.18), radius: 8, y: 5)
     }
@@ -152,40 +166,62 @@ private struct DriftingShelfRow: View {
 
 // MARK: - Sample data
 
-/// The shelf's books. Public domain only, and deliberately mixed: titles the
-/// Hungarian reader can read sit beside ones they cannot, which is the whole
-/// reason the app exists. The two with real jackets are lifted straight out of
-/// the EPUBs in `Resources/Fixtures`; the rest use the app's generated cover.
-enum OnboardingSampleJob {
-    struct Book {
-        let title: String
-        let author: String
-        /// `nil` falls back to `GeneratedCover`.
-        let coverAsset: String?
+/// The shelf's books: real jackets of real editions, all public domain, and
+/// all in the reader's own language. A Hungarian reader opening the app for
+/// the first time should recognise the shelf as *their* shelf — an English
+/// row of classics they may not read says the wrong thing on the screen that
+/// promises "your language".
+///
+/// Cover art lives in the asset catalog as `Cover-<language>-<slug>`;
+/// provenance and licences are recorded in `docs/COVERS.md`. Every name
+/// listed here is checked against the catalog by
+/// `OnboardingShelfTests.testEveryCoverResolves`.
+enum OnboardingShelf {
+    struct Rows {
+        let top: [String]
+        let bottom: [String]
     }
 
-    static let book = Book(
-        title: "Alice's Adventures in Wonderland",
-        author: "Lewis Carroll",
-        coverAsset: "SampleCoverAlice"
-    )
-    static let companion = Book(
-        title: "A Pál utcai fiúk",
-        author: "Molnár Ferenc",
-        coverAsset: "SampleCoverPal"
+    /// Falls back to the English shelf for any language without covers of
+    /// its own, which is also what the string catalog does.
+    static func rows(for language: AppLanguage) -> Rows {
+        switch language {
+        case .hu: return hungarian
+        case .de: return german
+        case .es: return spanish
+        case .en, .system: return english
+        }
+    }
+
+    static let english = Rows(
+        top: ["alice", "pride", "mobydick", "frankenstein"].map { "Cover-en-\($0)" },
+        bottom: ["expectations", "dracula", "doriangray", "janeeyre"].map { "Cover-en-\($0)" }
     )
 
-    static let topRow: [Book] = [
-        book,
-        Book(title: "Pride and Prejudice", author: "Jane Austen", coverAsset: nil),
-        Book(title: "Egri csillagok", author: "Gárdonyi Géza", coverAsset: nil),
-        Book(title: "Moby-Dick", author: "Herman Melville", coverAsset: nil)
-    ]
+    static let hungarian = Rows(
+        top: ["egricsillagok", "palutcaifiuk", "aranyember", "szentpeteresernyoje"]
+            .map { "Cover-hu-\($0)" },
+        bottom: ["koszivuemberfiai", "legyjomindhalalig", "toldiesteje", "embertragediaja"]
+            .map { "Cover-hu-\($0)" }
+    )
 
-    static let bottomRow: [Book] = [
-        companion,
-        Book(title: "Great Expectations", author: "Charles Dickens", coverAsset: nil),
-        Book(title: "Az arany ember", author: "Jókai Mór", coverAsset: nil),
-        Book(title: "Robinson Crusoe", author: "Daniel Defoe", coverAsset: nil)
-    ]
+    static let german = Rows(
+        top: ["prozess", "effibriest", "faust", "werther"].map { "Cover-de-\($0)" },
+        bottom: ["zarathustra", "buddenbrooks", "undine", "kinderhausmarchen"]
+            .map { "Cover-de-\($0)" }
+    )
+
+    /// Six books, both rows, in opposite orders — Commons has fewer usable
+    /// Spanish first-edition jackets than Hungarian or German ones. Splitting
+    /// them three and three was tried first and looked broken: three covers
+    /// are narrower than the screen, so each row repeated itself in plain
+    /// sight. Two rows drifting against each other hide the overlap.
+    static let spanish: Rows = {
+        let slugs = [
+            "quijote", "regenta", "niebla", "lazarillo", "sombrero", "madrenaturaleza"
+        ].map { "Cover-es-\($0)" }
+        // Rotated, not reversed: mirrored rows drifting against each other
+        // keep meeting the same pair face to face.
+        return Rows(top: slugs, bottom: Array(slugs[3...] + slugs[..<3]))
+    }()
 }

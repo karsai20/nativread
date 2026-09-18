@@ -10,7 +10,8 @@ struct TranslateHomeView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
 
-    @State private var translationBook: Book?
+    @Environment(TranslationPresenter.self) private var translationPresenter
+    @Environment(\.translationHeroNamespace) private var translationNamespace
     @State private var openBook: Book?
 
     private var palette: BrandPalette {
@@ -66,10 +67,6 @@ struct TranslateHomeView: View {
                 .padding(.top, Spacing.md)
                 .padding(.bottom, Spacing.xl)
             }
-        }
-        .sheet(item: $translationBook) { book in
-            TranslationSheet(book: book)
-                .environment(translationStore)
         }
         .fullScreenCover(item: $openBook) { book in
             if book.format == .pdf {
@@ -150,9 +147,11 @@ struct TranslateHomeView: View {
                     book: book,
                     coverURL: library.coverURL(for: book),
                     languageLabel: nil,
-                    systemImage: "sparkles",
+                    icon: .sparkles,
                     palette: palette,
-                    action: { translationBook = book }
+                    heroNamespace: translationNamespace,
+                    heroPresenter: translationPresenter,
+                    action: { translationPresenter.present(book, from: .translate) }
                 )
                 .accessibilityIdentifier("translate.ready.\(book.title)")
             }
@@ -170,7 +169,7 @@ struct TranslateHomeView: View {
                     languageLabel: localizedTargetName(
                         book.translatedLanguage ?? .hu
                     ),
-                    systemImage: "checkmark.seal",
+                    icon: .badgeCheck,
                     palette: palette,
                     action: { openBook = book }
                 )
@@ -181,8 +180,7 @@ struct TranslateHomeView: View {
 
     private var emptyState: some View {
         VStack(spacing: Spacing.md) {
-            Image(systemName: "character.book.closed")
-                .font(.system(size: 34, weight: .light))
+            Icon(.languages, size: 34)
                 .foregroundStyle(palette.accent)
                 .frame(width: 88, height: 88)
                 .background(palette.accentSoft)

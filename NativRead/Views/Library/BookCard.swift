@@ -11,6 +11,9 @@ struct BookCard: View {
     let captionColor: Color
     /// The shelf accent, used for the in-progress reading bar.
     let accentColor: Color
+    /// When set, the cover is the place the translate stage lifts from.
+    var heroNamespace: Namespace.ID? = nil
+    var heroPresenter: TranslationPresenter? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -22,6 +25,7 @@ struct BookCard: View {
                 .aspectRatio(2 / 3, contentMode: .fit)
                 .overlay { Self.cover(book: book, coverURL: coverURL) }
                 .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
+                .modifier(HeroSource(book: book, namespace: heroNamespace, presenter: heroPresenter))
                 .overlay(
                     RoundedRectangle(cornerRadius: Spacing.radiusSmall)
                         .strokeBorder(.black.opacity(0.08))
@@ -103,8 +107,7 @@ struct BookCard: View {
             )
         } else if book.isFinished {
             HStack(spacing: 3) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 8, weight: .bold))
+                Icon(.check, size: 8)
                 Text("FINISHED")
                     .font(.system(size: 8, weight: .bold))
                     .kerning(0.8)
@@ -206,6 +209,22 @@ struct GeneratedCover: View {
                     .padding(.bottom, proxy.size.height * 0.08)
                 }
             }
+        }
+    }
+}
+
+/// Optional matched-geometry source: only shelves that host the translate
+/// stage pass a namespace.
+private struct HeroSource: ViewModifier {
+    let book: Book
+    let namespace: Namespace.ID?
+    let presenter: TranslationPresenter?
+
+    func body(content: Content) -> some View {
+        if let namespace, let presenter {
+            content.translationHero(for: book, host: .library, in: namespace, presenter: presenter)
+        } else {
+            content
         }
     }
 }

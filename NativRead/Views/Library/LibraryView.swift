@@ -17,7 +17,8 @@ struct LibraryView: View {
     @State private var openBook: Book?
     @State private var importError: String?
     @State private var isImporting = false
-    @State private var translationBook: Book?
+    @Environment(TranslationPresenter.self) private var translationPresenter
+    @Environment(\.translationHeroNamespace) private var translationNamespace
     @State private var searchText = ""
     /// The book a delete was asked for, waiting on the first confirmation.
     @State private var deleteCandidate: Book?
@@ -114,10 +115,6 @@ struct LibraryView: View {
                     initialSystemDark: colorScheme == .dark
                 )
             }
-        }
-        .sheet(item: $translationBook) { book in
-            TranslationSheet(book: book)
-                .environment(translationStore)
         }
         .alert(
             "Import failed",
@@ -281,7 +278,9 @@ struct LibraryView: View {
                 coverURL: library.coverURL(for: book),
                 titleColor: palette.text,
                 captionColor: palette.secondaryText,
-                accentColor: palette.accent
+                accentColor: palette.accent,
+                heroNamespace: translationNamespace,
+                heroPresenter: translationPresenter
             )
         }
         .buttonStyle(.plain)
@@ -291,26 +290,28 @@ struct LibraryView: View {
         .contextMenu {
             if book.canExportTranslatedEPUB {
                 ShareLink(item: library.storedFileURL(for: book)) {
-                    Label(
-                        "Export translated EPUB",
-                        systemImage: "square.and.arrow.up"
-                    )
+                    Label {
+                        Text("Export translated EPUB")
+                    } icon: {
+                        Icon(.share, size: 16)
+                    }
                 }
             }
             if book.isTranslatableSource {
                 Button {
-                    translationBook = book
+                    translationPresenter.present(book, from: .library)
                 } label: {
-                    Label(
-                        "Translate book",
-                        systemImage: "sparkles"
-                    )
+                    Label {
+                        Text("Translate book")
+                    } icon: {
+                        Icon(.sparkles, size: 16)
+                    }
                 }
             }
             Button(role: .destructive) {
                 deleteCandidate = book
             } label: {
-                Label("Delete book", systemImage: "trash")
+                Label { Text("Delete book") } icon: { Icon(.trash2, size: 16) }
             }
         }
     }
@@ -351,8 +352,7 @@ struct LibraryView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                Icon(.chevronRight, size: 14)
                     .foregroundStyle(palette.tertiaryText)
             }
             .padding(Spacing.md)
@@ -424,7 +424,7 @@ struct LibraryView: View {
             palette: palette
         ) {
             AppIconButton(
-                systemImage: "plus",
+                icon: .plus,
                 label: "Add a book",
                 isSelected: false,
                 palette: palette
@@ -450,8 +450,7 @@ struct LibraryView: View {
 
     private var searchField: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 16, weight: .medium))
+            Icon(.search, size: 16)
                 .foregroundStyle(palette.secondaryText)
 
             TextField("Search your library", text: $searchText)
@@ -465,8 +464,7 @@ struct LibraryView: View {
                 Button {
                     searchText = ""
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                    Icon(.circleX, size: 16)
                         .foregroundStyle(palette.tertiaryText)
                 }
                 .accessibilityLabel("Clear search")
@@ -506,8 +504,7 @@ struct LibraryView: View {
                 Circle()
                     .fill(palette.surface)
                     .frame(width: 120, height: 120)
-                Image(systemName: "books.vertical")
-                    .font(.system(size: 44, weight: .light))
+                Icon(.libraryBig, size: 44)
                     .foregroundStyle(palette.accent)
             }
             VStack(spacing: 6) {
@@ -522,7 +519,7 @@ struct LibraryView: View {
             }
             AppPrimaryButton(
                 title: "Add a book",
-                systemImage: "plus",
+                icon: .plus,
                 action: { isImporterPresented = true },
                 palette: palette
             )

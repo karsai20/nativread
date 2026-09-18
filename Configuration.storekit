@@ -91,6 +91,36 @@
       "productID" : "com.karsai.nativread.book.t6",
       "referenceName" : "Book translation tier 6",
       "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "17.99",
+      "familyShareable" : false,
+      "internalID" : "10000000007",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · very long",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t7",
+      "referenceName" : "Book translation tier 7",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "24.99",
+      "familyShareable" : false,
+      "internalID" : "10000000008",
+      "localizations" : [
+        {
+          "description" : "Translate this book into Hungarian.",
+          "displayName" : "Book translation · epic",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.karsai.nativread.book.t8",
+      "referenceName" : "Book translation tier 8",
+      "type" : "Consumable"
     }
   ],
   "settings" : {

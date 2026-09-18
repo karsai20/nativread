@@ -11,8 +11,11 @@ struct TranslateBookRow: View {
     /// The language a translated copy came out in. `nil` for a source book:
     /// it can be translated into any target, so naming one would be a lie.
     let languageLabel: String?
-    let systemImage: String
+    let icon: LucideIcon
     let palette: BrandPalette
+    /// When set, the cover is where the translate stage lifts from.
+    var heroNamespace: Namespace.ID? = nil
+    var heroPresenter: TranslationPresenter? = nil
     let action: () -> Void
 
     @State private var tint: Color?
@@ -27,6 +30,7 @@ struct TranslateBookRow: View {
                     .clipShape(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                     )
+                    .modifier(RowHeroSource(book: book, namespace: heroNamespace, presenter: heroPresenter))
                     .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 3)
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -42,7 +46,11 @@ struct TranslateBookRow: View {
                         .lineLimit(1)
 
                     if let languageLabel {
-                        Label(languageLabel, systemImage: systemImage)
+                        Label {
+                            Text(languageLabel)
+                        } icon: {
+                            Icon(icon, size: 12)
+                        }
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(palette.text.opacity(0.85))
                             .padding(.horizontal, 8)
@@ -54,8 +62,7 @@ struct TranslateBookRow: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                Icon(.chevronRight, size: 13)
                     .foregroundStyle(palette.tertiaryText)
             }
             .padding(Spacing.sm)
@@ -150,5 +157,19 @@ enum CoverTint {
             brightness: min(max(brightness, 0.38), 0.78),
             alpha: 1
         ))
+    }
+}
+
+private struct RowHeroSource: ViewModifier {
+    let book: Book
+    let namespace: Namespace.ID?
+    let presenter: TranslationPresenter?
+
+    func body(content: Content) -> some View {
+        if let namespace, let presenter {
+            content.translationHero(for: book, host: .translate, in: namespace, presenter: presenter)
+        } else {
+            content
+        }
     }
 }
