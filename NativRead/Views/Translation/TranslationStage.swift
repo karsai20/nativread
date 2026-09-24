@@ -3,38 +3,38 @@ import SwiftUI
 /// The translate flow is a book page, the way a store shows one title: the
 /// cover the reader tapped lifts off the shelf onto a paper page that fades
 /// in beneath it — no scrim, no glass. Spatial consistency: it came from the
-/// shelf, it goes back to the shelf. Nothing drags; close is the X.
+/// shelf, it goes back to the shelf — by the X, or by swiping the page right
+/// the way a pushed screen goes back.
 ///
-/// Hosts apply `.translationStage(book:namespace:)`; covers on the shelf
-/// apply `.translationHero(for:in:activeBookID:)` so the lift is a matched
-/// geometry move, not a cross-fade.
+/// Exactly one cover is ever visible: the shelf's hides the instant the stage
+/// mounts, the stage's flies between the shelf slot and the page slot, and
+/// the shelf's shows again only after the flight home has landed.
 struct TranslationStageModifier: ViewModifier {
     let presenter: TranslationPresenter
     let namespace: Namespace.ID
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    static var liftAnimation: Animation { .spring(response: 0.45, dampingFraction: 1) }
-
     func body(content: Content) -> some View {
-        let isActive = presenter.book != nil
+        // Touches follow the lift, not the mount: the shelf scrolls again the
+        // moment close is tapped, while the cover is still flying home.
+        let isActive = presenter.isLifted
         ZStack {
             content
-                .scaleEffect(isActive && !reduceMotion ? 0.96 : 1)
                 .allowsHitTesting(!isActive)
                 .accessibilityHidden(isActive)
 
             if let active = presenter.book {
                 TranslationStage(
                     book: active,
-                    heroID: TranslationPresenter.heroID(for: active, host: presenter.host),
+                    shelfID: TranslationPresenter.heroID(for: active, host: presenter.host),
                     namespace: namespace,
-                    onClose: { withAnimation(Self.liftAnimation) { presenter.dismiss() } }
+                    presenter: presenter
                 )
+                .id(active.id)
+                .transition(.identity)
+                .allowsHitTesting(isActive)
                 .zIndex(1)
             }
         }
-        .animation(reduceMotion ? .easeOut(duration: 0.2) : Self.liftAnimation, value: isActive)
     }
 }
 
@@ -57,27 +57,28 @@ extension View {
     }
 
     /// Marks a shelf cover as the place the translate cover lifts from and
-    /// returns to. Hidden while its book is on stage — the stage draws it.
+    /// returns to. Hidden, without animation, while the stage draws it.
     func translationHero(
         for book: Book, host: TranslationPresenter.Host,
         in namespace: Namespace.ID, presenter: TranslationPresenter
     ) -> some View {
-        let isOnStage = presenter.book?.id == book.id && presenter.host == host
+        let isOffShelf = presenter.book?.id == book.id && presenter.host == host
         return self
             .matchedGeometryEffect(
                 id: TranslationPresenter.heroID(for: book, host: host),
-                in: namespace, isSource: !isOnStage
+                in: namespace
             )
-            .opacity(isOnStage ? 0 : 1)
+            .opacity(isOffShelf ? 0 : 1)
+            .animation(nil, value: isOffShelf)
     }
 }
 
 /// Paper page: the lifted cover, the book's details, the close button.
 struct TranslationStage: View {
     let book: Book
-    let heroID: String
+    let shelfID: String
     let namespace: Namespace.ID
-    let onClose: () -> Void
+    let presenter: TranslationPresenter
 
     @Environment(LibraryStore.self) private var library
     @Environment(TranslationStore.self) private var translations
@@ -86,8 +87,15 @@ struct TranslationStage: View {
     @Environment(\.locale) private var locale
 
     @State private var showsAddedToast = false
+    /// How far the reader has pulled the page right, and whether a swipe has
+    /// already sent it off. `isHorizontalSwipe` is decided on the first move
+    /// so a vertical drag never nudges the page sideways.
+    @State private var dragX: CGFloat = 0
+    @State private var isSwipedAway = false
+    @State private var isHorizontalSwipe: Bool?
+    @State private var pageWidth: CGFloat = 400
 
-    private static let coverWidth: CGFloat = 150
+    private static let coverWidth: CGFloat = 132
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -102,33 +110,63 @@ struct TranslationStage: View {
             && (job.phase.isInFlight || job.phase == .finished)
     }
 
+    private var isLifted: Bool { presenter.isLifted }
+
+    /// The page slides with the finger; once swiped away it keeps going.
+    private var pageOffset: CGFloat { isSwipedAway ? pageWidth : dragX }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             palette.background
                 .ignoresSafeArea()
-                .transition(.opacity)
+                .opacity(isLifted ? 1 : 0)
+                // The edge the finger pulls: a shadow so the page reads as
+                // lying on the list it came from.
+                .shadow(color: .black.opacity(dragX > 0 ? 0.18 : 0), radius: 18, x: -4)
+                .offset(x: pageOffset)
 
             VStack(spacing: 0) {
-                cover
+                // The cover's place on the page; the cover itself flies above.
+                // Unshifted on purpose: the cover follows the finger through
+                // its own offset, so the flight home starts from the slot.
+                Color.clear
+                    .frame(width: Self.coverWidth, height: Self.coverWidth * 1.5)
+                    .matchedGeometryEffect(id: TranslationPresenter.stageSlotID, in: namespace)
                     .padding(.top, Spacing.xl)
-                    .transition(.identity)
 
                 TranslationSheet(book: book)
                     .padding(.top, Spacing.lg)
                     .frame(maxHeight: .infinity)
-                    .transition(.opacity)
+                    .opacity(isLifted ? 1 : 0)
+                    .offset(x: pageOffset, y: isLifted || reduceMotion ? 0 : 24)
             }
+            .allowsHitTesting(isLifted)
+
+            cover
+                .offset(x: isLifted ? dragX : 0)
 
             closeButton
                 .padding(.trailing, Spacing.lg)
                 .padding(.top, Spacing.xs)
-                .transition(.opacity)
+                .opacity(isLifted ? 1 : 0)
+                .offset(x: pageOffset)
+                .allowsHitTesting(isLifted)
 
             if showsAddedToast {
                 toast.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
         }
         .accessibilityIdentifier("translation.sheet")
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { pageWidth = $0 }
+        .simultaneousGesture(swipeBack)
+        .accessibilityAction(.escape) { presenter.dismiss() }
+        .onAppear { presenter.lift() }
+        // Caught mid-flight home and lifted again: the page comes back whole.
+        .onChange(of: isLifted) { _, lifted in
+            guard lifted else { return }
+            isSwipedAway = false
+            dragX = 0
+        }
         .onChange(of: job.phase) { _, phase in
             guard phase == .finished else { return }
             let feedback = UINotificationFeedbackGenerator()
@@ -141,21 +179,58 @@ struct TranslationStage: View {
         }
     }
 
+    // MARK: - Swipe back
+
+    private static let swipeCommitFraction: CGFloat = 0.3
+    private static let swipeFlickFraction: CGFloat = 0.6
+
+    private var swipeBack: some Gesture {
+        DragGesture(minimumDistance: 14)
+            .onChanged { value in
+                guard isLifted else { return }
+                if isHorizontalSwipe == nil {
+                    isHorizontalSwipe = value.translation.width > abs(value.translation.height)
+                }
+                guard isHorizontalSwipe == true else { return }
+                dragX = max(0, value.translation.width)
+            }
+            .onEnded { value in
+                defer { isHorizontalSwipe = nil }
+                guard isHorizontalSwipe == true, isLifted else { return }
+                let isCommitted = dragX > pageWidth * Self.swipeCommitFraction
+                    || value.predictedEndTranslation.width > pageWidth * Self.swipeFlickFraction
+                if isCommitted {
+                    withAnimation(TranslationPresenter.animation) { isSwipedAway = true }
+                    presenter.dismiss()
+                } else {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.86)) { dragX = 0 }
+                }
+            }
+    }
+
     // MARK: - Cover
 
+    /// Pinned to the shelf slot or the page slot; animating `isLifted` moves
+    /// it between the two. Under Reduce Motion it stays on the page and fades.
     private var cover: some View {
-        ZStack {
+        let target = isLifted || reduceMotion ? TranslationPresenter.stageSlotID : shelfID
+        return ZStack {
             front
                 .opacity(isFlipped ? 0 : 1)
             back
                 .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
                 .opacity(isFlipped ? 1 : 0)
         }
-        .frame(width: Self.coverWidth, height: Self.coverWidth * 1.5)
         .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
-        .shadow(color: .black.opacity(palette.isDark ? 0.5 : 0.22), radius: 18, y: 10)
         .animation(.spring(response: 0.6, dampingFraction: 0.86), value: isFlipped)
-        .matchedGeometryEffect(id: heroID, in: namespace, isSource: true)
+        .matchedGeometryEffect(id: target, in: namespace, isSource: false)
+        .shadow(
+            color: .black.opacity(isLifted ? (palette.isDark ? 0.5 : 0.22) : 0.22),
+            radius: isLifted ? 18 : 5, y: isLifted ? 10 : 3
+        )
+        .opacity(reduceMotion && !isLifted ? 0 : 1)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private var front: some View {
@@ -189,7 +264,7 @@ struct TranslationStage: View {
     // MARK: - Chrome
 
     private var closeButton: some View {
-        Button(action: onClose) {
+        Button { presenter.dismiss() } label: {
             Icon(.x, size: 16)
                 .foregroundStyle(palette.text)
                 .frame(width: 38, height: 38)
