@@ -18,7 +18,6 @@ struct LibraryView: View {
     @State private var importError: String?
     @State private var isImporting = false
     @Environment(TranslationPresenter.self) private var translationPresenter
-    @Environment(\.translationHeroNamespace) private var translationNamespace
     @State private var searchText = ""
     /// The book a delete was asked for, waiting on the first confirmation.
     @State private var deleteCandidate: Book?
@@ -278,9 +277,7 @@ struct LibraryView: View {
                 coverURL: library.coverURL(for: book),
                 titleColor: palette.text,
                 captionColor: palette.secondaryText,
-                accentColor: palette.accent,
-                heroNamespace: translationNamespace,
-                heroPresenter: translationPresenter
+                accentColor: palette.accent
             )
         }
         .buttonStyle(.plain)
@@ -299,7 +296,7 @@ struct LibraryView: View {
             }
             if book.isTranslatableSource {
                 Button {
-                    translationPresenter.present(book, from: .library)
+                    translationPresenter.present(book)
                 } label: {
                     Label {
                         Text("Translate book")

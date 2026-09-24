@@ -23,7 +23,6 @@ struct AppTabView: View {
     /// The translate stage sits above the whole shell, tab bar included, and
     /// its cover lifts from whichever shelf the reader tapped.
     @State private var translationPresenter = TranslationPresenter()
-    @Namespace private var translationNamespace
 
     private var palette: BrandPalette {
         BrandPalette.resolve(systemDark: colorScheme == .dark)
@@ -49,8 +48,7 @@ struct AppTabView: View {
         }
         .background(palette.background.ignoresSafeArea())
         .environment(translationPresenter)
-        .environment(\.translationHeroNamespace, translationNamespace)
-        .translationStage(presenter: translationPresenter, namespace: translationNamespace)
+        .translationStage(presenter: translationPresenter)
     }
 
     private func destination<Content: View>(

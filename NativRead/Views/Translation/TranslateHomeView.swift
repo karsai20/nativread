@@ -11,7 +11,6 @@ struct TranslateHomeView: View {
     @Environment(\.locale) private var locale
 
     @Environment(TranslationPresenter.self) private var translationPresenter
-    @Environment(\.translationHeroNamespace) private var translationNamespace
     @State private var openBook: Book?
 
     private var palette: BrandPalette {
@@ -149,9 +148,7 @@ struct TranslateHomeView: View {
                     languageLabel: nil,
                     icon: .sparkles,
                     palette: palette,
-                    heroNamespace: translationNamespace,
-                    heroPresenter: translationPresenter,
-                    action: { translationPresenter.present(book, from: .translate) }
+                    action: { translationPresenter.present(book) }
                 )
                 .accessibilityIdentifier("translate.ready.\(book.title)")
             }

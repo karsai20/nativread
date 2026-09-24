@@ -14,8 +14,6 @@ struct TranslateBookRow: View {
     let icon: LucideIcon
     let palette: BrandPalette
     /// When set, the cover is where the translate stage lifts from.
-    var heroNamespace: Namespace.ID? = nil
-    var heroPresenter: TranslationPresenter? = nil
     let action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -31,7 +29,6 @@ struct TranslateBookRow: View {
                     .clipShape(
                         RoundedRectangle(cornerRadius: 7, style: .continuous)
                     )
-                    .modifier(RowHeroSource(book: book, namespace: heroNamespace, presenter: heroPresenter))
                     .shadow(color: .black.opacity(0.22), radius: 5, x: 0, y: 3)
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -159,19 +156,5 @@ enum CoverTint {
             brightness: min(max(brightness, 0.38), 0.78),
             alpha: 1
         ))
-    }
-}
-
-private struct RowHeroSource: ViewModifier {
-    let book: Book
-    let namespace: Namespace.ID?
-    let presenter: TranslationPresenter?
-
-    func body(content: Content) -> some View {
-        if let namespace, let presenter {
-            content.translationHero(for: book, host: .translate, in: namespace, presenter: presenter)
-        } else {
-            content
-        }
     }
 }
