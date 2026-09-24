@@ -191,6 +191,9 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         )
         capture(locale, 17, "translation-overview")
 
+        let start = app.buttons["translation.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 6))
+        start.tap()
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(localAccount.waitForExistence(timeout: 10))
         localAccount.tap()

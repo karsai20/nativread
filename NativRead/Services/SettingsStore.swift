@@ -173,3 +173,20 @@ final class SettingsStore {
         defaults.removeObject(forKey: orientationLockKey)
     }
 }
+
+extension SettingsStore {
+    /// DEBUG builds pointed at a loopback or private-LAN translator may skip
+    /// Sign in with Apple and use a placeholder account. Always false in
+    /// release builds.
+    var isPrivateTestTranslationBackend: Bool {
+#if DEBUG
+        guard let host = translationBackendURL?.host?.lowercased() else { return false }
+        if host == "localhost" || host == "::1" || host.hasPrefix("127.") { return true }
+        if host.hasPrefix("10.") || host.hasPrefix("192.168.") { return true }
+        let parts = host.split(separator: ".").compactMap { Int(String($0)) }
+        return parts.count == 4 && parts[0] == 172 && (16...31).contains(parts[1])
+#else
+        return false
+#endif
+    }
+}

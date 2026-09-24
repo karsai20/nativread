@@ -3310,6 +3310,86 @@
           }
         }
       }
+    },
+    "Length" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hossz"
+          }
+        }
+      }
+    },
+    "Reading time" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olvasás"
+          }
+        }
+      }
+    },
+    "Ready in" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elkészül"
+          }
+        }
+      }
+    },
+    "First chapter free" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Első fejezet ingyen"
+          }
+        }
+      }
+    },
+    "First chapter on your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Első fejezet a polcon"
+          }
+        }
+      }
+    },
+    "Original" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eredeti"
+          }
+        }
+      }
+    },
+    "Translate into" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fordítás nyelve"
+          }
+        }
+      }
+    },
+    "Beta: this language is still being quality-checked." : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Béta: ennek a nyelvnek a minőségét még ellenőrizzük."
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

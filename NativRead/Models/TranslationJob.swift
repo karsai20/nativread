@@ -293,3 +293,17 @@ struct TranslationJob: Codable, Equatable, Identifiable {
         self.updatedAt = updatedAt
     }
 }
+
+extension TranslationJob {
+    var hasFreePreview: Bool { previewCompletedAt != nil }
+
+    var hasFullTranslation: Bool { fullCompletedAt != nil }
+
+    /// Something is on its way to or from the backend right now.
+    var isBackendActive: Bool {
+        switch phase {
+        case .uploading, .translating, .importingResult: return true
+        default: return false
+        }
+    }
+}

@@ -443,23 +443,27 @@ final class ReaderJourneyUITests: XCTestCase {
         readyBook.tap()
     }
 
-    func testTranslateSheetRequiresAppleLoginBeforeFreeChapter() {
+    func testTranslateSheetAsksForAppleLoginWhenReachingForTheFreeChapter() {
         openTranslationSheet()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 6)
         )
-        // No account yet: the flap leads with Sign in with Apple, the free
-        // chapter line is present but inert, and the attestation is fine
-        // print with the Terms link inline — no checkbox to tick first.
+        // No account yet: the page leads with the book, not a login. Both
+        // ways in are live, the attestation is fine print with the Terms link
+        // inline, and reaching for the free chapter brings Sign in with Apple
+        // forward — without starting anything.
+        let freeChapter = app.buttons["translation.freeChapter"]
+        XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
+        XCTAssertTrue(freeChapter.isEnabled)
+        XCTAssertFalse(app.buttons["translation.signInWithApple"].exists)
+        XCTAssertTrue(app.staticTexts["translation.terms.link"].exists)
+        XCTAssertFalse(app.buttons["translation.termsAcceptance"].exists)
+
+        freeChapter.tap()
         XCTAssertTrue(
             app.buttons["translation.signInWithApple"].waitForExistence(timeout: 6)
         )
-        let freeChapter = app.buttons["translation.freeChapter"]
-        XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
-        XCTAssertFalse(freeChapter.isEnabled)
-        XCTAssertTrue(app.staticTexts["translation.terms.link"].exists)
-        XCTAssertFalse(app.buttons["translation.termsAcceptance"].exists)
 
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "translation-sheet"
@@ -478,6 +482,9 @@ final class ReaderJourneyUITests: XCTestCase {
 
         openTranslationSheet()
 
+        let start = app.buttons["translation.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 6))
+        start.tap()
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(
             localAccount.waitForExistence(timeout: 6),
@@ -528,6 +535,9 @@ final class ReaderJourneyUITests: XCTestCase {
         tab(.translate).tap()
         app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
 
+        let start = app.buttons["translation.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 6))
+        start.tap()
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(localAccount.waitForExistence(timeout: 6))
         localAccount.tap()
