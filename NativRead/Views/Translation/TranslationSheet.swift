@@ -95,16 +95,6 @@ struct TranslationSheet: View {
 
             actionArea
                 .padding(.top, Spacing.md)
-
-            // Right under the buttons, so the provider is named before the tap
-            // that sends the book to it (App Review 5.1.2(i)).
-            TranslationFinePrint(
-                providerName: TranslationPrivacy.aiProviderDisplayName,
-                palette: palette,
-                onDetails: { showsAIConsentDetails = true },
-                onTerms: { showsTermsOfUse = true }
-            )
-            .padding(.top, Spacing.sm)
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showsAccount)
 
             TranslationFactsGrid(
@@ -123,6 +113,16 @@ struct TranslationSheet: View {
             )
             .padding(.top, Spacing.lg)
 
+            // At the foot of the page, still on screen with the buttons, so
+            // the provider is named before the tap that sends the book to it
+            // (App Review 5.1.2(i)).
+            TranslationFinePrint(
+                providerName: TranslationPrivacy.aiProviderDisplayName,
+                palette: palette,
+                onDetails: { showsAIConsentDetails = true },
+                onTerms: { showsTermsOfUse = true }
+            )
+            .padding(.top, Spacing.md)
 
             Spacer(minLength: 0)
         }
