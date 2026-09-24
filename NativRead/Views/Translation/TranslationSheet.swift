@@ -82,7 +82,7 @@ struct TranslationSheet: View {
             TranslationLanguagePicker(
                 choices: targetChoices,
                 selected: job.targetLanguage,
-                isSelectedApproved: isTargetApproved,
+                isApproved: isApproved,
                 isEnabled: !job.phase.isInFlight && !job.hasFullTranslation,
                 palette: palette,
                 onSelect: { translations.setTargetLanguage($0, for: book) }
@@ -93,7 +93,7 @@ struct TranslationSheet: View {
                 .padding(.top, Spacing.md)
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showsAccount)
 
-            TranslationFactsStrip(
+            TranslationFactsGrid(
                 chapters: String.localizedStringWithFormat(
                     String(localized: "%lld chapters", bundle: .appLanguage, locale: locale),
                     max(1, book.spineWeights.count)
@@ -190,9 +190,9 @@ struct TranslationSheet: View {
         return TranslationTargetLanguage.passed.filter { $0.rawValue != sourceLanguageCode }
     }
 
-    private var isTargetApproved: Bool {
-        pricing.pricing?.isApproved(from: sourceLanguageCode, to: job.targetLanguage)
-            ?? TranslationTargetLanguage.passed.contains(job.targetLanguage)
+    private func isApproved(_ target: TranslationTargetLanguage) -> Bool {
+        pricing.pricing?.isApproved(from: sourceLanguageCode, to: target)
+            ?? TranslationTargetLanguage.passed.contains(target)
     }
 
     /// Keeps the chosen language one the page offers: a Hungarian book

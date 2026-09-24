@@ -1,6 +1,18 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Beta" : {
+      "comment" : "Badge on a translation target language still being quality-checked.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Béta"
+          }
+        }
+      }
+    },
     "Delete" : {
       "comment" : "Destructive button on the second confirmation for a translated book.",
       "extractionState" : "manual",

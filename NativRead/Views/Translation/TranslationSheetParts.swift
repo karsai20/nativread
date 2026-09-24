@@ -4,22 +4,9 @@ import SwiftUI
 /// The presentational pieces of `TranslationSheet`'s book page. They hold no
 /// flow state: the sheet decides what is enabled and what a tap does.
 
-/// Small uppercase caption over a value or a group.
-struct TranslationPageLabel: View {
-    let key: LocalizedStringKey
-    let palette: BrandPalette
-
-    var body: some View {
-        Text(key)
-            .font(Typography.control(10, weight: .semibold))
-            .tracking(1.2)
-            .textCase(.uppercase)
-            .foregroundStyle(palette.tertiaryText)
-    }
-}
-
-/// App Store-style facts: length, reading time, source language, turnaround.
-struct TranslationFactsStrip: View {
+/// The book's facts as a 2×2 grid of small bordered cards: a muted label
+/// with its icon over the value, the way a shadcn stat card reads.
+struct TranslationFactsGrid: View {
     let chapters: String
     let readingTime: String
     let original: String
@@ -27,86 +14,127 @@ struct TranslationFactsStrip: View {
     let palette: BrandPalette
 
     var body: some View {
-        HStack(spacing: 0) {
-            cell("Length", value: chapters)
-            divider
-            cell("Reading time", value: readingTime)
-            divider
-            cell("Original", value: original)
-            divider
-            cell("Ready in", value: readyIn)
+        Grid(horizontalSpacing: Spacing.xs, verticalSpacing: Spacing.xs) {
+            GridRow {
+                card(.bookOpen, "Length", value: chapters)
+                card(.clock, "Reading time", value: readingTime)
+            }
+            GridRow {
+                card(.languages, "Original", value: original)
+                card(.hourglass, "Ready in", value: readyIn)
+            }
         }
-        .padding(.vertical, Spacing.sm)
-        .overlay(alignment: .top) { palette.hairline.frame(height: 0.5) }
-        .overlay(alignment: .bottom) { palette.hairline.frame(height: 0.5) }
     }
 
-    private func cell(_ label: LocalizedStringKey, value: String) -> some View {
-        VStack(spacing: 5) {
-            TranslationPageLabel(key: label, palette: palette)
+    private func card(_ icon: LucideIcon, _ label: LocalizedStringKey, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Icon(icon, size: 13)
+                Text(label)
+                    .font(Typography.meta(12))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(palette.secondaryText)
             Text(verbatim: value)
-                .font(Typography.control(15, weight: .semibold))
+                .font(Typography.control(16, weight: .semibold))
                 .foregroundStyle(palette.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, Spacing.sm - 2)
+        .background(palette.surface, in: cardShape)
+        .overlay(cardShape.strokeBorder(palette.hairline))
         .accessibilityElement(children: .combine)
     }
 
-    private var divider: some View {
-        palette.hairline.frame(width: 0.5, height: 30)
+    private var cardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: Spacing.radiusSmall, style: .continuous)
     }
 }
 
-/// The one choice on the page, in the open: a chip per language, the
-/// selected one filled. A language still being quality-checked says Beta.
+/// The one choice on the page, as a shadcn-style select: a bordered field
+/// showing the chosen language, opening the system menu of every target on
+/// offer. A language still being quality-checked carries a Beta badge.
 struct TranslationLanguagePicker: View {
     let choices: [TranslationTargetLanguage]
     let selected: TranslationTargetLanguage
-    let isSelectedApproved: Bool
+    let isApproved: (TranslationTargetLanguage) -> Bool
     let isEnabled: Bool
     let palette: BrandPalette
     let onSelect: (TranslationTargetLanguage) -> Void
 
     @Environment(\.locale) private var locale
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: Spacing.xs) {
-            TranslationPageLabel(key: "Translate into", palette: palette)
-            HStack(spacing: Spacing.xs) {
-                ForEach(choices, id: \.self) { chip($0) }
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            Text("Translate into")
+                .font(Typography.control(13, weight: .medium))
+                .foregroundStyle(palette.secondaryText)
+            Menu {
+                ForEach(choices, id: \.self) { menuItem($0) }
+            } label: {
+                field
             }
-            if !isSelectedApproved {
+            .disabled(!isEnabled)
+            .accessibilityIdentifier("translation.targetLanguage")
+            if !isApproved(selected) {
                 Text("Beta: this language is still being quality-checked.")
                     .font(Typography.meta(12))
                     .foregroundStyle(palette.note)
-                    .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("translation.targetLanguage")
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func chip(_ language: TranslationTargetLanguage) -> some View {
-        let isSelected = language == selected
-        return Button { onSelect(language) } label: {
-            Text(verbatim: language.localizedName(in: locale))
-                .font(Typography.control(14, weight: isSelected ? .semibold : .medium))
+    private var field: some View {
+        HStack(spacing: Spacing.xs) {
+            Icon(.languages, size: 16)
+                .foregroundStyle(palette.secondaryText)
+            Text(verbatim: selected.localizedName(in: locale))
+                .font(Typography.control(15, weight: .medium))
+                .foregroundStyle(palette.text)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .foregroundStyle(isSelected ? Color(hex: "#F7F5EE") : palette.text)
-                .padding(.horizontal, Spacing.sm)
-                .frame(maxWidth: .infinity, minHeight: 38)
-                .background(isSelected ? palette.accent : palette.surface, in: Capsule(style: .continuous))
-                .overlay(Capsule(style: .continuous).strokeBorder(isSelected ? .clear : palette.hairline))
+            if !isApproved(selected) { betaBadge }
+            Spacer(minLength: 0)
+            Icon(.chevronDown, size: 16)
+                .foregroundStyle(palette.secondaryText)
         }
-        .buttonStyle(PressScaleButtonStyle(reduceMotion: reduceMotion))
-        .disabled(!isEnabled)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .padding(.horizontal, Spacing.sm)
+        .frame(minHeight: 44)
+        .background(palette.surface, in: fieldShape)
+        .overlay(fieldShape.strokeBorder(palette.hairline))
+        .opacity(isEnabled ? 1 : 0.5)
+        .contentShape(fieldShape)
+    }
+
+    private var betaBadge: some View {
+        Text("Beta")
+            .font(Typography.control(11, weight: .semibold))
+            .foregroundStyle(palette.note)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .overlay(Capsule(style: .continuous).strokeBorder(palette.note.opacity(0.5)))
+    }
+
+    /// A system menu row: a checkmark on the chosen language, "Beta" as the
+    /// subtitle of one still being quality-checked.
+    private func menuItem(_ language: TranslationTargetLanguage) -> some View {
+        Button { onSelect(language) } label: {
+            if language == selected {
+                Label(language.localizedName(in: locale), systemImage: "checkmark")
+            } else {
+                Text(verbatim: language.localizedName(in: locale))
+            }
+            if !isApproved(language) { Text("Beta") }
+        }
         .accessibilityIdentifier("translation.target.\(language.rawValue)")
+    }
+
+    private var fieldShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: Spacing.radiusSmall, style: .continuous)
     }
 }
 
