@@ -17,9 +17,10 @@ enum Typography {
         .custom("Charter", size: size, relativeTo: .largeTitle)
     }
 
-    /// Registered family name of the bundled Cormorant Garamond variable font,
-    /// kept for the reader's "Cormorant" font option preview.
-    static let displayFamily = "Cormorant Garamond Light"
+    /// PostScript name of the bundled Cormorant Garamond variable font. Not
+    /// the family name: the upright and italic files share "Cormorant Garamond
+    /// Light", so `.custom` resolved neither and fell back to the system face.
+    static let displayFamily = "CormorantGaramond-Light"
 
     /// Section or card title — a readable literary serif that bridges
     /// display and body without dropping to system defaults.
