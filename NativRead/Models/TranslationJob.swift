@@ -115,12 +115,13 @@ enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable, Hashab
     case hu
     case de
     case es
+    case en
 
     /// Languages that cleared the raised quality gate (full-novel pipeline
-    /// run + native-speaker read, dated go/no-go — blueprint §3). Only these
-    /// appear in the picker; the rest are waitlist-only. Deliberately a
-    /// hardcoded list (eng D7): a new language is a release event, not a
-    /// hotfix.
+    /// run + native-speaker read, dated go/no-go — blueprint §3). The rest
+    /// are selectable while the backend lets unvalidated pairs through for
+    /// testing, and carry a Beta mark. Deliberately a hardcoded list (eng
+    /// D7): a new language is a release event, not a hotfix.
     static let passed: [TranslationTargetLanguage] = [.hu]
 
     var displayName: String {
@@ -128,6 +129,7 @@ enum TranslationTargetLanguage: String, Codable, CaseIterable, Equatable, Hashab
         case .hu: return "Hungarian"
         case .de: return "German"
         case .es: return "Spanish"
+        case .en: return "English"
         }
     }
 

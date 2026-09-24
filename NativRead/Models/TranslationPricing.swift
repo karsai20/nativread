@@ -15,12 +15,22 @@ struct TranslationPricing: Codable, Equatable, Sendable {
         let productId: String
     }
 
+    /// A language pair the backend will start a translation on right now.
+    struct LanguagePair: Codable, Equatable, Sendable {
+        let source: String
+        let target: String
+        /// False while the pair is only open for testing (shown as Beta).
+        let validated: Bool
+    }
+
     /// The counting rules the table was published for. When this differs from
     /// `TranslationQuote.version` the on-device counter is a different counter
     /// from the server's, and nothing it produces may be priced.
     let quoteVersion: String
     let charactersPerCredit: Int
     let tiers: [Tier]
+    /// Absent from tables served before the backend advertised its pairs.
+    var languagePairs: [LanguagePair]? = nil
 
     /// Whether this app's port of the character counter still matches the
     /// server's rules.
@@ -51,5 +61,27 @@ struct TranslationPricing: Codable, Equatable, Sendable {
             return false
         }
         return characters > longest
+    }
+
+    /// Targets on offer for a book in `source` (`nil` until detected), in
+    /// the picker's order. Without an advertised list, only the languages
+    /// this build knows passed the quality gate.
+    func targetLanguages(from source: String?) -> [TranslationTargetLanguage] {
+        guard let languagePairs else {
+            return TranslationTargetLanguage.passed.filter { $0.rawValue != source }
+        }
+        let open = Set(languagePairs.filter { source == nil || $0.source == source }.map(\.target))
+        return TranslationTargetLanguage.allCases.filter {
+            open.contains($0.rawValue) && $0.rawValue != source
+        }
+    }
+
+    /// Whether translating into `target` has passed the quality gate —
+    /// otherwise the picker marks it Beta.
+    func isApproved(from source: String?, to target: TranslationTargetLanguage) -> Bool {
+        guard let languagePairs else { return TranslationTargetLanguage.passed.contains(target) }
+        return languagePairs.contains {
+            $0.target == target.rawValue && $0.validated && (source == nil || $0.source == source)
+        }
     }
 }

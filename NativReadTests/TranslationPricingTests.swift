@@ -186,4 +186,28 @@ final class PricingStoreTests: XCTestCase {
 
         XCTAssertNil(makeStore().pricing)
     }
+
+    func testOffersOnlyApprovedTargetsWithoutAnAdvertisedList() {
+        let table = pricing(quoteVersion: TranslationQuote.version)
+
+        XCTAssertEqual(table.targetLanguages(from: "en"), [.hu])
+    }
+
+    func testOffersTheAdvertisedPairsForTheBooksLanguage() throws {
+        let json = """
+        {"quoteVersion":"v","charactersPerCredit":1000,"tiers":[],
+         "languagePairs":[
+           {"source":"en","target":"hu","validated":true},
+           {"source":"en","target":"de","validated":false},
+           {"source":"hu","target":"en","validated":false}]}
+        """
+        let table = try JSONDecoder().decode(TranslationPricing.self, from: Data(json.utf8))
+
+        XCTAssertEqual(table.targetLanguages(from: "en"), [.hu, .de])
+        XCTAssertEqual(table.targetLanguages(from: "hu"), [.en])
+        // Not yet detected: every advertised target is on offer.
+        XCTAssertEqual(table.targetLanguages(from: nil), [.hu, .de, .en])
+        XCTAssertTrue(table.isApproved(from: "en", to: .hu))
+        XCTAssertFalse(table.isApproved(from: "en", to: .de))
+    }
 }
