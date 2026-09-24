@@ -56,7 +56,13 @@ struct NativReadApp: App {
         AppDelegate.lockPortrait = settings.isOrientationLocked
         _settingsStore = State(initialValue: settings)
 
-        _translationStore = State(initialValue: TranslationStore())
+        let translations = TranslationStore()
+        // The AI permission is app-wide now, so a clean-settings launch has
+        // to forget it too, or one UI test's tick leaks into the next.
+        if ProcessInfo.processInfo.arguments.contains("-resetSettings") {
+            translations.clearAIProcessingConsents()
+        }
+        _translationStore = State(initialValue: translations)
         let auth = TranslationAuthStore(
             initialSessionToken: Self.translationSessionTokenArgument
         )

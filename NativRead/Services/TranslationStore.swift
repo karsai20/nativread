@@ -72,6 +72,13 @@ final class TranslationStore {
         )
     }
 
+    /// Whether the reader has allowed the current AI provider for any book.
+    /// Asked once, not per book: the permission names the provider and what
+    /// it does, and holds until withdrawn (`clearAIProcessingConsents`).
+    var hasAIProcessingConsent: Bool {
+        jobs.contains { $0.acceptedAIProcessingVersion == TranslationPrivacy.currentAIConsentVersion }
+    }
+
     func recordAIProcessingConsent(for book: Book) {
         var job = self.job(for: book)
         job.bookTitle = book.title

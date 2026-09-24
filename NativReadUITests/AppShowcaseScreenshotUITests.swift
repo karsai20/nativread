@@ -191,6 +191,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         )
         capture(locale, 17, "translation-overview")
 
+        app.descendants(matching: .any)["translation.aiConsent.toggle"].tap()
         let start = app.buttons["translation.start"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
         start.tap()
@@ -199,10 +200,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         localAccount.tap()
         capture(locale, 19, "translation-whole-book-options")
 
-        let freeChapter = app.buttons["translation.freeChapter"]
-        XCTAssertTrue(freeChapter.isHittable)
-        freeChapter.tap()
-
+        app.buttons["translation.aiConsent.details"].tap()
         XCTAssertTrue(
             app.buttons["translation.aiConsent.allow"]
                 .waitForExistence(timeout: 10)

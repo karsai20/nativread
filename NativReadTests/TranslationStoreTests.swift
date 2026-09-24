@@ -236,6 +236,21 @@ final class TranslationStoreTests: XCTestCase {
         )
     }
 
+    func testAIProcessingConsentGivenOnceCoversEveryBookUntilWithdrawn() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let first = Book(title: "One", author: "A", fileName: "one.epub", spineWeights: [1])
+        let store = TranslationStore(rootDirectory: root)
+        XCTAssertFalse(store.hasAIProcessingConsent)
+
+        store.recordAIProcessingConsent(for: first)
+
+        XCTAssertTrue(TranslationStore(rootDirectory: root).hasAIProcessingConsent)
+        store.clearAIProcessingConsents()
+        XCTAssertFalse(store.hasAIProcessingConsent)
+    }
+
     func testAIProcessingConsentCanBeWithdrawnForFutureRequests() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

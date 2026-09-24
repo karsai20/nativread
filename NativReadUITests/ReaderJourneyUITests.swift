@@ -455,6 +455,8 @@ final class ReaderJourneyUITests: XCTestCase {
         // forward — without starting anything.
         let freeChapter = app.buttons["translation.freeChapter"]
         XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
+        XCTAssertFalse(freeChapter.isEnabled, "nothing may start before the AI permission")
+        app.descendants(matching: .any)["translation.aiConsent.toggle"].tap()
         XCTAssertTrue(freeChapter.isEnabled)
         XCTAssertFalse(app.buttons["translation.signInWithApple"].exists)
         XCTAssertTrue(app.staticTexts["translation.terms.link"].exists)
@@ -482,6 +484,7 @@ final class ReaderJourneyUITests: XCTestCase {
 
         openTranslationSheet()
 
+        app.descendants(matching: .any)["translation.aiConsent.toggle"].tap()
         let start = app.buttons["translation.start"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
         start.tap()
@@ -505,14 +508,6 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         fullBook.tap()
 
-        let allowAI = app.buttons["translation.aiConsent.allow"]
-        XCTAssertTrue(
-            allowAI.waitForExistence(timeout: 6),
-            "translation must request explicit AI processing permission"
-        )
-        XCTAssertTrue(app.buttons["translation.aiConsent.privacy"].exists)
-        allowAI.tap()
-
         let added = NSPredicate(format: "label CONTAINS[c] 'Added to your shelf'")
         expectation(
             for: added, evaluatedWith: app.buttons["translation.fullBook"]
@@ -520,7 +515,7 @@ final class ReaderJourneyUITests: XCTestCase {
         waitForExpectations(timeout: 30)
     }
 
-    func testHungarianAIPermissionCanBeDeclinedBeforeUpload() {
+    func testHungarianAIPermissionIsAskedOnThePageBeforeAnyUpload() {
         app.terminate()
         app.launchArguments = [
             "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
@@ -535,33 +530,30 @@ final class ReaderJourneyUITests: XCTestCase {
         tab(.translate).tap()
         app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
 
+        // Unticked, nothing can be sent: both ways in stay inert.
         let start = app.buttons["translation.start"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
-        start.tap()
-        let localAccount = app.buttons["translation.localTestAccount"]
-        XCTAssertTrue(localAccount.waitForExistence(timeout: 6))
-        localAccount.tap()
+        XCTAssertFalse(start.isEnabled)
+        XCTAssertFalse(app.buttons["translation.freeChapter"].isEnabled)
 
-        let freeChapter = app.buttons["translation.freeChapter"]
-        XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
-        XCTAssertTrue(freeChapter.isEnabled)
-        freeChapter.tap()
-
+        // The details explain the provider in Hungarian; closing them keeps
+        // the offline app usable and the permission unticked.
+        app.buttons["translation.aiConsent.details"].tap()
         XCTAssertTrue(
             app.buttons["translation.aiConsent.allow"]
                 .waitForExistence(timeout: 6)
         )
         XCTAssertTrue(app.staticTexts["Mielőtt fordítunk"].exists)
-        XCTAssertTrue(
-            app.buttons["AI-fordítás engedélyezése"].exists
-        )
-
         app.buttons["translation.aiConsent.cancel"].tap()
         XCTAssertTrue(
             app.otherElements["translation.sheet"]
                 .waitForExistence(timeout: 6),
             "declining AI processing must keep the offline app usable"
         )
+        XCTAssertFalse(start.isEnabled)
+
+        app.descendants(matching: .any)["translation.aiConsent.toggle"].tap()
+        XCTAssertTrue(start.isEnabled)
     }
 
     /// Tapping a highlighted passage in the page offers removal — the

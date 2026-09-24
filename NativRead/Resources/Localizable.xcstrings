@@ -1,74 +1,50 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Translate the whole book" : {
-      "comment" : "Title of the paywall sheet for a full-book translation.",
+    "Allow %@ to translate this book" : {
+      "comment" : "Checkbox on the translate page: permission for the named AI provider.",
       "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A teljes könyv lefordítása"
+            "value" : "Engedélyezem, hogy a(z) %@ lefordítsa a könyvet"
           }
         }
       }
     },
-    "Every chapter, in %@" : {
-      "comment" : "Paywall benefit; the argument is the target language name.",
+    "Details" : {
+      "comment" : "Link to the full AI processing explanation.",
       "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Minden fejezet, %@ nyelven"
+            "value" : "Részletek"
           }
         }
       }
     },
-    "Yours for good. No subscription" : {
-      "comment" : "Paywall benefit.",
+    "On" : {
+      "comment" : "Accessibility value of a checkbox.",
       "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Örökre a tiéd. Nincs előfizetés"
+            "value" : "Be"
           }
         }
       }
     },
-    "Your book is uploaded only after you pay" : {
-      "comment" : "Paywall benefit: the book stays on the device until the purchase.",
+    "Off" : {
+      "comment" : "Accessibility value of a checkbox.",
       "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A könyved csak a fizetés után kerül feltöltésre"
-          }
-        }
-      }
-    },
-    "One-time purchase" : {
-      "comment" : "Under the price on the paywall.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Egyszeri vásárlás"
-          }
-        }
-      }
-    },
-    "Buy" : {
-      "comment" : "Paywall purchase button.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Megveszem"
+            "value" : "Ki"
           }
         }
       }

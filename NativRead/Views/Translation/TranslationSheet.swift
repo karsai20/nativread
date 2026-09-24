@@ -1,4 +1,5 @@
 import AuthenticationServices
+import OSLog
 import StoreKit
 import SwiftUI
 
@@ -25,13 +26,9 @@ struct TranslationSheet: View {
     @State private var bookProduct: Product?
     /// Languages this account already owns the book in, from the backend.
     @State private var ownedLanguages: Set<String> = []
-    @State private var showsPaywall = false
-    @State private var showsPaywallConsent = false
     @State private var isPaying = false
-    @State private var paywallMessage: String?
-    @State private var showsPaywallTerms = false
+    @State private var showsAIConsentDetails = false
     @State private var pricingError: String?
-    @State private var pendingAITranslation: PendingAITranslation?
     @State private var showsTermsOfUse = false
     /// Fraction of the book sent so far, or `nil` when no upload is running.
     @State private var uploadProgress: Double?
@@ -130,19 +127,12 @@ struct TranslationSheet: View {
         .sheet(isPresented: $showsTermsOfUse) {
             NavigationStack { TermsOfUseView() }
         }
-        .sheet(item: $pendingAITranslation) { pending in
-            AIProcessingConsentView(
-                providerName: TranslationPrivacy.aiProviderName
-            ) {
+        .sheet(isPresented: $showsAIConsentDetails) {
+            AIProcessingConsentView(providerName: TranslationPrivacy.aiProviderName) {
                 translations.recordAIProcessingConsent(for: book)
-                pendingAITranslation = nil
-                requestTranslation(
-                    kind: pending.kind,
-                    preparedUpload: pending.preparedUpload
-                )
+                showsAIConsentDetails = false
             }
         }
-        .sheet(isPresented: $showsPaywall) { paywall }
         .onAppear {
             hasAcceptedTerms = translations.currentTermsAcceptance(for: book) != nil
             detectedLanguage = DetectedBookLanguage.detect(
@@ -161,36 +151,6 @@ struct TranslationSheet: View {
             await refreshOwnership()
         }
         .onChange(of: auth.isSignedIn) { _, _ in Task { await refreshOwnership() } }
-    }
-
-    /// The paywall carries its own consent and terms sheets: a sheet cannot
-    /// be presented from the page while the paywall covers it.
-    @ViewBuilder
-    private var paywall: some View {
-        if let bookProduct {
-            TranslationPaywall(
-                book: book,
-                languageName: job.targetLanguage.localizedName(in: locale),
-                price: bookProduct.displayPrice,
-                readyIn: readyInText,
-                isBeta: !isApproved(job.targetLanguage),
-                isPaying: isPaying,
-                message: paywallMessage,
-                palette: palette,
-                onBuy: { buyFromPaywall(bookProduct) },
-                onTerms: { showsPaywallTerms = true }
-            )
-            .sheet(isPresented: $showsPaywallTerms) {
-                NavigationStack { TermsOfUseView() }
-            }
-            .sheet(isPresented: $showsPaywallConsent) {
-                AIProcessingConsentView(providerName: TranslationPrivacy.aiProviderName) {
-                    translations.recordAIProcessingConsent(for: book)
-                    showsPaywallConsent = false
-                    payThenTranslate(bookProduct)
-                }
-            }
-        }
     }
 
     // MARK: - Flap sections
@@ -274,9 +234,32 @@ struct TranslationSheet: View {
         showsSignIn && !hasBackendIdentity && !job.isBackendActive && !job.hasFullTranslation
     }
 
+    /// The AI provider may translate: asked on the page, once for every book,
+    /// before anything can be sent (App Review 5.1.2(i)).
+    private var hasAIConsent: Bool { translations.hasAIProcessingConsent }
+
+    private var offersActions: Bool { !job.isBackendActive && !job.hasFullTranslation }
+
     @ViewBuilder
     private var actionArea: some View {
         VStack(spacing: Spacing.sm) {
+            if offersActions {
+                TranslationAIConsentRow(
+                    isOn: Binding(
+                        get: { hasAIConsent },
+                        set: { allowed in
+                            if allowed {
+                                translations.recordAIProcessingConsent(for: book)
+                            } else {
+                                translations.clearAIProcessingConsents()
+                            }
+                        }
+                    ),
+                    providerName: TranslationPrivacy.aiProviderDisplayName,
+                    palette: palette,
+                    onDetails: { showsAIConsentDetails = true }
+                )
+            }
             if showsAccount {
                 if let price = bookProduct?.displayPrice {
                     Text(String(localized: "Full book · \(price)", bundle: .appLanguage))
@@ -295,7 +278,7 @@ struct TranslationSheet: View {
                     if !job.isBackendActive && !job.hasFullTranslation {
                         TranslationSampleButton(
                             isOnShelf: job.hasFreePreview,
-                            isEnabled: !job.hasFreePreview && (!hasBackendIdentity || canStartRequest),
+                            isEnabled: hasAIConsent && !job.hasFreePreview && (!hasBackendIdentity || canStartRequest),
                             palette: palette,
                             action: startFreeChapter
                         )
@@ -342,7 +325,7 @@ struct TranslationSheet: View {
                 title: String(localized: "Translate", bundle: .appLanguage),
                 price: bookProduct?.displayPrice,
                 progress: nil,
-                isEnabled: book.isTranslatableSource && !exceedsLongestTier,
+                isEnabled: hasAIConsent && book.isTranslatableSource && !exceedsLongestTier,
                 palette: palette,
                 action: { showsSignIn = true }
             )
@@ -391,15 +374,14 @@ struct TranslationSheet: View {
             // table: it is the only source that is localized and matches what
             // the App Store will actually charge.
             TranslateCapsule(
-                title: String(localized: "Translate", bundle: .appLanguage),
-                price: bookProduct.displayPrice,
+                title: String(localized: isPaying ? "Processing…" : "Translate", bundle: .appLanguage),
+                price: isPaying ? nil : bookProduct.displayPrice,
                 progress: nil,
-                isEnabled: canStartRequest && !purchases.isPurchasing,
+                isEnabled: hasAIConsent && canStartRequest && !isPaying,
                 palette: palette,
                 action: {
                     acceptTermsIfNeeded()
-                    paywallMessage = nil
-                    showsPaywall = true
+                    payThenTranslate(bookProduct)
                 }
             )
             .accessibilityIdentifier("translation.purchaseFullBook")
@@ -530,14 +512,11 @@ struct TranslationSheet: View {
         preparedUpload: TranslationBackendClient.UploadResponse? = nil
     ) {
         guard hasAcceptedTerms, hasBackendIdentity else { return }
-        guard job.acceptedAIProcessingVersion ==
-                TranslationPrivacy.currentAIConsentVersion
-        else {
-            pendingAITranslation = PendingAITranslation(
-                kind: kind,
-                preparedUpload: preparedUpload
-            )
-            return
+        // Permission is given once, on the page; each book it is used for
+        // carries its own record of it.
+        guard translations.hasAIProcessingConsent else { return }
+        if job.acceptedAIProcessingVersion != TranslationPrivacy.currentAIConsentVersion {
+            translations.recordAIProcessingConsent(for: book)
         }
         requestTranslation(kind: kind, preparedUpload: preparedUpload)
     }
@@ -558,12 +537,26 @@ struct TranslationSheet: View {
             return
         }
         if let productId = await cachedQuotedProductID() {
-            bookProduct = try? await purchases.product(for: productId)
+            await loadProduct(productId)
             return
         }
         guard let productId = locallyPricedProductID() else { return }
-        bookProduct = try? await purchases.product(for: productId)
+        await loadProduct(productId)
     }
+
+    /// StoreKit's answer for the book's tier. A failure is said, not hidden:
+    /// the usual cause is a product App Store Connect does not (yet) serve.
+    private func loadProduct(_ productId: String) async {
+        do {
+            bookProduct = try await purchases.product(for: productId)
+            pricingError = nil
+        } catch {
+            Self.log.error("StoreKit product \(productId, privacy: .public) unavailable: \(error.localizedDescription, privacy: .public)")
+            pricingError = error.localizedDescription
+        }
+    }
+
+    private static let log = Logger(subsystem: "com.karsai.nativread", category: "translation-pricing")
 
     private func retryPrice() {
         isResolvingPrice = true
@@ -700,16 +693,6 @@ struct TranslationSheet: View {
         ownedLanguages = Set(owned)
     }
 
-    /// The paywall's Buy: AI consent first, since paying for a translation the
-    /// reader then may not allow would take their money for nothing.
-    private func buyFromPaywall(_ product: Product) {
-        guard job.acceptedAIProcessingVersion == TranslationPrivacy.currentAIConsentVersion else {
-            showsPaywallConsent = true
-            return
-        }
-        payThenTranslate(product)
-    }
-
     /// Pays for the book by its hash, then uploads it. Nothing leaves the
     /// device before the purchase is confirmed by the backend — and a reader
     /// who already owns this language is not charged again.
@@ -717,12 +700,12 @@ struct TranslationSheet: View {
         guard let appAccountToken = auth.appAccountToken, let client = backendClient else { return }
         let targetLanguage = job.targetLanguage.rawValue
         isPaying = true
-        paywallMessage = nil
+        pricingError = nil
         Task {
             defer { isPaying = false }
             do {
                 guard let hash = await sourceHash() else {
-                    paywallMessage = String(localized: "This book's file could not be read.", bundle: .appLanguage)
+                    pricingError = String(localized: "This book's file could not be read.", bundle: .appLanguage)
                     return
                 }
                 await purchases.confirmUnfinishedTransactions()
@@ -737,15 +720,14 @@ struct TranslationSheet: View {
                     case .cancelled:
                         return
                     case .pending:
-                        paywallMessage = String(localized: "This purchase needs approval. The translation starts once it is approved.", bundle: .appLanguage)
+                        pricingError = String(localized: "This purchase needs approval. The translation starts once it is approved.", bundle: .appLanguage)
                         return
                     }
                 }
                 ownedLanguages.insert(targetLanguage)
-                showsPaywall = false
                 beginTranslation(kind: .full)
             } catch {
-                paywallMessage = error.localizedDescription
+                pricingError = error.localizedDescription
             }
         }
     }
@@ -800,10 +782,4 @@ struct TranslationSheet: View {
             )
         }
     }
-}
-
-private struct PendingAITranslation: Identifiable {
-    let id = UUID()
-    let kind: TranslationRequestKind
-    let preparedUpload: TranslationBackendClient.UploadResponse?
 }

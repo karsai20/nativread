@@ -11,6 +11,13 @@ enum TranslationPrivacy {
     private static let providerNameKey = "NativReadAIProviderName"
     private static let publicPolicyURLKey = "NativReadPrivacyPolicyURL"
 
+    /// The provider as a reader says it ("Google Gemini"), for sentences on
+    /// screen. `aiProviderName` stays the exact disclosure the backend checks.
+    static var aiProviderDisplayName: String {
+        let name = aiProviderName
+        return name.hasSuffix(" API") ? String(name.dropLast(4)) : name
+    }
+
     static var aiProviderName: String {
         let configured = Bundle.main.object(
             forInfoDictionaryKey: providerNameKey
