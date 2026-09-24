@@ -30,7 +30,7 @@ final class SheetChromeUITests: XCTestCase {
 
     func testSettingsIsReachableFromTheTabBar() {
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
             "-seedSampleBook", "-forceLanguage", "en"
         ]
         app.launch()
@@ -47,7 +47,7 @@ final class SheetChromeUITests: XCTestCase {
 
     func testSettingsOpensPrivacyPolicy() {
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
             "-seedSampleBook", "-forceLanguage", "en"
         ]
         app.launch()
@@ -67,7 +67,7 @@ final class SheetChromeUITests: XCTestCase {
 
     func testSignedInAccountCanInitiateDeletionInSettings() {
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
             "-seedSampleBook", "-forceLanguage", "en", "-translationBackendURL",
             "https://backend.example", "-translationSessionToken",
             "ui-test-session"

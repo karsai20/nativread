@@ -15,7 +15,7 @@ final class OnboardingLaunchUITests: XCTestCase {
         // Welcome is deliberately user-paced, so an older reader has time to
         // absorb the promise before choosing to continue.
         app.launchArguments = [
-            "-resetSettings", "-forceOnboarding",
+            "-skipIntro", "-resetSettings", "-forceOnboarding",
             "-seedSampleBook"
         ]
         app.launch()
@@ -33,7 +33,7 @@ final class OnboardingLaunchUITests: XCTestCase {
     }
 
     func testLaunchSplashSkipped() {
-        app.launchArguments = ["-resetLibrary", "-skipOnboarding", "-seedSampleBook"]
+        app.launchArguments = ["-skipIntro", "-resetLibrary", "-skipOnboarding", "-seedSampleBook"]
         app.launch()
 
         // The library must be present immediately, with no welcome wordmark.

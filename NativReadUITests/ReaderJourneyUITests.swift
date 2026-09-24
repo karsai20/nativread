@@ -16,12 +16,12 @@ final class ReaderJourneyUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         app = XCUIApplication()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding"
         ]
         // Device-state probes run against a hand-seeded container.
         if ProcessInfo.processInfo.environment["PROBE_KEEP_STATE"] != nil {
-            app.launchArguments = ["-skipOnboarding"]
+            app.launchArguments = ["-skipIntro", "-skipOnboarding"]
         }
         app.launch()
     }
@@ -78,7 +78,7 @@ final class ReaderJourneyUITests: XCTestCase {
     func testEmptyShelfHasOneImportAction() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding"
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding"
         ]
         app.launch()
 
@@ -256,7 +256,7 @@ final class ReaderJourneyUITests: XCTestCase {
     func testScrollFlowChapterEndAffordanceAdvancesChapter() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-forceFlow", "scroll", "-skipOnboarding"
         ]
         app.launch()
@@ -318,7 +318,7 @@ final class ReaderJourneyUITests: XCTestCase {
     func testCurlQuickFlickAtChapterEndAdvancesChapter() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-forceTransition", "curl", "-skipOnboarding"
         ]
         app.launch()
@@ -404,7 +404,7 @@ final class ReaderJourneyUITests: XCTestCase {
 
         // Relaunch without resetting: the highlight must survive.
         app.terminate()
-        app.launchArguments = ["-seedSampleBook", "-skipOnboarding"]
+        app.launchArguments = ["-skipIntro", "-seedSampleBook", "-skipOnboarding"]
         app.launch()
         openSampleBook()
         tapMenuItem("reader.contents")
@@ -470,7 +470,7 @@ final class ReaderJourneyUITests: XCTestCase {
     func testLocalBackendTranslatesAndImportsTheWholeBook() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding", "-translationBackendURL",
             "http://127.0.0.1:48218"
         ]
@@ -516,7 +516,7 @@ final class ReaderJourneyUITests: XCTestCase {
     func testHungarianAIPermissionCanBeDeclinedBeforeUpload() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding", "-forceLanguage", "hu",
             "-translationBackendURL", "http://127.0.0.1:48218"
         ]
@@ -559,7 +559,7 @@ final class ReaderJourneyUITests: XCTestCase {
     func testTappingAHighlightOffersRemoval() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
             "-seedShowcaseBooks", "-seedShowcaseState", "en",
             "-autoOpenFirstBook"
         ]

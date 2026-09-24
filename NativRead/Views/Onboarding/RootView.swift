@@ -11,6 +11,9 @@ struct RootView: View {
 
     @State private var isOnboarding: Bool
     @State private var tabSelection: AppTabView.Destination = .library
+    /// UI tests and screenshot runs pass `-skipIntro` to land on the shelf
+    /// at once.
+    @State private var showsIntro = !ProcessInfo.processInfo.arguments.contains("-skipIntro")
 
     init(initialShowLaunch: Bool) {
         _isOnboarding = State(initialValue: initialShowLaunch)
@@ -26,6 +29,11 @@ struct RootView: View {
                 WelcomeView(onFinished: finishOnboarding)
                     .transition(.opacity)
                     .zIndex(1)
+            }
+
+            if showsIntro {
+                LaunchIntroView { showsIntro = false }
+                    .zIndex(2)
             }
         }
         .animation(

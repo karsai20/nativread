@@ -31,7 +31,7 @@ final class OnboardingUITests: XCTestCase {
     }
 
     private func launchWelcome(extraArguments: [String] = []) {
-        app.launchArguments = baseArguments + extraArguments
+        app.launchArguments = ["-skipIntro"] + baseArguments + extraArguments
         app.launch()
     }
 
@@ -169,7 +169,7 @@ final class OnboardingUITests: XCTestCase {
     /// Settings brings the welcome back without a relaunch.
     func testSettingsCanReplayTheWelcome() {
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-resetLanguage",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-resetLanguage",
             "-skipOnboarding", "-seedSampleBook", "-forceLanguage", "en"
         ]
         app.launch()
@@ -209,7 +209,7 @@ final class OnboardingUITests: XCTestCase {
         )
         app.terminate()
 
-        app.launchArguments = ["-seedSampleBook"]
+        app.launchArguments = ["-skipIntro", "-seedSampleBook"]
         app.launch()
 
         XCTAssertTrue(
@@ -221,7 +221,7 @@ final class OnboardingUITests: XCTestCase {
 
     func testForceLanguageHookDoesNotPersist() {
         app.launchArguments = [
-            "-resetLibrary", "-skipOnboarding", "-resetLanguage",
+            "-skipIntro", "-resetLibrary", "-skipOnboarding", "-resetLanguage",
             "-forceLanguage", "hu", "-seedSampleBook"
         ]
         app.launch()
@@ -232,7 +232,7 @@ final class OnboardingUITests: XCTestCase {
         )
         app.terminate()
 
-        app.launchArguments = ["-skipOnboarding", "-seedSampleBook"]
+        app.launchArguments = ["-skipIntro", "-skipOnboarding", "-seedSampleBook"]
         app.launch()
         XCTAssertTrue(
             app.buttons["library.book.The Lantern of Aldebaran"]

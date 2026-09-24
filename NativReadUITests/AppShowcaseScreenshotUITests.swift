@@ -382,7 +382,7 @@ final class AppShowcaseScreenshotUITests: XCTestCase {
         app?.terminate()
         app = XCUIApplication()
         app.launchArguments = [
-            "-forceLanguage", locale.code,
+            "-skipIntro", "-forceLanguage", locale.code,
             "-AppleLanguages", "(\(locale.code))",
             "-AppleLocale", locale.appleLocale,
             "-UIPreferredContentSizeCategoryName",
