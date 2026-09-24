@@ -1,6 +1,102 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Translate the whole book" : {
+      "comment" : "Title of the paywall sheet for a full-book translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A teljes könyv lefordítása"
+          }
+        }
+      }
+    },
+    "Every chapter, in %@" : {
+      "comment" : "Paywall benefit; the argument is the target language name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minden fejezet, %@ nyelven"
+          }
+        }
+      }
+    },
+    "Yours for good. No subscription" : {
+      "comment" : "Paywall benefit.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Örökre a tiéd. Nincs előfizetés"
+          }
+        }
+      }
+    },
+    "Your book is uploaded only after you pay" : {
+      "comment" : "Paywall benefit: the book stays on the device until the purchase.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A könyved csak a fizetés után kerül feltöltésre"
+          }
+        }
+      }
+    },
+    "One-time purchase" : {
+      "comment" : "Under the price on the paywall.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Egyszeri vásárlás"
+          }
+        }
+      }
+    },
+    "Buy" : {
+      "comment" : "Paywall purchase button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Megveszem"
+          }
+        }
+      }
+    },
+    "Processing…" : {
+      "comment" : "Paywall button while the purchase is running.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feldolgozás…"
+          }
+        }
+      }
+    },
+    "This book's file could not be read." : {
+      "comment" : "Paywall error when the book file cannot be hashed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A könyv fájlja nem olvasható."
+          }
+        }
+      }
+    },
     "Full book · %@" : {
       "comment" : "The whole-book price, kept on screen while the reader signs in.",
       "extractionState" : "manual",

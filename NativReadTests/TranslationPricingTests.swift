@@ -37,8 +37,8 @@ final class TranslationPricingTests: XCTestCase {
         XCTAssertEqual(pricing.quoteVersion, "source-chars-v1")
         XCTAssertEqual(pricing.charactersPerCredit, 1_000)
         XCTAssertEqual(pricing.tiers.count, 6)
-        XCTAssertEqual(pricing.productIDs.first, "com.karsai.nativread.book.t1")
-        XCTAssertEqual(pricing.productIDs.last, "com.karsai.nativread.book.t6")
+        XCTAssertEqual(pricing.tiers.first?.productId, "com.karsai.nativread.book.t1")
+        XCTAssertEqual(pricing.tiers.last?.productId, "com.karsai.nativread.book.t6")
     }
 
     /// Mirrors `bookTierFor` in the Worker: the first tier the book fits into,

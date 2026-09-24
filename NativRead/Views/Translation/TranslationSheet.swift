@@ -23,14 +23,19 @@ struct TranslationSheet: View {
     @State private var usesLocalTestAccount = false
     @State private var fullQuote: TranslationBackendClient.UploadResponse?
     @State private var bookProduct: Product?
-    @State private var isEntitledToFullBook = false
+    /// Languages this account already owns the book in, from the backend.
+    @State private var ownedLanguages: Set<String> = []
+    @State private var showsPaywall = false
+    @State private var showsPaywallConsent = false
+    @State private var isPaying = false
+    @State private var paywallMessage: String?
+    @State private var showsPaywallTerms = false
     @State private var pricingError: String?
     @State private var pendingAITranslation: PendingAITranslation?
     @State private var showsTermsOfUse = false
     /// Fraction of the book sent so far, or `nil` when no upload is running.
     @State private var uploadProgress: Double?
     /// StoreKit products for every price band, keyed by identifier.
-    @State private var bandProducts: [String: Product] = [:]
     /// The book's own character count, resolved once when the sheet opens.
     /// Held here rather than read from `book` because a book shelved before
     /// counts existed is counted on the spot, and `book` is this sheet's own
@@ -137,6 +142,7 @@ struct TranslationSheet: View {
                 )
             }
         }
+        .sheet(isPresented: $showsPaywall) { paywall }
         .onAppear {
             hasAcceptedTerms = translations.currentTermsAcceptance(for: book) != nil
             detectedLanguage = DetectedBookLanguage.detect(
@@ -152,7 +158,38 @@ struct TranslationSheet: View {
             // already have shown the price.
             await pricing.refreshIfStale()
             await resolvePriceWithoutUpload()
-            await loadBandProducts()
+            await refreshOwnership()
+        }
+        .onChange(of: auth.isSignedIn) { _, _ in Task { await refreshOwnership() } }
+    }
+
+    /// The paywall carries its own consent and terms sheets: a sheet cannot
+    /// be presented from the page while the paywall covers it.
+    @ViewBuilder
+    private var paywall: some View {
+        if let bookProduct {
+            TranslationPaywall(
+                book: book,
+                languageName: job.targetLanguage.localizedName(in: locale),
+                price: bookProduct.displayPrice,
+                readyIn: readyInText,
+                isBeta: !isApproved(job.targetLanguage),
+                isPaying: isPaying,
+                message: paywallMessage,
+                palette: palette,
+                onBuy: { buyFromPaywall(bookProduct) },
+                onTerms: { showsPaywallTerms = true }
+            )
+            .sheet(isPresented: $showsPaywallTerms) {
+                NavigationStack { TermsOfUseView() }
+            }
+            .sheet(isPresented: $showsPaywallConsent) {
+                AIProcessingConsentView(providerName: TranslationPrivacy.aiProviderName) {
+                    translations.recordAIProcessingConsent(for: book)
+                    showsPaywallConsent = false
+                    payThenTranslate(bookProduct)
+                }
+            }
         }
     }
 
@@ -344,7 +381,6 @@ struct TranslationSheet: View {
                 isEnabled: !isRequestingTranslation && book.isTranslatableSource,
                 palette: palette,
                 action: {
-                    guard let fullQuote else { return }
                     acceptTermsIfNeeded()
                     beginTranslation(kind: .full, preparedUpload: fullQuote)
                 }
@@ -362,7 +398,8 @@ struct TranslationSheet: View {
                 palette: palette,
                 action: {
                     acceptTermsIfNeeded()
-                    buyFullBook(bookProduct)
+                    paywallMessage = nil
+                    showsPaywall = true
                 }
             )
             .accessibilityIdentifier("translation.purchaseFullBook")
@@ -466,51 +503,20 @@ struct TranslationSheet: View {
             translations.markBackendUploadStarted(for: book, kind: kind)
         }
 
+        let run = TranslationRun(
+            client: client,
+            book: book,
+            kind: kind,
+            sourceURL: sourceURL,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage,
+            termsAcceptance: termsAcceptance,
+            translations: translations,
+            library: library
+        )
         Task {
             do {
-                let upload: TranslationBackendClient.UploadResponse
-                if let preparedUpload {
-                    upload = preparedUpload
-                } else {
-                    upload = try await client.upload(epubURL: sourceURL)
-                }
-                let shouldStartTranslation =
-                    upload.alreadyTranslated != true
-                if shouldStartTranslation {
-                    translations.markBackendTranslationStarted(
-                        for: book,
-                        backendJobID: upload.id,
-                        kind: kind
-                    )
-                    try await client.start(
-                        jobID: upload.id,
-                        sample: kind == .preview,
-                        sourceLanguage: sourceLanguage,
-                        targetLanguage: targetLanguage,
-                        termsAcceptance: termsAcceptance
-                    )
-                    _ = try await client.waitUntilDone(jobID: upload.id) {
-                        status in
-                        await MainActor.run {
-                            translations.updateBackendProgress(
-                                for: book,
-                                translatedChunks: status.chunks?.done,
-                                totalChunks: status.chunks?.total
-                            )
-                        }
-                    }
-                }
-                translations.markBackendImportStarted(for: book, kind: kind)
-                let output = try await client.downloadResult(jobID: upload.id)
-                try TranslationResultImporter.importResult(
-                    output,
-                    title: upload.title ?? book.title,
-                    book: book,
-                    kind: kind,
-                    targetLanguage: targetLanguage,
-                    library: library
-                )
-                translations.markBackendFinished(for: book, kind: kind)
+                try await run.perform(preparedUpload: preparedUpload)
                 if kind == .full { fullQuote = nil }
             } catch {
                 handleTranslationError(error)
@@ -541,13 +547,12 @@ struct TranslationSheet: View {
     ///
     /// Two sources, in order of authority: the price the backend quoted for
     /// these exact bytes last time, then the tier this build counts the book
-    /// into itself. Both are display only — the upload inside `buyFullBook`
-    /// re-derives the tier server-side before anything is charged.
+    /// into itself. This is the tier the reader pays for; the server checks it
+    /// against its own count when the translation starts.
     ///
-    /// Entitlement is deliberately *not* restored from either: a book bought on
-    /// another device would otherwise still look unowned here, and the reader
-    /// could be charged for it twice. Ownership is always read from the upload
-    /// that has to happen before a purchase anyway.
+    /// Entitlement is deliberately *not* restored from either: ownership comes
+    /// from the backend by hash (`refreshOwnership`, and again right before
+    /// paying), so a book bought on another device is never charged twice.
     private func resolvePriceWithoutUpload() async {
         guard book.format == .epub, fullQuote == nil, bookProduct == nil else {
             return
@@ -565,22 +570,8 @@ struct TranslationSheet: View {
         Task {
             await pricing.refreshIfStale()
             await resolvePriceWithoutUpload()
-            await loadBandProducts()
             isResolvingPrice = false
         }
-    }
-
-    /// Prices for every band. One StoreKit round trip for the whole table, and
-    /// it is what makes the bands appear at the same time as the book's own
-    /// price rather than after a second wait.
-    private func loadBandProducts() async {
-        guard let table = pricing.usablePricing, bandProducts.isEmpty else {
-            return
-        }
-        let loaded = await purchases.products(for: table.productIDs)
-        bandProducts = Dictionary(
-            uniqueKeysWithValues: loaded.map { ($0.id, $0) }
-        )
     }
 
     /// The product the backend named for this file, if the file still is the
@@ -621,9 +612,9 @@ struct TranslationSheet: View {
         return table.exceedsLongestTier(sourceCharacters: characters)
     }
 
-    /// The upload this flow cannot skip: StoreKit binds a purchase to a backend
-    /// job id, and a job id only exists once the book is on the server. Both
-    /// the explicit quote and the first tap on a cached price come through here.
+    /// Quotes the book through an upload. Only a local debug translator, which
+    /// sells nothing, still takes this path; a paid book is never uploaded
+    /// before the purchase.
     private func uploadForQuote(
         client: TranslationBackendClient
     ) async throws -> TranslationBackendClient.UploadResponse {
@@ -641,7 +632,7 @@ struct TranslationSheet: View {
                 throw TranslationBackendClient.ClientError.invalidResponse
             }
             fullQuote = upload
-            isEntitledToFullBook = upload.entitledLanguages?.contains("hu") ?? false
+            ownedLanguages = Set(upload.entitledLanguages ?? [])
             // Remember the price against the bytes it was quoted for, so
             // reopening this sheet costs nothing.
             if let hash = upload.sourceHash, let price = upload.price {
@@ -686,81 +677,75 @@ struct TranslationSheet: View {
         }
     }
 
-    /// The product the server's own count says this book is sold as.
-    ///
-    /// Normally the one already on screen: the on-device counter is a port of
-    /// the server's, pinned character-for-character by `QuoteGoldenTests`. When
-    /// they do disagree the reader is shown the real price and asked again
-    /// rather than being charged an amount the button never displayed — one
-    /// extra tap, in a case that should not happen.
-    private func confirmedProduct(
-        for upload: TranslationBackendClient.UploadResponse,
-        shown: Product
-    ) async throws -> Product {
-        guard let serverProductID = upload.price?.productId,
-              serverProductID != shown.id
-        else { return shown }
-        let corrected = try await purchases.product(for: serverProductID)
-        bookProduct = corrected
-        pricingError = String(
-            localized: "This book's price is \(corrected.displayPrice). Tap again to buy it."
-        )
-        return corrected
+    private var isEntitledToFullBook: Bool {
+        ownedLanguages.contains(job.targetLanguage.rawValue)
     }
 
-    private func buyFullBook(_ product: Product) {
-        guard let appAccountToken = auth.appAccountToken else { return }
-        pricingError = nil
+    /// The book's content hash, which names it to the backend without the
+    /// book itself. Worked out off the main thread; the file can be large.
+    private func sourceHash() async -> String? {
+        let sourceURL = library.storedFileURL(for: book)
+        return await Task.detached(priority: .userInitiated) {
+            LibraryStore.sourceHash(ofFileAt: sourceURL)
+        }.value
+    }
+
+    /// Asks the backend, by hash, which languages this reader already owns
+    /// the book in, so a book bought on another device shows as owned.
+    private func refreshOwnership() async {
+        guard book.format == .epub, auth.isSignedIn, let client = backendClient,
+              let hash = await sourceHash(),
+              let owned = try? await client.entitledLanguages(sourceHash: hash)
+        else { return }
+        ownedLanguages = Set(owned)
+    }
+
+    /// The paywall's Buy: AI consent first, since paying for a translation the
+    /// reader then may not allow would take their money for nothing.
+    private func buyFromPaywall(_ product: Product) {
+        guard job.acceptedAIProcessingVersion == TranslationPrivacy.currentAIConsentVersion else {
+            showsPaywallConsent = true
+            return
+        }
+        payThenTranslate(product)
+    }
+
+    /// Pays for the book by its hash, then uploads it. Nothing leaves the
+    /// device before the purchase is confirmed by the backend — and a reader
+    /// who already owns this language is not charged again.
+    private func payThenTranslate(_ product: Product) {
+        guard let appAccountToken = auth.appAccountToken, let client = backendClient else { return }
+        let targetLanguage = job.targetLanguage.rawValue
+        isPaying = true
+        paywallMessage = nil
         Task {
+            defer { isPaying = false }
             do {
-                // A cached price got us here without an upload, so the book has
-                // to go up now — and its response, not the cache, decides
-                // whether this reader already owns the translation.
-                let upload: TranslationBackendClient.UploadResponse
-                if let fullQuote {
-                    upload = fullQuote
-                } else {
-                    guard hasAcceptedTerms, let client = backendClient else { return }
-                    isRequestingTranslation = true
-                    do {
-                        upload = try await uploadForQuote(client: client)
-                    } catch {
-                        isRequestingTranslation = false
-                        throw error
-                    }
-                    isRequestingTranslation = false
-                }
-                // Either the reader already owns this book, or the backend is
-                // not selling it at all. Both mean there is nothing to charge
-                // for, and the cached price must not talk us into StoreKit.
-                guard !isEntitledToFullBook, upload.price != nil else {
-                    beginTranslation(kind: .full, preparedUpload: upload)
+                guard let hash = await sourceHash() else {
+                    paywallMessage = String(localized: "This book's file could not be read.", bundle: .appLanguage)
                     return
                 }
-                // The upload just produced the server's own character count,
-                // and that is the only tier `POST /api/purchase` will accept.
-                // If the price on screen came from this device's count and
-                // lands in a different tier, charging for `product` would take
-                // the reader's money and then be refused.
-                let confirmed = try await confirmedProduct(
-                    for: upload, shown: product
-                )
-                guard confirmed.id == product.id else { return }
-                switch try await purchases.purchase(
-                    product,
-                    jobID: upload.id,
-                    appAccountToken: appAccountToken
-                ) {
-                case .entitled:
-                    isEntitledToFullBook = true
-                    beginTranslation(kind: .full, preparedUpload: upload)
-                case .cancelled:
-                    break
-                case .pending:
-                    pricingError = "This purchase needs approval. The translation starts once it is approved."
+                await purchases.confirmUnfinishedTransactions()
+                let owned = try await client.entitledLanguages(sourceHash: hash)
+                if !owned.contains(targetLanguage) {
+                    let target = PurchaseTarget.book(
+                        sourceHash: hash, targetLanguage: targetLanguage, productID: product.id
+                    )
+                    switch try await purchases.purchase(product, for: target, appAccountToken: appAccountToken) {
+                    case .entitled:
+                        break
+                    case .cancelled:
+                        return
+                    case .pending:
+                        paywallMessage = String(localized: "This purchase needs approval. The translation starts once it is approved.", bundle: .appLanguage)
+                        return
+                    }
                 }
+                ownedLanguages.insert(targetLanguage)
+                showsPaywall = false
+                beginTranslation(kind: .full)
             } catch {
-                pricingError = error.localizedDescription
+                paywallMessage = error.localizedDescription
             }
         }
     }

@@ -69,6 +69,10 @@ struct TranslationBackendClient: Sendable {
         let appAccountToken: String?
     }
 
+    struct EntitlementResponse: Decodable, Equatable, Sendable {
+        let entitledLanguages: [String]
+    }
+
     struct PurchaseResponse: Decodable, Equatable, Sendable {
         let ok: Bool
         let applied: Bool
@@ -152,20 +156,42 @@ struct TranslationBackendClient: Sendable {
     /// Apple before granting the book. Only a success here means the purchase
     /// is safe to finish.
     func confirmPurchase(
-        jobID: String,
+        for target: PurchaseTarget,
         transactionID: String
     ) async throws -> PurchaseResponse {
         var request = makeRequest(path: "api/purchase")
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONSerialization.data(
-            withJSONObject: [
-                "id": jobID,
+        let body: [String: String]
+        switch target {
+        case .job(let jobID):
+            body = ["id": jobID, "transactionId": transactionID]
+        case let .book(sourceHash, targetLanguage, productID):
+            body = [
+                "sourceHash": sourceHash,
+                "targetLanguage": targetLanguage,
+                "productId": productID,
                 "transactionId": transactionID
             ]
-        )
+        }
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, response) = try await session.data(for: request)
         return try decode(PurchaseResponse.self, from: data, response: response)
+    }
+
+    /// The languages this account already owns the book in, asked by content
+    /// hash so the book does not have to be uploaded to find out.
+    func entitledLanguages(sourceHash: String) async throws -> [String] {
+        var components = URLComponents(
+            url: endpoint("api/entitlement"), resolvingAgainstBaseURL: false
+        )
+        components?.queryItems = [URLQueryItem(name: "sourceHash", value: sourceHash)]
+        guard let url = components?.url else {
+            throw ClientError.invalidBackendURL
+        }
+        let (data, response) = try await session.data(for: makeRequest(url: url))
+        return try decode(EntitlementResponse.self, from: data, response: response)
+            .entitledLanguages
     }
 
     func start(
@@ -559,4 +585,12 @@ private struct TranslationSessionKeychain {
                 ?? "Could not store the secure login session."
         }
     }
+}
+
+/// What a StoreKit purchase paid for, as `POST /api/purchase` names it.
+enum PurchaseTarget: Codable, Equatable, Sendable {
+    /// An uploaded job: how builds that uploaded before paying named it.
+    case job(String)
+    /// A book by content hash, paid for before it leaves the device.
+    case book(sourceHash: String, targetLanguage: String, productID: String)
 }

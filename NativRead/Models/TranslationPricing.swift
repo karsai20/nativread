@@ -38,13 +38,6 @@ struct TranslationPricing: Codable, Equatable, Sendable {
         quoteVersion == TranslationQuote.version
     }
 
-    /// Every product the table sells, cheapest first — what the sheet shows as
-    /// the price bands before any particular book is priced.
-    var productIDs: [String] {
-        tiers.sorted { $0.maxSourceCharacters < $1.maxSourceCharacters }
-            .map(\.productId)
-    }
-
     /// The tier a book of this length falls into, or `nil` when it is longer
     /// than the top tier covers — the same rule as the server's `bookTierFor`,
     /// which is why the table is taken from the server rather than guessed.

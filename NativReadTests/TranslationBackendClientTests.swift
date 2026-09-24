@@ -196,7 +196,7 @@ final class TranslationBackendClientTests: XCTestCase {
             #"{"ok":true,"applied":true,"entitledLanguages":["hu"]}"#
         )
         let purchase = try await makeClient().confirmPurchase(
-            jobID: "job-9", transactionID: "2000000900000001"
+            for: .job("job-9"), transactionID: "2000000900000001"
         )
 
         XCTAssertTrue(purchase.applied)
@@ -209,6 +209,48 @@ final class TranslationBackendClientTests: XCTestCase {
         )
         XCTAssertEqual(json["id"], "job-9")
         XCTAssertEqual(json["transactionId"], "2000000900000001")
+    }
+
+    func testConfirmPurchaseForABookNamesItByHashBeforeAnyUpload() async throws {
+        StubURLProtocol.enqueue(
+            200,
+            #"{"ok":true,"applied":true,"entitledLanguages":["de"]}"#
+        )
+        let hash = String(repeating: "a", count: 64)
+        let purchase = try await makeClient().confirmPurchase(
+            for: .book(
+                sourceHash: hash, targetLanguage: "de",
+                productID: "com.karsai.nativread.book.t2"
+            ),
+            transactionID: "2000000900000002"
+        )
+
+        XCTAssertEqual(purchase.entitledLanguages, ["de"])
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        XCTAssertEqual(request.url?.path, "/api/purchase")
+        let body = try XCTUnwrap(request.httpBodyStreamData)
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: body) as? [String: String]
+        )
+        XCTAssertEqual(json, [
+            "sourceHash": hash,
+            "targetLanguage": "de",
+            "productId": "com.karsai.nativread.book.t2",
+            "transactionId": "2000000900000002"
+        ])
+    }
+
+    func testEntitledLanguagesAreAskedByHashWithoutTheBook() async throws {
+        StubURLProtocol.enqueue(200, #"{"entitledLanguages":["hu","de"]}"#)
+        let hash = String(repeating: "b", count: 64)
+
+        let languages = try await makeClient().entitledLanguages(sourceHash: hash)
+
+        XCTAssertEqual(languages, ["hu", "de"])
+        let request = try XCTUnwrap(StubURLProtocol.lastRequest)
+        XCTAssertEqual(request.httpMethod, "GET")
+        XCTAssertEqual(request.url?.path, "/api/entitlement")
+        XCTAssertEqual(request.url?.query, "sourceHash=\(hash)")
     }
 
     func testSessionDecodesTheAppAccountToken() async throws {

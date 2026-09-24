@@ -41,10 +41,13 @@ final class BookPurchaseStore {
     private let makeClient: @MainActor () -> TranslationBackendClient?
     private let defaults: UserDefaults
 
-    /// Which book a transaction paid for. A receipt names only a price tier, so
+    /// What a transaction paid for. A receipt names only a price tier, so
     /// without this a purchase interrupted by a relaunch could never be matched
     /// back to its book. It outlives the process for exactly that reason.
-    private static let pendingKey = "nativread.pendingPurchases.v1"
+    private static let pendingKey = "nativread.pendingPurchases.v2"
+    /// Transaction → job id, written by builds that uploaded before paying.
+    /// Read so their unfinished purchases still reach the backend.
+    private static let legacyPendingKey = "nativread.pendingPurchases.v1"
 
     init(
         defaults: UserDefaults = .standard,
@@ -52,14 +55,6 @@ final class BookPurchaseStore {
     ) {
         self.defaults = defaults
         self.makeClient = makeClient
-    }
-
-    /// Every product in the price table, cheapest first, for showing the bands
-    /// a book can fall into. Unlike `product(for:)` this tolerates gaps: a band
-    /// StoreKit does not know about is left out rather than failing the list.
-    func products(for productIDs: [String]) async -> [Product] {
-        let loaded = (try? await Product.products(for: productIDs)) ?? []
-        return loaded.sorted { $0.price < $1.price }
     }
 
     func product(for productID: String) async throws -> Product {
@@ -71,7 +66,7 @@ final class BookPurchaseStore {
 
     func purchase(
         _ product: Product,
-        jobID: String,
+        for target: PurchaseTarget,
         appAccountToken: UUID
     ) async throws -> PurchaseOutcome {
         isPurchasing = true
@@ -83,8 +78,8 @@ final class BookPurchaseStore {
         switch result {
         case .success(let verification):
             let transaction = try verified(verification)
-            rememberJob(jobID, for: transaction.id)
-            try await confirm(transaction, jobID: jobID)
+            rememberTarget(target, for: transaction.id)
+            try await confirm(transaction, target: target)
             return .entitled
         case .userCancelled:
             return .cancelled
@@ -104,50 +99,72 @@ final class BookPurchaseStore {
             for await update in Transaction.updates {
                 guard let self else { return }
                 guard let transaction = try? self.verified(update) else { continue }
-                try? await self.confirm(transaction, jobID: nil)
+                try? await self.confirm(transaction, target: nil)
             }
         }
     }
 
-    private func confirmUnfinishedTransactions() async {
+    /// Hands the backend any purchase the App Store charged but we never
+    /// confirmed. Run before a new purchase: without it, a receipt lost to a
+    /// dropped connection leaves the book looking unowned, and paying "again"
+    /// charges the reader twice.
+    func confirmUnfinishedTransactions() async {
         for await unfinished in Transaction.unfinished {
             guard let transaction = try? verified(unfinished) else { continue }
-            try? await confirm(transaction, jobID: nil)
+            try? await confirm(transaction, target: nil)
         }
     }
 
     /// Finishing before the server has the receipt would drop the only proof the
     /// customer paid, so the order here is deliberate.
-    private func confirm(_ transaction: Transaction, jobID: String?) async throws {
-        guard let jobID = jobID ?? pendingJobs[String(transaction.id)] else {
+    private func confirm(_ transaction: Transaction, target: PurchaseTarget?) async throws {
+        guard let target = target ?? pendingTarget(for: transaction.id) else {
             // Nothing local ties this transaction to a book. Leaving it
             // unfinished keeps it in Transaction.unfinished for a later attempt.
             return
         }
         guard let client = makeClient() else { return }
         _ = try await client.confirmPurchase(
-            jobID: jobID,
+            for: target,
             transactionID: String(transaction.id)
         )
         await transaction.finish()
-        forgetJob(for: transaction.id)
+        forgetTarget(for: transaction.id)
     }
 
-    private var pendingJobs: [String: String] {
-        defaults.dictionary(forKey: Self.pendingKey) as? [String: String] ?? [:]
+    func pendingTarget(for transactionID: UInt64) -> PurchaseTarget? {
+        let key = String(transactionID)
+        if let target = pendingTargets[key] { return target }
+        let legacy = defaults.dictionary(forKey: Self.legacyPendingKey) as? [String: String]
+        return legacy?[key].map(PurchaseTarget.job)
     }
 
-    private func rememberJob(_ jobID: String, for transactionID: UInt64) {
-        defaults.set(
-            pendingJobs.merging([String(transactionID): jobID]) { _, new in new },
-            forKey: Self.pendingKey
-        )
+    func rememberTarget(_ target: PurchaseTarget, for transactionID: UInt64) {
+        storePendingTargets(pendingTargets.merging([String(transactionID): target]) { _, new in new })
     }
 
-    private func forgetJob(for transactionID: UInt64) {
-        var pending = pendingJobs
-        pending.removeValue(forKey: String(transactionID))
-        defaults.set(pending, forKey: Self.pendingKey)
+    func forgetTarget(for transactionID: UInt64) {
+        let key = String(transactionID)
+        storePendingTargets(pendingTargets.filter { $0.key != key })
+        if var legacy = defaults.dictionary(forKey: Self.legacyPendingKey) as? [String: String] {
+            legacy.removeValue(forKey: key)
+            defaults.set(legacy, forKey: Self.legacyPendingKey)
+        }
+    }
+
+    private var pendingTargets: [String: PurchaseTarget] {
+        guard let data = defaults.data(forKey: Self.pendingKey) else { return [:] }
+        return (try? JSONDecoder().decode([String: PurchaseTarget].self, from: data)) ?? [:]
+    }
+
+    private func storePendingTargets(_ targets: [String: PurchaseTarget]) {
+        // An encoding failure would lose the only link from a paid receipt to
+        // its book, so it is not swallowed silently in a debug build.
+        do {
+            defaults.set(try JSONEncoder().encode(targets), forKey: Self.pendingKey)
+        } catch {
+            assertionFailure("Pending purchases failed to encode: \(error)")
+        }
     }
 
     private func verified(_ result: VerificationResult<Transaction>) throws -> Transaction {
