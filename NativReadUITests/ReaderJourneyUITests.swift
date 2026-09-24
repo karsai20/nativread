@@ -455,8 +455,6 @@ final class ReaderJourneyUITests: XCTestCase {
         // forward — without starting anything.
         let freeChapter = app.buttons["translation.freeChapter"]
         XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
-        XCTAssertFalse(freeChapter.isEnabled, "nothing may start before the AI permission")
-        app.descendants(matching: .any)["translation.aiConsent.toggle"].tap()
         XCTAssertTrue(freeChapter.isEnabled)
         XCTAssertFalse(app.buttons["translation.signInWithApple"].exists)
         XCTAssertTrue(app.staticTexts["translation.terms.link"].exists)
@@ -484,7 +482,6 @@ final class ReaderJourneyUITests: XCTestCase {
 
         openTranslationSheet()
 
-        app.descendants(matching: .any)["translation.aiConsent.toggle"].tap()
         let start = app.buttons["translation.start"]
         XCTAssertTrue(start.waitForExistence(timeout: 6))
         start.tap()
@@ -515,7 +512,7 @@ final class ReaderJourneyUITests: XCTestCase {
         waitForExpectations(timeout: 30)
     }
 
-    func testHungarianAIPermissionIsAskedOnThePageBeforeAnyUpload() {
+    func testHungarianPageNamesTheAIBeforeAnyUpload() {
         app.terminate()
         app.launchArguments = [
             "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
@@ -530,15 +527,15 @@ final class ReaderJourneyUITests: XCTestCase {
         tab(.translate).tap()
         app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
 
-        // Unticked, nothing can be sent: both ways in stay inert.
-        let start = app.buttons["translation.start"]
-        XCTAssertTrue(start.waitForExistence(timeout: 6))
-        XCTAssertFalse(start.isEnabled)
-        XCTAssertFalse(app.buttons["translation.freeChapter"].isEnabled)
+        // The tap is the permission, so the provider is named on the page
+        // before any tap can send the book.
+        let finePrint = app.staticTexts["translation.terms.link"]
+        XCTAssertTrue(finePrint.waitForExistence(timeout: 6))
+        XCTAssertTrue(finePrint.label.contains("Google Gemini"))
 
         // The details explain the provider in Hungarian; closing them keeps
-        // the offline app usable and the permission unticked.
-        app.buttons["translation.aiConsent.details"].tap()
+        // the offline app usable.
+        finePrint.links["Részletek"].tap()
         XCTAssertTrue(
             app.buttons["translation.aiConsent.allow"]
                 .waitForExistence(timeout: 6)
@@ -550,10 +547,6 @@ final class ReaderJourneyUITests: XCTestCase {
                 .waitForExistence(timeout: 6),
             "declining AI processing must keep the offline app usable"
         )
-        XCTAssertFalse(start.isEnabled)
-
-        app.descendants(matching: .any)["translation.aiConsent.toggle"].tap()
-        XCTAssertTrue(start.isEnabled)
     }
 
     /// Tapping a highlighted passage in the page offers removal — the

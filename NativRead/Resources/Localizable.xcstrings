@@ -1,14 +1,14 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Allow %@ to translate this book" : {
-      "comment" : "Checkbox on the translate page: permission for the named AI provider.",
+    "Translate and First chapter free send the book to %@ to translate · by continuing you confirm you own this book · [Details](nativread://ai) · [Terms of Use](nativread://terms)" : {
+      "comment" : "Fine print under the translate actions: names the AI provider; tapping an action is the permission.",
       "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Engedélyezem, hogy a(z) %@ lefordítsa a könyvet"
+            "value" : "A Fordítás és az Első fejezet ingyen gomb a könyvet a(z) %@ számára küldi fordításra · a folytatással megerősíted, hogy a könyv a tiéd · [Részletek](nativread://ai) · [Felhasználási feltételek](nativread://terms)"
           }
         }
       }
@@ -21,30 +21,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Részletek"
-          }
-        }
-      }
-    },
-    "On" : {
-      "comment" : "Accessibility value of a checkbox.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Be"
-          }
-        }
-      }
-    },
-    "Off" : {
-      "comment" : "Accessibility value of a checkbox.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ki"
           }
         }
       }

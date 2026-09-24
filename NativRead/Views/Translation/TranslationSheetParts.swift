@@ -138,50 +138,6 @@ struct TranslationLanguagePicker: View {
     }
 }
 
-/// The AI permission, on the page above the actions: a checkbox naming the
-/// provider, and a link to the full explanation. Ticked once, it holds for
-/// every book until withdrawn here or in Settings.
-struct TranslationAIConsentRow: View {
-    @Binding var isOn: Bool
-    let providerName: String
-    let palette: BrandPalette
-    let onDetails: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            // The whole line is the checkbox: the tap target is the sentence,
-            // not a 22-point square.
-            Button { isOn.toggle() } label: {
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.sm) {
-                    Icon(isOn ? .squareCheck : .square, size: 20)
-                        .foregroundStyle(isOn ? palette.accent : palette.secondaryText)
-                        .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 4 }
-                    Text("Allow \(providerName) to translate this book")
-                        .font(Typography.control(14, weight: .medium))
-                        .foregroundStyle(palette.text)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityValue(Text(isOn ? "On" : "Off"))
-            .accessibilityAddTraits(.isToggle)
-            .accessibilityIdentifier("translation.aiConsent.toggle")
-
-            Button("Details", action: onDetails)
-                .font(Typography.control(13, weight: .medium))
-                .foregroundStyle(palette.secondaryText)
-                .underline()
-                .buttonStyle(.plain)
-                .padding(.leading, 20 + Spacing.sm)
-                .accessibilityIdentifier("translation.aiConsent.details")
-        }
-    }
-}
-
 /// The free first chapter: a real second button, the way a store puts
 /// "Sample" beside "Buy" — it is the cheapest way in, not fine print.
 struct TranslationSampleButton: View {
@@ -212,10 +168,13 @@ struct TranslationSampleButton: View {
     }
 }
 
-/// The rights attestation, as fine print the action refers to. Tapping
-/// Translate or the free chapter is the acceptance; the sheet records it.
+/// The line under the actions: which AI translates the book, that the tap
+/// is the go-ahead, and links to the details and the Terms. Tapping
+/// Translate or the free chapter is the permission the line describes.
 struct TranslationFinePrint: View {
+    let providerName: String
     let palette: BrandPalette
+    let onDetails: () -> Void
     let onTerms: () -> Void
 
     var body: some View {
@@ -224,15 +183,15 @@ struct TranslationFinePrint: View {
             .foregroundStyle(palette.tertiaryText)
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
-            .environment(\.openURL, OpenURLAction { _ in
-                onTerms()
+            .environment(\.openURL, OpenURLAction { url in
+                url.host == "ai" ? onDetails() : onTerms()
                 return .handled
             })
             .accessibilityIdentifier("translation.terms.link")
     }
 
     private var text: AttributedString {
-        let markdown = String(localized: "Yours for good, no subscription · by continuing you confirm you own this book · [Terms of Use](nativread://terms)", bundle: .appLanguage)
+        let markdown = String(localized: "Translate and First chapter free send the book to \(providerName) to translate · by continuing you confirm you own this book · [Details](nativread://ai) · [Terms of Use](nativread://terms)", bundle: .appLanguage)
         guard var text = try? AttributedString(markdown: markdown) else {
             return AttributedString(markdown)
         }

@@ -95,6 +95,16 @@ struct TranslationSheet: View {
 
             actionArea
                 .padding(.top, Spacing.md)
+
+            // Right under the buttons, so the provider is named before the tap
+            // that sends the book to it (App Review 5.1.2(i)).
+            TranslationFinePrint(
+                providerName: TranslationPrivacy.aiProviderDisplayName,
+                palette: palette,
+                onDetails: { showsAIConsentDetails = true },
+                onTerms: { showsTermsOfUse = true }
+            )
+            .padding(.top, Spacing.sm)
                 .animation(.spring(response: 0.35, dampingFraction: 0.9), value: showsAccount)
 
             TranslationFactsGrid(
@@ -113,8 +123,6 @@ struct TranslationSheet: View {
             )
             .padding(.top, Spacing.lg)
 
-            TranslationFinePrint(palette: palette, onTerms: { showsTermsOfUse = true })
-                .padding(.top, Spacing.md)
 
             Spacer(minLength: 0)
         }
@@ -234,32 +242,9 @@ struct TranslationSheet: View {
         showsSignIn && !hasBackendIdentity && !job.isBackendActive && !job.hasFullTranslation
     }
 
-    /// The AI provider may translate: asked on the page, once for every book,
-    /// before anything can be sent (App Review 5.1.2(i)).
-    private var hasAIConsent: Bool { translations.hasAIProcessingConsent }
-
-    private var offersActions: Bool { !job.isBackendActive && !job.hasFullTranslation }
-
     @ViewBuilder
     private var actionArea: some View {
         VStack(spacing: Spacing.sm) {
-            if offersActions {
-                TranslationAIConsentRow(
-                    isOn: Binding(
-                        get: { hasAIConsent },
-                        set: { allowed in
-                            if allowed {
-                                translations.recordAIProcessingConsent(for: book)
-                            } else {
-                                translations.clearAIProcessingConsents()
-                            }
-                        }
-                    ),
-                    providerName: TranslationPrivacy.aiProviderDisplayName,
-                    palette: palette,
-                    onDetails: { showsAIConsentDetails = true }
-                )
-            }
             if showsAccount {
                 if let price = bookProduct?.displayPrice {
                     Text(String(localized: "Full book · \(price)", bundle: .appLanguage))
@@ -278,7 +263,7 @@ struct TranslationSheet: View {
                     if !job.isBackendActive && !job.hasFullTranslation {
                         TranslationSampleButton(
                             isOnShelf: job.hasFreePreview,
-                            isEnabled: hasAIConsent && !job.hasFreePreview && (!hasBackendIdentity || canStartRequest),
+                            isEnabled: !job.hasFreePreview && (!hasBackendIdentity || canStartRequest),
                             palette: palette,
                             action: startFreeChapter
                         )
@@ -325,7 +310,7 @@ struct TranslationSheet: View {
                 title: String(localized: "Translate", bundle: .appLanguage),
                 price: bookProduct?.displayPrice,
                 progress: nil,
-                isEnabled: hasAIConsent && book.isTranslatableSource && !exceedsLongestTier,
+                isEnabled: book.isTranslatableSource && !exceedsLongestTier,
                 palette: palette,
                 action: { showsSignIn = true }
             )
@@ -377,7 +362,7 @@ struct TranslationSheet: View {
                 title: String(localized: isPaying ? "Processing…" : "Translate", bundle: .appLanguage),
                 price: isPaying ? nil : bookProduct.displayPrice,
                 progress: nil,
-                isEnabled: hasAIConsent && canStartRequest && !isPaying,
+                isEnabled: canStartRequest && !isPaying,
                 palette: palette,
                 action: {
                     acceptTermsIfNeeded()
@@ -429,6 +414,11 @@ struct TranslationSheet: View {
     /// tap confirms, and the record carries the same locale and version the
     /// checkbox used to write.
     private func acceptTermsIfNeeded() {
+        // The same tap allows the AI provider named under the button. Stored
+        // per version, so a new provider or wording is asked for again.
+        if job.acceptedAIProcessingVersion != TranslationPrivacy.currentAIConsentVersion {
+            translations.recordAIProcessingConsent(for: book)
+        }
         guard !hasAcceptedTerms else { return }
         translations.recordTermsAcceptance(for: book, localeIdentifier: locale.identifier)
         hasAcceptedTerms = true
@@ -512,12 +502,9 @@ struct TranslationSheet: View {
         preparedUpload: TranslationBackendClient.UploadResponse? = nil
     ) {
         guard hasAcceptedTerms, hasBackendIdentity else { return }
-        // Permission is given once, on the page; each book it is used for
-        // carries its own record of it.
-        guard translations.hasAIProcessingConsent else { return }
-        if job.acceptedAIProcessingVersion != TranslationPrivacy.currentAIConsentVersion {
-            translations.recordAIProcessingConsent(for: book)
-        }
+        // Recorded by the tap that got us here (`acceptTermsIfNeeded`).
+        guard job.acceptedAIProcessingVersion == TranslationPrivacy.currentAIConsentVersion
+        else { return }
         requestTranslation(kind: kind, preparedUpload: preparedUpload)
     }
 
