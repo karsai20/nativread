@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 
 /// One book on the shelf: real cover art when the EPUB ships one,
@@ -74,14 +75,48 @@ struct BookCard: View {
     /// render a book identically.
     @ViewBuilder
     static func cover(book: Book, coverURL: URL?) -> some View {
-        if let coverURL,
-           let image = UIImage(contentsOfFile: coverURL.path) {
+        if let coverURL, let image = decodedCover(at: coverURL) {
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
         } else {
             GeneratedCover(title: book.title, author: book.author)
         }
+    }
+
+    /// Decoded once per file: re-reading a cover from disk on every render
+    /// stalls the first frames of the translate lift. A cover never changes
+    /// once imported, so the path is the key. Bounded by bytes, so a large
+    /// shelf cannot hold every cover in memory at once.
+    private static let coverCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.totalCostLimit = coverCacheBytes
+        return cache
+    }()
+
+    private static let coverCacheBytes = 64 * 1024 * 1024
+    /// Longest edge a cover is decoded at. The largest cover on screen (a
+    /// 220 pt-wide grid card on iPad, 330 pt tall) is ~1000 px at @3x; a
+    /// full-size EPUB cover decoded as-is is ~12 MB, this is ~2.7 MB.
+    private static let coverMaxPixels = 1000
+
+    private static func decodedCover(at url: URL) -> UIImage? {
+        let key = url.path as NSString
+        if let hit = coverCache.object(forKey: key) { return hit }
+        // ImageIO downsamples while decoding, so the full-size bitmap never
+        // exists — unlike scaling a decoded UIImage.
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: coverMaxPixels,
+        ] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options)
+        else { return nil }
+        let image = UIImage(cgImage: cgImage)
+        coverCache.setObject(image, forKey: key, cost: cgImage.bytesPerRow * cgImage.height)
+        return image
     }
 
     @ViewBuilder
