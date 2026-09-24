@@ -196,7 +196,7 @@ final class PDFReaderViewModel {
             library.removeBookmark(bookID: bookID, bookmarkID: existing.id)
             return
         }
-        let label = String(localized: "Page \(page + 1)")
+        let label = String(localized: "Page \(page + 1)", bundle: .appLanguage)
         let snippet = document.page(at: page)?.string?
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .prefix(120)
@@ -299,6 +299,6 @@ final class PDFReaderViewModel {
         // The nearest preceding outline entry names the reader's location;
         // pages without an outline fall back to a plain page label.
         let here = toc.last { $0.pageIndex <= page }
-        return here?.title ?? String(localized: "Page \(page + 1)")
+        return here?.title ?? String(localized: "Page \(page + 1)", bundle: .appLanguage)
     }
 }

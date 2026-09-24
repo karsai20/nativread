@@ -183,7 +183,7 @@ struct TranslationStage: View {
     }
 
     private var editionName: String {
-        String(localized: "\(job.targetLanguage.localizedName(in: locale)) edition")
+        String(localized: "\(job.targetLanguage.localizedName(in: locale)) edition", bundle: .appLanguage)
     }
 
     // MARK: - Chrome

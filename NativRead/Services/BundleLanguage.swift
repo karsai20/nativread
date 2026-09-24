@@ -5,13 +5,13 @@ import ObjectiveC
 /// language switch takes effect everywhere — not just where we call
 /// `LocalizationStore.localizedString` explicitly.
 ///
-/// **Why this is needed:** SwiftUI `Text("literal")` and `String(localized:)`
-/// resolve through `Bundle.main.localizedString(forKey:value:table:)`, which
-/// uses the *bundle's* preferred localization (driven by the device language),
-/// **not** the `\.environment(\.locale)` we inject. Injecting the locale fixes
-/// number/date formatting but leaves `Text` literals in the device language.
-/// Swizzling the main bundle's class so its lookups defer to the selected
-/// `.lproj` makes every localized string follow the user's choice.
+/// **Why this is needed:** SwiftUI `Text("literal")` resolves through
+/// `Bundle.main.localizedString(forKey:value:table:)`, which uses the
+/// *bundle's* preferred localization (driven by the device language), **not**
+/// the `\.environment(\.locale)` we inject. Swizzling the main bundle's class
+/// so its lookups defer to the selected `.lproj` makes `Text` follow the
+/// user's choice. `String(localized:)` does not go through that lookup, so it
+/// takes the `.lproj` explicitly: `String(localized: "…", bundle: .appLanguage)`.
 ///
 /// Standard, App-Store-safe technique. Call `Bundle.setAppLanguage(_:)` once at
 /// launch and again whenever the language changes; it is idempotent.
@@ -29,6 +29,14 @@ final class LocalizedBundle: Bundle, @unchecked Sendable {
 
 extension Bundle {
     fileprivate static var overrideKey: UInt8 = 0
+
+    /// The `.lproj` of the in-app language, or `main` when following the
+    /// device. Pass it to every `String(localized:)`: unlike `Text`, that API
+    /// resolves without going through the swizzled lookup, so on its own it
+    /// stays in the device language.
+    static var appLanguage: Bundle {
+        objc_getAssociatedObject(Bundle.main, &overrideKey) as? Bundle ?? .main
+    }
 
     /// Points `Bundle.main` at the `.lproj` for `languageCode`. Pass `nil`
     /// (the `.system` case) to fall back to the device's own language.

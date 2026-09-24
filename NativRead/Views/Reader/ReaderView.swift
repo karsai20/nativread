@@ -292,7 +292,7 @@ struct ReaderView: View {
         ZStack {
             island(
                 Text(String.localizedStringWithFormat(
-                    String(localized: "%lld pages left in chapter"),
+                    String(localized: "%lld pages left in chapter", bundle: .appLanguage),
                     viewModel.pagesLeftInChapter
                 ))
                     .font(Typography.eyebrow)

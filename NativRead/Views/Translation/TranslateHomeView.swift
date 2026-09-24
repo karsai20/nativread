@@ -217,10 +217,10 @@ struct TranslateHomeView: View {
 
     private func phaseTitle(_ phase: TranslationJobPhase) -> String {
         switch phase {
-        case .uploading: return String(localized: "Uploading")
-        case .translating: return String(localized: "Translating")
-        case .importingResult: return String(localized: "Importing")
-        default: return String(localized: "Working")
+        case .uploading: return String(localized: "Uploading", bundle: .appLanguage)
+        case .translating: return String(localized: "Translating", bundle: .appLanguage)
+        case .importingResult: return String(localized: "Importing", bundle: .appLanguage)
+        default: return String(localized: "Working", bundle: .appLanguage)
         }
     }
 }

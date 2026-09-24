@@ -108,7 +108,7 @@ struct SettingsView: View {
             AppSettingsRow(
                 icon: .ban,
                 title: "Forget AI Permissions",
-                value: String(localized: "Ask again next time"),
+                value: String(localized: "Ask again next time", bundle: .appLanguage),
                 hidesSeparator: true,
                 action: { showsAIConsentResetConfirmation = true },
                 palette: palette
@@ -229,7 +229,7 @@ struct SettingsView: View {
     private var header: some View {
         AppLargeTitleHeader(
             title: "Settings",
-            subtitle: String(localized: "A reading space tuned to you"),
+            subtitle: String(localized: "A reading space tuned to you", bundle: .appLanguage),
             palette: palette
         )
     }

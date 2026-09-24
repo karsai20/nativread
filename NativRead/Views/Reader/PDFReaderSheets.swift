@@ -208,11 +208,11 @@ struct PDFSearchSheet: View {
         guard viewModel.searchQuery.trimmingCharacters(
             in: .whitespacesAndNewlines
         ).count >= 2 else {
-            return String(localized: "Type at least two characters")
+            return String(localized: "Type at least two characters", bundle: .appLanguage)
         }
         return viewModel.hasSearched
-            ? String(localized: "No matches")
-            : String(localized: "Press search to find")
+            ? String(localized: "No matches", bundle: .appLanguage)
+            : String(localized: "Press search to find", bundle: .appLanguage)
     }
 
     private var resultsList: some View {

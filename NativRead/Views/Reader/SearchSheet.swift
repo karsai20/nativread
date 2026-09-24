@@ -84,13 +84,13 @@ struct SearchSheet: View {
         ).count >= 2 else {
             // Localized at the String level: `Text(String)` is verbatim, so
             // these must resolve through the catalog here, not in the view.
-            return String(localized: "Type at least two characters")
+            return String(localized: "Type at least two characters", bundle: .appLanguage)
         }
         // Only claim "no matches" once a search has actually completed;
         // before that, keep prompting so an empty list never lies.
         return viewModel.hasSearched
-            ? String(localized: "No matches")
-            : String(localized: "Press search to find")
+            ? String(localized: "No matches", bundle: .appLanguage)
+            : String(localized: "Press search to find", bundle: .appLanguage)
     }
 
     private var resultsList: some View {
