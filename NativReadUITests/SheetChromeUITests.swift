@@ -11,15 +11,8 @@ final class SheetChromeUITests: XCTestCase {
         app = XCUIApplication()
     }
 
-    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
-    /// `tabItem`, and the labels are localised, so tabs are addressed by their
-    /// fixed position: 0 Library, 1 Translate, 2 Settings.
-    private enum Tab: Int {
-        case library, translate, settings
-    }
-
-    private func tab(_ tab: Tab) -> XCUIElement {
-        app.tabBars.buttons.element(boundBy: tab.rawValue)
+    private func tab(_ tab: AppTab) -> XCUIElement {
+        app.tabButton(tab)
     }
 
     /// Opens the Settings tab and returns once its content is on screen.
@@ -37,7 +30,7 @@ final class SheetChromeUITests: XCTestCase {
 
     func testSettingsIsReachableFromTheTabBar() {
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
             "-seedSampleBook", "-forceLanguage", "en"
         ]
         app.launch()
@@ -54,7 +47,7 @@ final class SheetChromeUITests: XCTestCase {
 
     func testSettingsOpensPrivacyPolicy() {
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
             "-seedSampleBook", "-forceLanguage", "en"
         ]
         app.launch()
@@ -74,7 +67,7 @@ final class SheetChromeUITests: XCTestCase {
 
     func testSignedInAccountCanInitiateDeletionInSettings() {
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
             "-seedSampleBook", "-forceLanguage", "en", "-translationBackendURL",
             "https://backend.example", "-translationSessionToken",
             "ui-test-session"

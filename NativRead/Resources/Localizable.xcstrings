@@ -1,6 +1,162 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Delete" : {
+      "comment" : "Destructive button on the second confirmation for a translated book.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Törlés"
+          }
+        }
+      }
+    },
+    "Delete the translation for good?" : {
+      "comment" : "Title of the second delete confirmation, shown only for translated books.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Végleg törlöd a fordítást?"
+          }
+        }
+      }
+    },
+    "Keep" : {
+      "comment" : "Cancel button on the delete confirmations; leaves the book alone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mégsem"
+          }
+        }
+      }
+    },
+    "The book and your place in it are removed from this device." : {
+      "comment" : "Delete warning for an ordinary book.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A könyv és a benne tartott helyed eltűnik erről a készülékről."
+          }
+        }
+      }
+    },
+    "The free chapter for this book is already used up. Deleting it leaves nothing to go back to." : {
+      "comment" : "Delete warning for a free preview translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az ingyenes fejezetet ehhez a könyvhöz már felhasználtad. Ha törlöd, nem marad mihez visszatérni."
+          }
+        }
+      }
+    },
+    "The translation stays on your shelf. The purchase is bound to this exact file, though: without it, the book cannot be translated again." : {
+      "comment" : "Delete warning for an original that has already been translated.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordítás a polcodon marad. A vásárlás viszont pont ehhez a fájlhoz kötődik: nélküle a könyvet nem lehet újra lefordítani."
+          }
+        }
+      }
+    },
+    "This book has no free chapter left. Once this copy is gone, translating it again costs the full price." : {
+      "comment" : "Second delete confirmation message for a free preview translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ehhez a könyvhöz nincs több ingyenes fejezet. Ha ez a példány elveszik, az újrafordítás már teljes áras."
+          }
+        }
+      }
+    },
+    "This is the only copy. Translating it again needs the original file, unchanged." : {
+      "comment" : "Second delete confirmation message for a purchased translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez az egyetlen példány. Az újrafordításhoz az eredeti fájl kell, változatlanul."
+          }
+        }
+      }
+    },
+    "We do not keep translations on our servers. You can have this one translated again at no charge — but only from the same original file." : {
+      "comment" : "Delete warning for a purchased full translation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordításokat nem tároljuk a szervereinken. Ezt újra lefordíthatod ingyen, de csak ugyanabból az eredeti fájlból."
+          }
+        }
+      }
+    },
+    "Books cost %@ to %@, by length." : {
+      "comment" : "Summary above the collapsed price bands. First argument is the cheapest band, second the dearest.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A könyvek ára hossztól függően %1$@ és %2$@ között van."
+          }
+        }
+      }
+    },
+    "This book is longer than we can translate." : {
+      "comment" : "Shown when the book is longer than the largest price band the backend sells.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez a könyv hosszabb annál, mint amit le tudunk fordítani."
+          }
+        }
+      }
+    },
+    "This book's price is %@. Tap again to buy it." : {
+      "comment" : "Shown when the server's own count puts the book in a different price band than the one displayed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ennek a könyvnek az ára %@. Koppints újra a megvásárláshoz."
+          }
+        }
+      }
+    },
+    "up to ~%@ pages" : {
+      "comment" : "One price band's length, in approximate paperback pages.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kb. %@ oldalig"
+          }
+        }
+      }
+    },
     "%@" : {
       "comment" : "A label that shows the current page number.",
       "isCommentAutoGenerated" : true
@@ -43,19 +199,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ könyv a polcon"
-          }
-        }
-      }
-    },
-    "%@ estimated pages" : {
-      "comment" : "A label displaying the number of pages in a book. The argument is the number of pages in the book.",
-      "extractionState" : "stale",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ becsült oldal"
           }
         }
       }
@@ -161,6 +304,17 @@
         }
       }
     },
+    "%lld/%lld sections" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld/%lld szakasz"
+          }
+        }
+      }
+    },
     "^[%@ highlight](inflect: true)" : {
       "comment" : "A label that shows the number of highlights in the current book.",
       "isCommentAutoGenerated" : true,
@@ -172,10 +326,6 @@
           }
         }
       }
-    },
-    "1" : {
-      "comment" : "A label displayed in the upper right corner of the screen.",
-      "isCommentAutoGenerated" : true
     },
     "A" : {
       "comment" : "A button that shrinks the font size.",
@@ -191,6 +341,7 @@
     },
     "A quiet chapter" : {
       "comment" : "Sample chapter title inside the animated onboarding reader.",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -258,6 +409,17 @@
         }
       }
     },
+    "Add a book you can't read — the first chapter is translated free." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tegyél fel egy könyvet, amit nem tudsz elolvasni — az első fejezetét ingyen lefordítjuk."
+          }
+        }
+      }
+    },
     "Add an EPUB from Files and start reading." : {
       "comment" : "A description of how to add an EPUB book to the library.",
       "extractionState" : "stale",
@@ -272,7 +434,6 @@
       }
     },
     "Add an EPUB to your library and it will show up here, ready for an AI translation into your language." : {
-      "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -318,6 +479,40 @@
         }
       }
     },
+    "Added" : {
+      "comment" : "Badge on a translation plan that is already in the library.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kész"
+          }
+        }
+      }
+    },
+    "Added to your library." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hozzáadva a könyvtáradhoz."
+          }
+        }
+      }
+    },
+    "Adding to your library" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hozzáadás a könyvtáradhoz"
+          }
+        }
+      }
+    },
     "AI permissions forgotten" : {
       "comment" : "Confirmation title after locally saved AI-processing permissions are cleared.",
       "extractionState" : "stale",
@@ -337,6 +532,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Minden könyv"
+          }
+        }
+      }
+    },
+    "Animate page turns anyway" : {
+      "comment" : "Typography panel toggle that restores page-turn animation while Reduce Motion is on.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lapozási animáció mégis"
+          }
+        }
+      }
+    },
+    "Any book. Your language." : {
+      "comment" : "Welcome screen headline.",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bármelyik könyv. A te nyelveden."
           }
         }
       }
@@ -365,18 +583,6 @@
         }
       }
     },
-    "Ask again before future AI translations" : {
-      "comment" : "Subtitle for the privacy control that clears saved AI-processing permissions.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A következő AI-fordítás előtt kérdezzen újra"
-          }
-        }
-      }
-    },
     "Ask again next time" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -384,18 +590,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Legközelebb újra kérdezzen"
-          }
-        }
-      }
-    },
-    "Back" : {
-      "comment" : "Accessibility label for onboarding back buttons.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vissza"
           }
         }
       }
@@ -408,6 +602,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vissza a könyvtárba"
+          }
+        }
+      }
+    },
+    "Best value" : {
+      "comment" : "Badge marking the recommended translation plan.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajánlott"
           }
         }
       }
@@ -459,6 +665,28 @@
         }
       }
     },
+    "Bring a book you can't read. We translate the first chapter free." : {
+      "comment" : "Welcome screen subtitle.",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hozz egy könyvet, amit nem tudsz elolvasni. Az első fejezetét ingyen lefordítjuk."
+          }
+        }
+      }
+    },
+    "Calculate exact quote" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pontos ár kiszámítása"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "comment" : "Cancel button in note editor sheets.",
       "extractionState" : "stale",
@@ -478,6 +706,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Fejezet: %@"
+          }
+        }
+      }
+    },
+    "Choose what to translate" : {
+      "comment" : "Section label above the two translation plans.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit fordítsunk le?"
           }
         }
       }
@@ -650,9 +890,17 @@
         }
       }
     },
-    "EPUB" : {
-      "comment" : "A label displayed in the Add Book Tour.",
-      "isCommentAutoGenerated" : true
+    "Every chapter. One purchase, yours for good." : {
+      "comment" : "Subtitle of the whole-book translation plan.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minden fejezet. Egyszeri vásárlás, örökre a tiéd."
+          }
+        }
+      }
     },
     "Export" : {
       "comment" : "Menu label for highlight export actions.",
@@ -662,6 +910,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exportálás"
+          }
+        }
+      }
+    },
+    "Export translated EPUB" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lefordított EPUB exportálása"
           }
         }
       }
@@ -678,13 +937,14 @@
         }
       }
     },
-    "First chapter free" : {
-      "comment" : "Headline for the free translation preview.",
+    "First chapter" : {
+      "comment" : "Title of the free translation plan.",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Az első fejezet ingyenes"
+            "value" : "Első fejezet"
           }
         }
       }
@@ -887,6 +1147,18 @@
         }
       }
     },
+    "Free" : {
+      "comment" : "Price badge on the free translation plan.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingyenes"
+          }
+        }
+      }
+    },
     "Free Chapter" : {
       "comment" : "Section heading for the one-time free translated chapter.",
       "extractionState" : "stale",
@@ -931,18 +1203,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kiemelések"
-          }
-        }
-      }
-    },
-    "How translation works" : {
-      "comment" : "Disclosure label for optional translation details.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hogyan működik a fordítás?"
           }
         }
       }
@@ -1072,18 +1332,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nyelv"
-          }
-        }
-      }
-    },
-    "Languages" : {
-      "comment" : "Section heading for translation language selection.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nyelvek"
           }
         }
       }
@@ -1232,7 +1480,6 @@
       }
     },
     "Next" : {
-      "comment" : "Button that advances to the next onboarding lesson.",
       "extractionState" : "stale",
       "localizations" : {
         "hu" : {
@@ -1397,6 +1644,41 @@
         }
       }
     },
+    "One continuous column, like an article." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Egyetlen folyamatos hasáb, mint egy cikknél."
+          }
+        }
+      }
+    },
+    "One purchase per book. Buy it once and it stays yours — reinstall the app and it comes back." : {
+      "comment" : "Restore guarantee shown under the purchase button.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Könyvenként egyszeri vásárlás. Ha egyszer megvetted, a tiéd marad — újratelepítés után is visszakapod."
+          }
+        }
+      }
+    },
+    "Owned" : {
+      "comment" : "Price badge when the whole-book translation is already paid for.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Megvásárolva"
+          }
+        }
+      }
+    },
     "Page" : {
       "comment" : "A label displayed above the page brightness and",
       "isCommentAutoGenerated" : true,
@@ -1429,6 +1711,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld. oldal"
+          }
+        }
+      }
+    },
+    "Page flow" : {
+      "comment" : "Typography panel control label for how pages advance.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lapozás módja"
           }
         }
       }
@@ -1526,6 +1820,17 @@
         }
       }
     },
+    "Read in any language." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olvass bármilyen nyelven."
+          }
+        }
+      }
+    },
     "Reading menu" : {
       "comment" : "Accessibility label for the floating menu button in the reader.",
       "localizations" : {
@@ -1537,8 +1842,29 @@
         }
       }
     },
+    "Ready to read" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olvasásra kész"
+          }
+        }
+      }
+    },
+    "Ready in %@" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kész %@ alatt"
+          }
+        }
+      }
+    },
     "Ready to translate" : {
-      "extractionState" : "manual",
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -1556,6 +1882,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Az első tartalmi fejezet fordításra kész. Az EPUB többi része az eredeti nyelven marad."
+          }
+        }
+      }
+    },
+    "Reconnecting" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Újracsatlakozás"
+          }
+        }
+      }
+    },
+    "Reduce Motion is on in iOS Settings, so page turns are instant." : {
+      "comment" : "Explains why the page-turn picker has no effect.",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az iOS beállításokban be van kapcsolva a Mozgás csökkentése, ezért a lapozás azonnali."
           }
         }
       }
@@ -1584,6 +1932,17 @@
         }
       }
     },
+    "Remove highlight" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiemelés törlése"
+          }
+        }
+      }
+    },
     "Results" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1591,6 +1950,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Találatok"
+          }
+        }
+      }
+    },
+    "Sample page" : {
+      "comment" : "Accessibility label of the reading-mode preview page.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mintaoldal"
           }
         }
       }
@@ -1603,6 +1974,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Mentés"
+          }
+        }
+      }
+    },
+    "Scroll" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Görgetés"
           }
         }
       }
@@ -1673,6 +2055,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Szakasz"
+          }
+        }
+      }
+    },
+    "See price" : {
+      "comment" : "Price badge before the whole book has been quoted.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ár lekérése"
+          }
+        }
+      }
+    },
+    "See the quality before you decide." : {
+      "comment" : "Subtitle of the free translation plan.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nézd meg a minőséget, mielőtt döntesz."
           }
         }
       }
@@ -1783,6 +2189,18 @@
         }
       }
     },
+    "Show Welcome Again" : {
+      "comment" : "Settings row that replays the welcome screen.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Üdvözlő képernyő újra"
+          }
+        }
+      }
+    },
     "Sign in only when you are ready to translate. Your account keeps purchases and translation access tied to you, not this device." : {
       "comment" : "Explains the just-in-time account gate in the translation sheet.",
       "extractionState" : "stale",
@@ -1830,41 +2248,6 @@
         }
       }
     },
-    "Skip" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kihagyom"
-          }
-        }
-      }
-    },
-    "Source characters" : {
-      "comment" : "A label displayed in the translation sheet.",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Forrás karakterszám"
-          }
-        }
-      }
-    },
-    "Step %lld of %lld" : {
-      "comment" : "Current and total onboarding lesson number.",
-      "extractionState" : "stale",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$lld. lépés, összesen %2$lld"
-          }
-        }
-      }
-    },
     "Stored on this device" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1872,6 +2255,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ezen a készüléken tárolva"
+          }
+        }
+      }
+    },
+    "Swipe or tap to turn" : {
+      "comment" : "Hint under the reading-mode preview.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Húzd vagy koppints a lapozáshoz"
           }
         }
       }
@@ -1896,6 +2291,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Betűméret"
+          }
+        }
+      }
+    },
+    "The App Store could not verify this purchase." : {
+      "comment" : "Error when StoreKit returns an unverified transaction.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az App Store nem tudta ellenőrizni ezt a vásárlást."
+          }
+        }
+      }
+    },
+    "The translation arrives as a separate book on your shelf. Your original stays unchanged." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordítás külön könyvként érkezik a polcodra. Az eredeti változatlan marad."
           }
         }
       }
@@ -2005,6 +2423,41 @@
         }
       }
     },
+    "This purchase needs approval. The translation starts once it is approved." : {
+      "comment" : "Shown when a purchase is deferred, for example by Ask to Buy.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ezt a vásárlást jóvá kell hagyni. A fordítás a jóváhagyás után indul."
+          }
+        }
+      }
+    },
+    "This translation is not available for purchase right now." : {
+      "comment" : "Error when the App Store returns no product for this book's tier.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez a fordítás jelenleg nem vásárolható meg."
+          }
+        }
+      }
+    },
+    "To my shelf" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A polcomra"
+          }
+        }
+      }
+    },
     "transition.label.curl" : {
       "comment" : "Display name for the page-curl transition.",
       "extractionState" : "stale",
@@ -2101,14 +2554,13 @@
         }
       }
     },
-    "Translate Book" : {
-      "comment" : "Navigation title for the book translation sheet.",
+    "Translate book" : {
       "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Könyv fordítása"
+            "value" : "Könyv lefordítása"
           }
         }
       }
@@ -2125,19 +2577,6 @@
         }
       }
     },
-    "Translate to" : {
-      "comment" : "A label displayed above a picker that lets the user select a target language for a translation.",
-      "extractionState" : "stale",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fordítás nyelve"
-          }
-        }
-      }
-    },
     "Translate whole book" : {
       "comment" : "Button title for starting a full-book translation in development builds.",
       "extractionState" : "stale",
@@ -2146,6 +2585,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Teljes könyv fordítása"
+          }
+        }
+      }
+    },
+    "Translate whole book · %@" : {
+      "comment" : "Purchase button. The placeholder is the localized App Store price.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teljes könyv lefordítása · %@"
           }
         }
       }
@@ -2161,13 +2612,48 @@
         }
       }
     },
-    "Try the translation before deciding." : {
-      "comment" : "Reassurance below the free-preview headline.",
+    "Translation failed." : {
+      "extractionState" : "stale",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Próbáld ki a fordítást, mielőtt döntesz."
+            "value" : "A fordítás nem sikerült."
+          }
+        }
+      }
+    },
+    "Translation stopped" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordítás leállt"
+          }
+        }
+      }
+    },
+    "Turn page" : {
+      "comment" : "Accessibility action that turns the preview page.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lapozás"
+          }
+        }
+      }
+    },
+    "Two pages in landscape" : {
+      "comment" : "Typography panel toggle for the two-column landscape layout.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Két oldal fekvő nézetben"
           }
         }
       }
@@ -2203,6 +2689,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Feltöltés"
+          }
+        }
+      }
+    },
+    "Uploading EPUB to translator..." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EPUB feltöltése a fordítónak..."
           }
         }
       }
@@ -2268,6 +2765,18 @@
         }
       }
     },
+    "Whole book" : {
+      "comment" : "Disclosure row that opens the paid whole-book options.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teljes könyv"
+          }
+        }
+      }
+    },
     "Whole Book" : {
       "comment" : "Section heading for full-book translation in development builds.",
       "extractionState" : "stale",
@@ -2287,6 +2796,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Dolgozunk rajta"
+          }
+        }
+      }
+    },
+    "You can change this anytime from the reading menu." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ezt bármikor módosíthatod az olvasás menüben."
+          }
+        }
+      }
+    },
+    "You can close the app. We keep translating." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezárhatod az appot, mi közben tovább fordítunk."
           }
         }
       }
@@ -2326,17 +2857,6 @@
         }
       }
     },
-    "Your original book stays unchanged. The first reading chapter is translated and added to your library as a separate book." : {
-      "comment" : "Concise explanation inside the optional translation details.",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Az eredeti könyv változatlan marad. Az első olvasmányfejezetet lefordítjuk, és külön könyvként hozzáadjuk a könyvtáradhoz."
-          }
-        }
-      }
-    },
     "Your shelf is empty" : {
       "comment" : "A title displayed when the user has no books in their library.",
       "isCommentAutoGenerated" : true,
@@ -2363,43 +2883,485 @@
       "comment" : "A name of a third-party open-source library.",
       "isCommentAutoGenerated" : true
     },
-    "Add a book in a language you don't read." : {
-      "extractionState" : "manual",
+    "appearance.section.atmosphere" : {
+      "comment" : "Eyebrow over the theme tiles in the appearance panel.",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atmosphere"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tedd fel az idegen nyelvű könyvedet."
+            "value" : "Hangulat"
           }
         }
       }
     },
-    "Loading the price…" : {
-      "comment" : "Shown while the App Store price for this book is being fetched.",
-      "extractionState" : "manual",
+    "appearance.section.comfort" : {
+      "comment" : "Eyebrow over warm light / brightness.",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comfort"
+          }
+        },
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ár betöltése…"
+            "value" : "Kényelem"
           }
         }
       }
     },
-    "One purchase per book. Buy it once and it stays yours — reinstall the app and it comes back." : {
-      "comment" : "Restore guarantee shown under the purchase button.",
+    "appearance.section.layout" : {
+      "comment" : "Eyebrow over margins / page flow / page turn.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Layout"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elrendezés"
+          }
+        }
+      }
+    },
+    "appearance.section.text" : {
+      "comment" : "Eyebrow over text size / typeface / spacing.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Szöveg"
+          }
+        }
+      }
+    },
+    "appearance.typeface" : {
+      "comment" : "Row label for the collapsible typeface list.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typeface"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betűtípus"
+          }
+        }
+      }
+    },
+    "theme.label.amber" : {
+      "comment" : "Display name for the Amber (warm night) reading theme.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Amber"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borostyán"
+          }
+        }
+      }
+    },
+    "theme.label.bold" : {
+      "comment" : "Display name for the Bold (high contrast) reading theme.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bold"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontraszt"
+          }
+        }
+      }
+    },
+    "theme.label.mist" : {
+      "comment" : "Display name for the Mist (sage green) reading theme.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mist"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pára"
+          }
+        }
+      }
+    },
+    "theme.label.night" : {
+      "comment" : "Display name for the Night (true black) reading theme.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Night"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Éjszaka"
+          }
+        }
+      }
+    },
+    "This chapter keeps crashing the page renderer. Try another chapter or reopen the book." : {
+      "comment" : "Reader error when WebKit's content process dies twice on one chapter.",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ez a fejezet folyton összeomlasztja az oldalmegjelenítőt. Próbálj egy másik fejezetet, vagy nyisd meg újra a könyvet."
+          }
+        }
+      }
+    },
+    "%@ edition" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ kiadás"
+          }
+        }
+      }
+    },
+    "%@ · soon" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · hamarosan"
+          }
+        }
+      }
+    },
+    "%lld chapters" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld fejezet"
+          }
+        }
+      }
+    },
+    "%lld h" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ó"
+          }
+        }
+      }
+    },
+    "%lld min" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld perc"
+          }
+        }
+      }
+    },
+    "Added to your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A polcodra került"
+          }
+        }
+      }
+    },
+    "Adding to your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polcra tesszük"
+          }
+        }
+      }
+    },
+    "Adding to your shelf…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Polcra tesszük…"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bezárás"
+          }
+        }
+      }
+    },
+    "Detected on upload" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feltöltéskor felismerjük"
+          }
+        }
+      }
+    },
+    "First chapter is on your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az első fejezet a polcodon van"
+          }
+        }
+      }
+    },
+    "From" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ebből"
+          }
+        }
+      }
+    },
+    "Get the price" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ár lekérése"
+          }
+        }
+      }
+    },
+    "Getting the price…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ár lekérése…"
+          }
+        }
+      }
+    },
+    "Into" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erre"
+          }
+        }
+      }
+    },
+    "On your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A polcodon"
+          }
+        }
+      }
+    },
+    "Read it in your language." : {
+      "comment" : "Welcome screen headline, second step: the translation demo.",
       "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Könyvenként egyszeri vásárlás. Ha egyszer megvetted, a tiéd marad — újratelepítés után is visszakapod."
+            "value" : "Olvasd a saját nyelveden."
+          }
+        }
+      }
+    },
+    "Sign in with Apple to start — it ties the purchase to you, nothing else." : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kezdéshez jelentkezz be Apple-lel – csak a vásárlást köti hozzád, mást nem."
+          }
+        }
+      }
+    },
+    "The translation arrives as a new book on your shelf. The original stays exactly as it was." : {
+      "comment" : "Welcome screen, second step: what happens after a translation finishes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A fordítás új könyvként kerül a polcodra. Az eredeti pontosan úgy marad, ahogy volt."
+          }
+        }
+      }
+    },
+    "Translating…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fordítás…"
+          }
+        }
+      }
+    },
+    "Try the first chapter for free" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Próbáld ki az első fejezetet ingyen"
+          }
+        }
+      }
+    },
+    "Uploading %lld%…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feltöltés %lld%…"
+          }
+        }
+      }
+    },
+    "Uploading…" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feltöltés…"
+          }
+        }
+      }
+    },
+    "Yours for good, no subscription · by continuing you confirm you own this book · [Terms of Use](nativread://terms)" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Örökre a tiéd, nincs előfizetés · a folytatással megerősíted, hogy a könyv a tiéd · [Felhasználási feltételek](nativread://terms)"
+          }
+        }
+      }
+    },
+    "of reading" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "olvasás"
+          }
+        }
+      }
+    },
+    "until ready" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "és kész"
+          }
+        }
+      }
+    },
+    "Length" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hossz"
+          }
+        }
+      }
+    },
+    "Reading time" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Olvasás"
+          }
+        }
+      }
+    },
+    "Ready in" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elkészül"
+          }
+        }
+      }
+    },
+    "First chapter free" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Első fejezet ingyen"
+          }
+        }
+      }
+    },
+    "First chapter on your shelf" : {
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Első fejezet a polcon"
           }
         }
       }
     },
     "Original" : {
-      "extractionState" : "manual",
       "localizations" : {
         "hu" : {
           "stringUnit" : {
@@ -2409,117 +3371,22 @@
         }
       }
     },
-    "The App Store could not verify this purchase." : {
-      "comment" : "Error when StoreKit returns an unverified transaction.",
-      "extractionState" : "manual",
+    "Translate into" : {
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Az App Store nem tudta ellenőrizni ezt a vásárlást."
+            "value" : "Fordítás nyelve"
           }
         }
       }
     },
-    "The finished translation lands on your shelf, beside the original." : {
-      "extractionState" : "manual",
+    "Beta: this language is still being quality-checked." : {
       "localizations" : {
         "hu" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A kész fordítás az eredeti mellé kerül a polcodon."
-          }
-        }
-      }
-    },
-    "This purchase needs approval. The translation starts once it is approved." : {
-      "comment" : "Shown when a purchase is deferred, for example by Ask to Buy.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ezt a vásárlást jóvá kell hagyni. A fordítás a jóváhagyás után indul."
-          }
-        }
-      }
-    },
-    "This translation is not available for purchase right now." : {
-      "comment" : "Error when the App Store returns no product for this book's tier.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ez a fordítás jelenleg nem vásárolható meg."
-          }
-        }
-      }
-    },
-    "To my shelf" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A polcomra"
-          }
-        }
-      }
-    },
-    "Translate whole book · %@" : {
-      "comment" : "Purchase button. The placeholder is the localized App Store price.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Teljes könyv lefordítása · %@"
-          }
-        }
-      }
-    },
-    "Translation" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fordítás"
-          }
-        }
-      }
-    },
-    "We translate the first chapter free." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Az első fejezetet ingyen lefordítjuk."
-          }
-        }
-      }
-    },
-    "Whole book" : {
-      "comment" : "Disclosure row that opens the paid whole-book options.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Teljes könyv"
-          }
-        }
-      }
-    },
-    "You can close the app. We keep translating." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "hu" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bezárhatod az appot, mi közben tovább fordítunk."
+            "value" : "Béta: ennek a nyelvnek a minőségét még ellenőrizzük."
           }
         }
       }

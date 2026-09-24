@@ -124,13 +124,27 @@ struct TranslationBackendClient: Sendable {
         try validate(response: response, data: data)
     }
 
-    func upload(epubURL: URL) async throws -> UploadResponse {
+    /// Uploads the book so the backend can quote it. `onProgress` receives the
+    /// sent fraction (0...1) so the caller can say more than "please wait":
+    /// this is the slowest step in the whole quote, and a whole book goes over
+    /// the wire before the price comes back.
+    func upload(
+        epubURL: URL,
+        onProgress: (@Sendable (Double) -> Void)? = nil
+    ) async throws -> UploadResponse {
         var request = makeRequest(path: "api/upload")
         request.httpMethod = "POST"
         request.setValue("application/epub+zip", forHTTPHeaderField: "Content-Type")
 
-        let fileData = try Data(contentsOf: epubURL)
-        let (data, response) = try await session.upload(for: request, from: fileData)
+        var progressDelegate: UploadProgressDelegate?
+        if let onProgress {
+            progressDelegate = UploadProgressDelegate(onProgress: onProgress)
+        }
+        // `fromFile` streams off disk. Reading a 32 MB book into a Data first
+        // spikes memory by its whole size for no gain.
+        let (data, response) = try await session.upload(
+            for: request, fromFile: epubURL, delegate: progressDelegate
+        )
         return try decode(UploadResponse.self, from: data, response: response)
     }
 
@@ -157,6 +171,7 @@ struct TranslationBackendClient: Sendable {
     func start(
         jobID: String,
         sample: Bool,
+        sourceLanguage: String? = nil,
         targetLanguage: TranslationTargetLanguage = .hu,
         termsAcceptance: TranslationTermsAcceptance
     ) async throws {
@@ -168,6 +183,10 @@ struct TranslationBackendClient: Sendable {
                 "id": jobID,
                 "sample": sample,
                 "targetLanguage": targetLanguage.rawValue,
+                // Detected on device; the backend re-detects and validates the
+                // pair, so this is a hint, never a trusted input. Omitted when
+                // detection came up empty, which the backend reads as English.
+                "sourceLanguage": sourceLanguage ?? DetectedBookLanguage.defaultSourceCode,
                 // Keep the legacy field until the backend contract migrates;
                 // the accepted Terms contain the same book-rights rule.
                 "rightsAttested": true,
@@ -194,6 +213,16 @@ struct TranslationBackendClient: Sendable {
         guard start.ok else {
             throw ClientError.server("The translator backend rejected the job.")
         }
+    }
+
+    /// The price table, so a book can be priced on device instead of by
+    /// uploading it. Deliberately unauthenticated: the reader is shown what a
+    /// translation costs before there is an account to sign in to.
+    func pricing() async throws -> TranslationPricing {
+        let (data, response) = try await session.data(
+            for: makeRequest(path: "api/pricing")
+        )
+        return try decode(TranslationPricing.self, from: data, response: response)
     }
 
     func status(jobID: String) async throws -> StatusResponse {
@@ -319,6 +348,31 @@ struct TranslationBackendClient: Sendable {
 
     private struct BackendError: Decodable {
         let error: String
+    }
+}
+
+/// Reports how much of the book has gone over the wire. `URLSession` calls
+/// this on its own delegate queue, so the closure must be safe to invoke off
+/// the main actor — callers hop back themselves.
+private final class UploadProgressDelegate: NSObject, URLSessionTaskDelegate, Sendable {
+    private let onProgress: @Sendable (Double) -> Void
+
+    init(onProgress: @escaping @Sendable (Double) -> Void) {
+        self.onProgress = onProgress
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didSendBodyData bytesSent: Int64,
+        totalBytesSent: Int64,
+        totalBytesExpectedToSend: Int64
+    ) {
+        // Chunked or unknown-length bodies report -1; there is no fraction to
+        // show then, and dividing by it would report nonsense progress.
+        guard totalBytesExpectedToSend > 0 else { return }
+        let fraction = Double(totalBytesSent) / Double(totalBytesExpectedToSend)
+        onProgress(min(max(fraction, 0), 1))
     }
 }
 

@@ -7,7 +7,6 @@ import SwiftUI
 /// the same shape vocabulary as the library chrome.
 enum ReaderControlStyle {
     static let cornerRadius: CGFloat = Spacing.radiusSmall
-    static let cardCornerRadius: CGFloat = Spacing.radiusCard
     static let minTapTarget: CGFloat = Spacing.minTapTarget
     static let rowSpacing: CGFloat = Spacing.xs
     static let selectedAccentOpacity: Double = 0.16
@@ -28,6 +27,7 @@ extension View {
                 .strokeBorder(isSelected ? palette.accent : palette.hairline)
         )
         .foregroundStyle(isSelected ? palette.accent : palette.text)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 
     /// Capsule pill used by the transition picker.
@@ -39,18 +39,6 @@ extension View {
         .overlay(
             Capsule().strokeBorder(isSelected ? palette.accent : palette.hairline))
         .foregroundStyle(isSelected ? palette.accent : palette.secondaryText)
-    }
-
-    /// Raised card for the top "live" group: surfaceRaised fill, hairline
-    /// stroke, subtle per-theme shadow — intentional depth, no re-theming.
-    func panelCard(palette: ReaderPalette) -> some View {
-        padding(Spacing.md)
-        .background(
-            RoundedRectangle(cornerRadius: ReaderControlStyle.cardCornerRadius)
-                .fill(palette.surfaceRaised))
-        .overlay(
-            RoundedRectangle(cornerRadius: ReaderControlStyle.cardCornerRadius)
-                .strokeBorder(palette.hairline))
-        .shadow(color: .black.opacity(palette.shadowOpacity), radius: 12, y: 4)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

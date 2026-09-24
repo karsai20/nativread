@@ -38,19 +38,19 @@ struct AIProcessingConsentView: View {
 
                         AppSettingsSection(palette: palette) {
                             disclosureRow(
-                                icon: "text.document",
+                                icon: .fileText,
                                 title: copy.dataTitle,
                                 detail: copy.dataDetail
                             )
                             rowSeparator
                             disclosureRow(
-                                icon: "sparkles",
+                                icon: .sparkles,
                                 title: copy.providerTitle,
                                 detail: copy.providerDetail
                             )
                             rowSeparator
                             disclosureRow(
-                                icon: "trash",
+                                icon: .trash2,
                                 title: copy.retentionTitle,
                                 detail: copy.retentionDetail
                             )
@@ -62,7 +62,7 @@ struct AIProcessingConsentView: View {
                             Label {
                                 Text(verbatim: copy.privacyLink)
                             } icon: {
-                                Image(systemName: "hand.raised")
+                                Icon(.hand, size: 16)
                             }
                             .font(Typography.control(16, weight: .semibold))
                             .foregroundStyle(palette.accent)
@@ -96,8 +96,7 @@ struct AIProcessingConsentView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Image(systemName: "sparkles.rectangle.stack.fill")
-                .font(.system(size: 23, weight: .semibold))
+            Icon(.sparkles, size: 23)
                 .foregroundStyle(palette.accent)
                 .frame(width: 52, height: 52)
                 .background(
@@ -117,13 +116,12 @@ struct AIProcessingConsentView: View {
     }
 
     private func disclosureRow(
-        icon: String,
+        icon: LucideIcon,
         title: String,
         detail: String
     ) -> some View {
         HStack(alignment: .top, spacing: Spacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+            Icon(icon, size: 18)
                 .foregroundStyle(palette.accent)
                 .frame(width: 28, height: 28)
 
@@ -145,7 +143,7 @@ struct AIProcessingConsentView: View {
         VStack(spacing: Spacing.sm) {
             AppPrimaryButton(
                 title: LocalizedStringKey(copy.allowButton),
-                systemImage: "sparkles",
+                icon: .sparkles,
                 action: {
                     dismiss()
                     onAllow()

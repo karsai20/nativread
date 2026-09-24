@@ -32,6 +32,10 @@ struct ParsedEPUB {
     let toc: [TOCEntry]
     /// Relative byte size of every spine document.
     let spineWeights: [Double]
+    /// `<dc:language>` from the OPF, verbatim (may carry a region: "en-GB").
+    /// The publisher's own statement of what the book is written in, which
+    /// beats guessing from a text sample. nil when the EPUB omits it.
+    let declaredLanguage: String?
 }
 
 enum EPUBError: LocalizedError {

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 /// App-wide appearance preference for the library and chrome. `.system`
 /// follows the device's Light/Dark setting; the others force one mode.
@@ -21,6 +22,14 @@ final class SettingsStore {
     private(set) var translationBackendURLString: String
     private(set) var translationUserID: String
 
+    /// Whether the complete first-launch onboarding has been finished.
+    /// Stored under its own UserDefaults key so it never bloats the codable
+    /// settings, and mirrored here so views observe changes to it.
+    private(set) var hasSeenOnboarding: Bool
+
+    /// Bumped by `replayOnboarding()`; see it for why this is a counter.
+    private(set) var onboardingReplayCount = 0
+
     private let defaults: UserDefaults
     private static let key = "lumenread.readerSettings.v2"
     private static let onboardingSeenKey = "nativread.onboarding.v1.seen"
@@ -41,7 +50,9 @@ final class SettingsStore {
 
     init(
         defaults: UserDefaults = .standard,
-        defaultTranslationBackendURLString: String? = nil
+        defaultTranslationBackendURLString: String? = nil,
+        contentSizeCategory: UIContentSizeCategory =
+            UIScreen.main.traitCollection.preferredContentSizeCategory
     ) {
         self.defaults = defaults
         if defaults.object(forKey: Self.onboardingSeenKey) == nil,
@@ -55,8 +66,11 @@ final class SettingsStore {
            ) {
             settings = decoded
         } else {
-            settings = ReaderSettings()
+            var seeded = ReaderSettings()
+            seeded.fontSize = ReaderSettings.defaultFontSize(for: contentSizeCategory)
+            settings = seeded
         }
+        hasSeenOnboarding = defaults.bool(forKey: Self.onboardingSeenKey)
         appAppearance = defaults.string(forKey: Self.appearanceKey)
             .flatMap(AppAppearance.init) ?? .system
         isOrientationLocked = defaults.bool(
@@ -92,16 +106,6 @@ final class SettingsStore {
         defaults.set(appearance.rawValue, forKey: Self.appearanceKey)
     }
 
-    func setTranslationBackendURL(_ value: String) {
-        translationBackendURLString = value.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-        defaults.set(
-            translationBackendURLString,
-            forKey: Self.translationBackendURLKey
-        )
-    }
-
     /// Test/screenshot override for a local translator. Keeping this out of
     /// UserDefaults prevents an automated run from changing the endpoint a
     /// person configured in Settings.
@@ -132,16 +136,21 @@ final class SettingsStore {
         }
     }
 
-    /// Whether the complete first-launch onboarding has been finished.
-    /// Stored under its own key so it never bloats the codable settings.
-    var hasSeenOnboarding: Bool {
-        defaults.bool(forKey: Self.onboardingSeenKey)
-    }
-
     /// Records that onboarding has been completed; subsequent launches
     /// go straight to the library.
     func markOnboardingSeen() {
+        hasSeenOnboarding = true
         defaults.set(true, forKey: Self.onboardingSeenKey)
+    }
+
+    /// Brings the welcome back for a reader who wants to see it again —
+    /// Settings offers this. `RootView` observes the counter rather than
+    /// `hasSeenOnboarding`, so a request re-presents the flow even when the
+    /// flag is already false, and a second request works as well as the first.
+    func replayOnboarding() {
+        hasSeenOnboarding = false
+        defaults.set(false, forKey: Self.onboardingSeenKey)
+        onboardingReplayCount += 1
     }
 
     /// Applies launch-argument overrides without persisting them, so
@@ -162,5 +171,22 @@ final class SettingsStore {
         defaults.removeObject(forKey: translationBackendURLKey)
         defaults.removeObject(forKey: translationUserIDKey)
         defaults.removeObject(forKey: orientationLockKey)
+    }
+}
+
+extension SettingsStore {
+    /// DEBUG builds pointed at a loopback or private-LAN translator may skip
+    /// Sign in with Apple and use a placeholder account. Always false in
+    /// release builds.
+    var isPrivateTestTranslationBackend: Bool {
+#if DEBUG
+        guard let host = translationBackendURL?.host?.lowercased() else { return false }
+        if host == "localhost" || host == "::1" || host.hasPrefix("127.") { return true }
+        if host.hasPrefix("10.") || host.hasPrefix("192.168.") { return true }
+        let parts = host.split(separator: ".").compactMap { Int(String($0)) }
+        return parts.count == 4 && parts[0] == 172 && (16...31).contains(parts[1])
+#else
+        return false
+#endif
     }
 }

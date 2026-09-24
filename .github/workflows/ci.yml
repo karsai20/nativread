@@ -32,8 +32,9 @@ jobs:
   unit-tests:
     # Unit-test target only (eng D5): XCUITests are wedge-flaky on shared
     # runners and macOS minutes bill 10x — they stay a local pre-release
-    # ritual.
-    runs-on: macos-15
+    # ritual. macos-26 ships Xcode 26, the SDK the app's iOS 26 APIs
+    # (glassEffect) need; macos-15 defaults to Xcode 16 and cannot build it.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
@@ -59,7 +60,7 @@ jobs:
           xcodebuild test \
             -project NativRead.xcodeproj \
             -scheme NativRead \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             -only-testing:NativReadTests \
             CODE_SIGNING_ALLOWED=NO
         env:

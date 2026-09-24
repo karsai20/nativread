@@ -1,0 +1,61 @@
+{
+  "quoteVersion": "source-chars-v1",
+  "entries": [
+    {
+      "file": "alice-csodaorszagban-hu.epub",
+      "sha256": "1bbe246a1d012f6a7cdeed58c06604fb6d09687582fde7e39c4550399db3465f",
+      "spineItems": 2,
+      "sourceCharacters": 874,
+      "requiredCredits": 1,
+      "quoteVersion": "source-chars-v1"
+    },
+    {
+      "file": "alice-wonderland-en.epub",
+      "sha256": "f5ecf48f346679cdfcf31d4c2e96f5d47d05284c3dc468e62b9cac4a7b0a048f",
+      "spineItems": 2,
+      "sourceCharacters": 1021,
+      "requiredCredits": 2,
+      "quoteVersion": "source-chars-v1"
+    },
+    {
+      "file": "alice-wonderland-standard-en.epub",
+      "sha256": "ee036cd4da21ea84aa9f17cbdd75a476e1f69ee5f51136ef5469e85b008fe17d",
+      "spineItems": 20,
+      "sourceCharacters": 150483,
+      "requiredCredits": 151,
+      "quoteVersion": "source-chars-v1"
+    },
+    {
+      "file": "alice-wunderland-de.epub",
+      "sha256": "e161e3ee6937f164cd1b55ace8b794232304449008da730d8f97151f67573721",
+      "spineItems": 2,
+      "sourceCharacters": 800,
+      "requiredCredits": 1,
+      "quoteVersion": "source-chars-v1"
+    },
+    {
+      "file": "pal-utcai-fiuk-gutenberg-hu.epub",
+      "sha256": "a97ec002ad26347cb98f0176037fe4ccc0727f402b72d2f3f305dd284887795f",
+      "spineItems": 51,
+      "sourceCharacters": 271688,
+      "requiredCredits": 272,
+      "quoteVersion": "source-chars-v1"
+    },
+    {
+      "file": "sample-nocover.epub",
+      "sha256": "fe844efde12f7a17fa9633a7282b8409fd5f62ca3e4e867c068283b6ec4a56dc",
+      "spineItems": 4,
+      "sourceCharacters": 4485,
+      "requiredCredits": 5,
+      "quoteVersion": "source-chars-v1"
+    },
+    {
+      "file": "sample.epub",
+      "sha256": "1c157c6b2ec295023867d8d35274a220e453d2aac52d60a5e26cb70b5e569519",
+      "spineItems": 4,
+      "sourceCharacters": 4485,
+      "requiredCredits": 5,
+      "quoteVersion": "source-chars-v1"
+    }
+  ]
+}

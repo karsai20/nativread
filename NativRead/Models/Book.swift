@@ -128,6 +128,28 @@ struct Book: Codable, Equatable, Identifiable {
     /// Target language for AI-translated variants. `nil` for original books and
     /// for legacy translated imports from before multi-language metadata existed.
     var translatedLanguage: TranslationTargetLanguage?
+    /// SHA256 of the stored source file at the moment its quote was taken.
+    /// The quote is a pure function of those bytes, so an unchanged hash means
+    /// the cached price is still the one the backend would return — and a
+    /// changed hash invalidates it without asking anyone.
+    var quotedSourceHash: String?
+    /// StoreKit product the backend picked from the source length. Display
+    /// only: what the reader is actually charged is decided server-side from
+    /// its own inspection at purchase time, never from this.
+    var quotedProductId: String?
+    /// `<dc:language>` as the EPUB itself declares it, captured at import so
+    /// the translation sheet never has to re-parse the OPF to name the source
+    /// language. `nil` for TXT/PDF imports, for EPUBs that omit the element,
+    /// and for books shelved before this was recorded — all of which fall back
+    /// to text detection.
+    var declaredLanguage: String?
+    /// Source characters the translator would charge for, counted on device at
+    /// import by `SourceCharacterCounter`. Lets the translation sheet name the
+    /// price straight away instead of uploading the book to ask for it.
+    ///
+    /// `nil` for TXT/PDF, for books shelved before this was recorded, and
+    /// whenever the count failed — all of which fall back to a server quote.
+    var sourceCharacters: Int?
 
     init(
         id: UUID = UUID(),
@@ -145,7 +167,11 @@ struct Book: Codable, Equatable, Identifiable {
         variant: BookVariant = .original,
         sourceBookID: UUID? = nil,
         translatedFraction: Double? = nil,
-        translatedLanguage: TranslationTargetLanguage? = nil
+        translatedLanguage: TranslationTargetLanguage? = nil,
+        quotedSourceHash: String? = nil,
+        quotedProductId: String? = nil,
+        declaredLanguage: String? = nil,
+        sourceCharacters: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -163,6 +189,10 @@ struct Book: Codable, Equatable, Identifiable {
         self.sourceBookID = sourceBookID
         self.translatedFraction = translatedFraction
         self.translatedLanguage = translatedLanguage
+        self.quotedSourceHash = quotedSourceHash
+        self.quotedProductId = quotedProductId
+        self.declaredLanguage = declaredLanguage
+        self.sourceCharacters = sourceCharacters
     }
 
     /// Tolerant decoding: libraries persisted before highlights existed
@@ -198,11 +228,14 @@ struct Book: Codable, Equatable, Identifiable {
             Double.self, forKey: .translatedFraction)
         translatedLanguage = try container.decodeIfPresent(
             TranslationTargetLanguage.self, forKey: .translatedLanguage)
-    }
-
-    var percentText: String {
-        let percent = Int((progress.bookFraction * 100).rounded())
-        return "\(percent)%"
+        quotedSourceHash = try container.decodeIfPresent(
+            String.self, forKey: .quotedSourceHash)
+        quotedProductId = try container.decodeIfPresent(
+            String.self, forKey: .quotedProductId)
+        declaredLanguage = try container.decodeIfPresent(
+            String.self, forKey: .declaredLanguage)
+        sourceCharacters = try container.decodeIfPresent(
+            Int.self, forKey: .sourceCharacters)
     }
 
     var isTranslationPreview: Bool { variant == .translationPreview }
@@ -265,20 +298,25 @@ struct Book: Codable, Equatable, Identifiable {
         return min(max((before + inside) / total, 0), 1)
     }
 
-    /// Whole-book page estimate scaled from the current chapter's
-    /// measured density (its page count vs its spine weight), so the
-    /// number tracks the live typography instead of a fixed chars-per-
-    /// page heuristic. Falls back to the measured chapter alone when
-    /// weights are missing or degenerate.
-    static func estimatedBookPages(
-        chapterPageCount: Int,
-        spineIndex: Int,
+    /// Pages per spine item at the current typography. A chapter the
+    /// engine has laid out this session keeps its measured count; the rest
+    /// are scaled from the measured chapters' average density (pages per
+    /// weight unit). Scaling the whole book from whichever chapter is open
+    /// made both numbers of "37 / 847" jump at every chapter boundary.
+    /// Empty when there are no weights (TXT import edge); never a zero.
+    static func estimatedChapterPages(
+        measured: [Int: Int],
         weights: [Double]
-    ) -> Int {
-        let total = weights.reduce(0, +)
-        guard spineIndex < weights.count, weights[spineIndex] > 0,
-              total > 0 else { return max(1, chapterPageCount) }
-        let scaled = Double(chapterPageCount) * total / weights[spineIndex]
-        return max(1, Int(scaled.rounded()))
+    ) -> [Int] {
+        let known = measured.filter {
+            weights.indices.contains($0.key) && weights[$0.key] > 0
+        }
+        let knownPages = known.values.reduce(0, +)
+        let knownWeight = known.keys.reduce(0.0) { $0 + weights[$1] }
+        let density = knownWeight > 0 ? Double(knownPages) / knownWeight : 0
+        return weights.indices.map { index in
+            if let pages = measured[index] { return max(1, pages) }
+            return max(1, Int((weights[index] * density).rounded()))
+        }
     }
 }

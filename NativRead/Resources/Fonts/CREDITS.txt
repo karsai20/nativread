@@ -31,3 +31,5 @@ Source: Google Fonts (github.com/google/fonts/ofl).
 Note: both are variable fonts (weight axis). The reader embeds the
 upright weight-axis file via @font-face (font-weight: 100 900); the
 italic Cormorant file is registered for in-app SwiftUI use.
+
+Lucide icons — https://lucide.dev — ISC License, Copyright (c) 2022 Lucide Contributors

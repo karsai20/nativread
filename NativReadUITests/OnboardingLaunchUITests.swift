@@ -15,26 +15,25 @@ final class OnboardingLaunchUITests: XCTestCase {
         // Welcome is deliberately user-paced, so an older reader has time to
         // absorb the promise before choosing to continue.
         app.launchArguments = [
-            "-resetSettings", "-forceOnboarding",
+            "-skipIntro", "-resetSettings", "-forceOnboarding",
             "-seedSampleBook"
         ]
         app.launch()
 
         XCTAssertTrue(
-            app.staticTexts["onboarding.tour.title"]
+            app.staticTexts["welcome.title"]
                 .waitForExistence(timeout: 6),
-            "the welcome step should appear on first launch"
+            "the welcome screen should appear on first launch"
         )
         XCTAssertTrue(
-            app.buttons["onboarding.tour.next"]
+            app.buttons["welcome.continue"]
                 .waitForExistence(timeout: 4),
             "welcome should wait for an explicit, clearly labelled action"
         )
-        XCTAssertTrue(app.buttons["onboarding.tour.skip"].exists)
     }
 
     func testLaunchSplashSkipped() {
-        app.launchArguments = ["-resetLibrary", "-skipOnboarding", "-seedSampleBook"]
+        app.launchArguments = ["-skipIntro", "-resetLibrary", "-skipOnboarding", "-seedSampleBook"]
         app.launch()
 
         // The library must be present immediately, with no welcome wordmark.
@@ -44,8 +43,8 @@ final class OnboardingLaunchUITests: XCTestCase {
             "library should show directly when onboarding is skipped"
         )
         XCTAssertFalse(
-            app.staticTexts["onboarding.tour.title"].exists,
-            "the welcome step must not appear when skipped"
+            app.staticTexts["welcome.title"].exists,
+            "the welcome screen must not appear when skipped"
         )
     }
 }

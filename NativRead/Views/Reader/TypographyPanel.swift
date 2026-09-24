@@ -1,10 +1,9 @@
 import SwiftUI
 
-/// The "Aa" appearance sheet: themes, typeface, size, spacing, margins.
-///
-/// Primary controls (theme, size, brightness) sit up top in the compact
-/// detent; typeface and fine-tuning live behind "More". All sliders are the
-/// hand-built `EditorialSlider`; swatches are page-like `ThemeTile`s.
+/// The "Aa" appearance sheet: one scrolling panel in four eyebrow-labelled
+/// sections — Atmosphere, Text, Layout, Comfort — with no tabs. The theme
+/// tiles set "Aa" in the reader's own typeface; every control repaints the
+/// page underneath as it changes.
 struct TypographyPanel: View {
     @Bindable var viewModel: ReaderViewModel
 
@@ -14,30 +13,54 @@ struct TypographyPanel: View {
         settings.effectiveTheme(systemDark: viewModel.systemDark)
     }
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var brightness = UIScreen.main.brightness
-    @State private var tab: AppearanceTab = Self.initialTab
-
-    /// UI-test hook: `-appearanceTab text|layout` opens a specific tab for
-    /// screenshots, mirroring the existing `-showTypographyPanel` argument.
-    private static var initialTab: AppearanceTab {
-        let args = ProcessInfo.processInfo.arguments
-        if let i = args.firstIndex(of: "-appearanceTab"), i + 1 < args.count,
-           let forced = AppearanceTab(rawValue: args[i + 1]) {
-            return forced
-        }
-        return .theme
-    }
+    /// The typeface list is long; it folds under its row until asked for.
+    @State private var isTypefaceListExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             grabber
-            SegmentedTabs(selection: $tab, palette: palette)
             ScrollView {
-                tabContent
-                    .padding(.top, Spacing.xs)
-                    .padding(.bottom, Spacing.lg)
+                VStack(alignment: .leading, spacing: Spacing.lg) {
+                    section("appearance.section.atmosphere") {
+                        themeGrid
+                        autoThemeToggle
+                    }
+                    divider
+                    section("appearance.section.text") {
+                        sizeGroup
+                        typefaceRow
+                        lineSpacingGroup
+                        justifiedToggle
+                    }
+                    divider
+                    section("appearance.section.layout") {
+                        marginsGroup
+                        flowGroup
+                        if settings.pageFlow == .paged {
+                            transitionRow
+                            // Without this row the picker above looks broken: iOS is
+                            // quietly overriding it and nothing on screen said so.
+                            if reduceMotion { reduceMotionRow }
+                            // Only a regular-width device can ever show two columns.
+                            if horizontalSizeClass == .regular { spreadToggle }
+                        }
+                    }
+                    divider
+                    section("appearance.section.comfort") {
+                        warmthGroup
+                        brightnessGroup
+                    }
+                }
+                .padding(.top, Spacing.xs)
+                .padding(.bottom, Spacing.lg)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: settings.pageFlow)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: isTypefaceListExpanded)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.hidden)
         }
         .padding(.horizontal, Spacing.lg)
         .padding(.top, Spacing.xs)
@@ -52,61 +75,38 @@ struct TypographyPanel: View {
         .presentationDragIndicator(.hidden)
     }
 
-    /// The active tab's controls. Each tab is a calm, uncrowded column —
-    /// no disclosure, no long scroll in the default detent.
-    @ViewBuilder private var tabContent: some View {
-        switch tab {
-        case .theme:  themeTab
-        case .text:   textTab
-        case .layout: layoutTab
-        }
-    }
-
-    private var themeTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            themeRow
-            autoThemeToggle
-            divider
-            warmthGroup
-            brightnessGroup
-        }
-    }
-
-    private var textTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            sizeGroup
-            divider
-            fontList
-            divider
-            lineSpacingGroup
-            justifiedToggle
-        }
-    }
-
-    private var layoutTab: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
-            marginsGroup
-            divider
-            flowGroup
-            if settings.pageFlow == .paged {
-                transitionRow
-            }
+    /// An eyebrow-labelled group: the panel's only structural device, so
+    /// the reader can skim to a section without a mode switch.
+    private func section<Content: View>(
+        _ title: LocalizedStringKey,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text(title)
+                .font(Typography.eyebrow)
+                .tracking(Typography.eyebrowTracking)
+                .textCase(.uppercase)
+                .foregroundStyle(palette.secondaryText)
+            content()
         }
     }
 
     // MARK: - Theme tiles
 
-    private var themeRow: some View {
-        HStack(spacing: Spacing.sm) {
+    private var themeGrid: some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: 4),
+            spacing: Spacing.sm
+        ) {
             ForEach(ReaderTheme.allCases) { candidate in
                 ThemeTile(
                     theme: candidate,
                     isSelected: candidate == activeTheme,
+                    font: settings.font,
                     palette: palette
                 ) {
                     selectTheme(candidate)
                 }
-                .frame(maxWidth: .infinity)
             }
         }
     }
@@ -129,7 +129,7 @@ struct TypographyPanel: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             ControlLabel(
                 title: "Text size",
-                icon: "textformat.size",
+                icon: .aLargeSmall,
                 palette: palette
             )
             SizeStepper(
@@ -155,13 +155,13 @@ struct TypographyPanel: View {
     private var brightnessGroup: some View {
         sliderGroup(
             title: "Brightness",
-            icon: "sun.max",
+            icon: .sun,
             valueText: "\(Int((brightness * 100).rounded()))%",
             value: brightness,
             range: 0.05...1,
             step: 0.05,
-            leadingSymbol: "sun.min",
-            trailingSymbol: "sun.max"
+            leadingIcon: .sunDim,
+            trailingIcon: .sun
         ) { newValue in
             brightness = newValue
             UIScreen.main.brightness = newValue
@@ -174,13 +174,13 @@ struct TypographyPanel: View {
     private var warmthGroup: some View {
         sliderGroup(
             title: "Warm light",
-            icon: "thermometer.sun",
+            icon: .thermometerSun,
             valueText: "\(Int((settings.warmth * 100).rounded()))%",
             value: settings.warmth,
             range: ReaderSettings.warmthRange,
             step: 0.05,
-            leadingSymbol: "moon",
-            trailingSymbol: "thermometer.sun"
+            leadingIcon: .moon,
+            trailingIcon: .thermometerSun
         ) { newValue in
             updateSettings { $0.warmth = newValue }
         }
@@ -190,13 +190,13 @@ struct TypographyPanel: View {
     private var lineSpacingGroup: some View {
         sliderGroup(
             title: "Line spacing",
-            icon: "arrow.up.and.down.text.horizontal",
+            icon: .unfoldVertical,
             valueText: String(format: "%.2f", settings.lineHeight),
             value: settings.lineHeight,
             range: ReaderSettings.lineHeightRange,
             step: 0.05,
-            leadingSymbol: "text.alignleft",
-            trailingSymbol: "text.justify"
+            leadingIcon: .alignLeft,
+            trailingIcon: .alignJustify
         ) { newValue in
             updateSettings { $0.lineHeight = newValue }
         }
@@ -205,13 +205,13 @@ struct TypographyPanel: View {
     private var marginsGroup: some View {
         sliderGroup(
             title: "Margins",
-            icon: "rectangle.compress.vertical",
+            icon: .foldVertical,
             valueText: "\(Int(settings.horizontalMargin.rounded())) pt",
             value: settings.horizontalMargin,
             range: ReaderSettings.marginRange,
             step: 2,
-            leadingSymbol: "rectangle.compress.vertical",
-            trailingSymbol: "rectangle.expand.vertical"
+            leadingIcon: .foldVertical,
+            trailingIcon: .unfoldVertical
         ) { newValue in
             updateSettings { $0.horizontalMargin = newValue }
         }
@@ -224,10 +224,49 @@ struct TypographyPanel: View {
             get: { settings.isJustified },
             set: { newValue in updateSettings { $0.isJustified = newValue } }
         )) {
-            Label("Justified text", systemImage: "text.justify")
+            Label { Text("Justified text") } icon: { Icon(.alignJustify, size: 16) }
                 .font(Typography.body(15))
         }
         .tint(palette.accent)
+    }
+
+    private var spreadToggle: some View {
+        Toggle(isOn: Binding(
+            get: { settings.twoPageSpread },
+            set: { newValue in updateSettings { $0.twoPageSpread = newValue } }
+        )) {
+            Label { Text("Two pages in landscape") } icon: { Icon(.book, size: 16) }
+                .font(Typography.body(15))
+        }
+        .tint(palette.accent)
+        .accessibilityIdentifier("layout.spread")
+    }
+
+    /// Shown only while iOS Reduce Motion is on, where it explains why the
+    /// page-turn picker has no effect and offers the way back.
+    private var reduceMotionRow: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Toggle(isOn: Binding(
+                get: { settings.allowsMotionWhenReduced },
+                set: { newValue in
+                    updateSettings { $0.allowsMotionWhenReduced = newValue }
+                }
+            )) {
+                Label {
+                    Text("Animate page turns anyway")
+                } icon: {
+                    Icon(.accessibility, size: 16)
+                }
+                    .font(Typography.body(15))
+            }
+            .tint(palette.accent)
+            .accessibilityIdentifier("layout.allowsMotion")
+
+            Text("Reduce Motion is on in iOS Settings, so page turns are instant.")
+                .font(Typography.meta(12))
+                .foregroundStyle(palette.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private var autoThemeToggle: some View {
@@ -237,8 +276,11 @@ struct TypographyPanel: View {
                 updateSettings { $0.themeMode = isOn ? .system : .manual }
             }
         )) {
-            Label("Match system appearance",
-                  systemImage: "circle.lefthalf.filled")
+            Label {
+                Text("Match system appearance")
+            } icon: {
+                Icon(.contrast, size: 16)
+            }
                 .font(Typography.body(15))
         }
         .tint(palette.accent)
@@ -249,7 +291,7 @@ struct TypographyPanel: View {
 
     private var flowGroup: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            ControlLabel(title: "Page flow", icon: "book.pages", palette: palette)
+            ControlLabel(title: "Page flow", icon: .bookOpen, palette: palette)
             flowRow
         }
     }
@@ -260,7 +302,7 @@ struct TypographyPanel: View {
                 Button {
                     updateSettings { $0.pageFlow = candidate }
                 } label: {
-                    Label(candidate.label, systemImage: candidate.icon)
+                    Label { Text(candidate.label) } icon: { Icon(candidate.icon, size: 14) }
                         .font(Typography.body(14))
                         .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget - 6)
                 }
@@ -277,7 +319,11 @@ struct TypographyPanel: View {
         // Four options no longer fit beside the eyebrow label; stack them
         // under it like flowGroup, pills sharing the width equally.
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Label("Page turn", systemImage: "arrow.right.square")
+            Label {
+                Text("Page turn")
+            } icon: {
+                Icon(.squareArrowRight, size: 13)
+            }
                 .font(Typography.eyebrow)
                 .tracking(Typography.eyebrowTracking)
                 .textCase(.uppercase)
@@ -305,6 +351,38 @@ struct TypographyPanel: View {
         }
     }
 
+    // MARK: - Typeface (collapsible)
+
+    private var typefaceRow: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                isTypefaceListExpanded.toggle()
+            } label: {
+                HStack {
+                    ControlLabel(title: "appearance.typeface", icon: .type, palette: palette)
+                    Spacer()
+                    Text(settings.font.label)
+                        .font(settings.font.previewFont(size: 15))
+                        .foregroundStyle(palette.text)
+                    Icon(.chevronDown, size: 12)
+                        .foregroundStyle(palette.secondaryText)
+                        .rotationEffect(.degrees(isTypefaceListExpanded ? 180 : 0))
+                }
+                .frame(minHeight: Spacing.minTapTarget)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("appearance.typeface")
+            .accessibilityValue(settings.font.label)
+
+            if isTypefaceListExpanded {
+                fontList
+                    .padding(.leading, Spacing.sm)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
     // MARK: - Fonts
 
     private var fontList: some View {
@@ -315,11 +393,10 @@ struct TypographyPanel: View {
                 } label: {
                     HStack {
                         Text(candidate.label)
-                            .font(candidate.previewFont)
+                            .font(candidate.previewFont())
                         Spacer()
                         if candidate == settings.font {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 13, weight: .semibold))
+                            Icon(.check, size: 13)
                                 .foregroundStyle(palette.accent)
                         }
                     }
@@ -349,13 +426,13 @@ struct TypographyPanel: View {
     /// One slider section: eyebrow label + readout, then an `EditorialSlider`.
     private func sliderGroup(
         title: LocalizedStringKey,
-        icon: String,
+        icon: LucideIcon,
         valueText: String,
         value: Double,
         range: ClosedRange<Double>,
         step: Double,
-        leadingSymbol: String,
-        trailingSymbol: String,
+        leadingIcon: LucideIcon,
+        trailingIcon: LucideIcon,
         onChange: @escaping (Double) -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -366,8 +443,8 @@ struct TypographyPanel: View {
                 value: value,
                 range: range,
                 step: step,
-                leadingSymbol: leadingSymbol,
-                trailingSymbol: trailingSymbol,
+                leadingIcon: leadingIcon,
+                trailingIcon: trailingIcon,
                 palette: palette,
                 onChange: onChange
             )

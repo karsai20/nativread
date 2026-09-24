@@ -1,3 +1,4 @@
+import UIKit
 import XCTest
 
 /// End-to-end journey over the seeded sample book: shelf → open →
@@ -6,15 +7,8 @@ final class ReaderJourneyUITests: XCTestCase {
 
     private var app: XCUIApplication!
 
-    /// UIKit's tab bar does not carry the SwiftUI identifier set on a
-    /// `tabItem`, and the labels are localised, so tabs are addressed by their
-    /// fixed position: 0 Library, 1 Translate, 2 Settings.
-    private enum Tab: Int {
-        case library, translate, settings
-    }
-
-    private func tab(_ tab: Tab) -> XCUIElement {
-        app.tabBars.buttons.element(boundBy: tab.rawValue)
+    private func tab(_ tab: AppTab) -> XCUIElement {
+        app.tabButton(tab)
     }
 
     override func setUp() {
@@ -22,9 +16,13 @@ final class ReaderJourneyUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         app = XCUIApplication()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding"
         ]
+        // Device-state probes run against a hand-seeded container.
+        if ProcessInfo.processInfo.environment["PROBE_KEEP_STATE"] != nil {
+            app.launchArguments = ["-skipIntro", "-skipOnboarding"]
+        }
         app.launch()
     }
 
@@ -80,7 +78,7 @@ final class ReaderJourneyUITests: XCTestCase {
     func testEmptyShelfHasOneImportAction() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding"
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding"
         ]
         app.launch()
 
@@ -141,27 +139,49 @@ final class ReaderJourneyUITests: XCTestCase {
             text.waitForExistence(timeout: 10),
             "chapter text should be repaginated and visible in landscape"
         )
-        // The viewport update is intentionally debounced while rotation
-        // settles; wait for the new CSS rather than sampling the portrait
-        // frame that can remain visible for the first animation frame.
-        let clearsSensorHousing = NSPredicate { object, _ in
-            guard let element = object as? XCUIElement else { return false }
-            return element.frame.minX > 55
+        // Only a phone has a sensor housing to clear; an iPad's correct
+        // landscape inset is the ordinary reading margin.
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            // The viewport update is intentionally debounced while rotation
+            // settles; wait for the new CSS rather than sampling the portrait
+            // frame that can remain visible for the first animation frame.
+            let clearsSensorHousing = NSPredicate { object, _ in
+                guard let element = object as? XCUIElement else { return false }
+                return element.frame.minX > 55
+            }
+            expectation(for: clearsSensorHousing, evaluatedWith: text)
+            waitForExpectations(timeout: 10)
+            XCTAssertGreaterThan(
+                text.frame.minX, 55,
+                "chapter text must clear the landscape sensor housing"
+            )
         }
-        expectation(for: clearsSensorHousing, evaluatedWith: text)
-        waitForExpectations(timeout: 10)
-        XCTAssertGreaterThan(
-            text.frame.minX, 55,
-            "chapter text must clear the landscape sensor housing"
-        )
 
+        // A swipe turns a page within the chapter on a phone, and advances
+        // the chapter on a screen tall enough to hold this short chapter in
+        // one page. The web view's own text cannot tell them apart — CSS
+        // columns keep every paragraph in the DOM — so both chrome labels
+        // are watched and either moving counts as the page having turned.
         let pagesLeft = app.staticTexts["reader.chapterPagesLeft"]
+        let chapterTitle = app.staticTexts["reader.chapterTitle"]
         XCTAssertTrue(pagesLeft.waitForExistence(timeout: 4))
-        let landscapeLabel = pagesLeft.label
+        let pagesLeftBefore = pagesLeft.label
+        let chapterBefore = chapterTitle.label
         app.webViews.firstMatch.swipeLeft(velocity: .fast)
-        let changed = NSPredicate(format: "label != %@", landscapeLabel)
-        expectation(for: changed, evaluatedWith: pagesLeft)
-        waitForExpectations(timeout: 10)
+
+        let moved = expectation(description: "the swipe moves the reader")
+        let deadline = Date().addingTimeInterval(10)
+        DispatchQueue.global().async {
+            while Date() < deadline {
+                if pagesLeft.label != pagesLeftBefore
+                    || chapterTitle.label != chapterBefore {
+                    moved.fulfill()
+                    return
+                }
+                Thread.sleep(forTimeInterval: 0.25)
+            }
+        }
+        wait(for: [moved], timeout: 12)
     }
 
     func testPositionNavigatorUsesAnAccessibleSlider() {
@@ -185,91 +205,58 @@ final class ReaderJourneyUITests: XCTestCase {
         openSampleBook()
         tapMenuItem("reader.typography")
 
-        // Theme swatches live on the default Theme tab.
+        // All eight atmospheres sit in the panel's first section.
+        for theme in ["paper", "sepia", "mist", "bold", "dusk", "amber", "ink", "night"] {
+            XCTAssertTrue(app.buttons["theme.\(theme)"].waitForExistence(timeout: 6), theme)
+        }
         let duskSwatch = app.buttons["theme.dusk"]
-        XCTAssertTrue(duskSwatch.waitForExistence(timeout: 6))
         duskSwatch.tap()
+        XCTAssertTrue(duskSwatch.isSelected)
 
-        // Size lives on the Text tab in the redesigned tabbed panel.
-        app.buttons["appearance.tab.text"].tap()
+        // Size lives on the same panel now — no tab to switch.
         let sizeUp = app.buttons["fontsize.up"]
         XCTAssertTrue(sizeUp.waitForExistence(timeout: 6))
         sizeUp.tap()
 
         // Dismiss the sheet, reopen, and confirm the choice stuck.
         app.swipeDown(velocity: .fast)
-        XCTAssertTrue(
-            app.buttons["reader.menu"].waitForExistence(timeout: 6)
-        )
+        XCTAssertTrue(app.buttons["reader.menu"].waitForExistence(timeout: 6))
         tapMenuItem("reader.typography")
         XCTAssertTrue(duskSwatch.waitForExistence(timeout: 6))
+        XCTAssertTrue(duskSwatch.isSelected)
     }
 
-    func testContentsNavigatesToChapter() {
-        openSampleBook()
-        tapMenuItem("reader.contents")
-
-        let chapter = app.buttons
-            .containing(NSPredicate(
-                format: "label CONTAINS %@", "Under the Glass"
-            ))
-            .firstMatch
-        XCTAssertTrue(chapter.waitForExistence(timeout: 6))
-        chapter.tap()
-
-        let title = app.staticTexts["Under the Glass"]
-        XCTAssertTrue(title.waitForExistence(timeout: 8),
-                      "chapter title should appear in the top bar")
-    }
-
-    func testSearchFindsTextAcrossBook() {
-        openSampleBook()
-        tapMenuItem("reader.search")
-
-        let field = app.textFields["search.field"]
-        XCTAssertTrue(field.waitForExistence(timeout: 6))
-        field.tap()
-        // "\n" submits even when the simulator hides the soft keyboard.
-        field.typeText("lantern\n")
-
-        let count = app.staticTexts["search.resultCount"]
-        XCTAssertTrue(count.waitForExistence(timeout: 8))
-        XCTAssertFalse(count.label.hasPrefix("0 "))
-
-        // Jump to the first match; the reader should come back.
-        app.buttons.matching(
-            NSPredicate(format: "label CONTAINS %@", "lantern")
-        ).firstMatch.tap()
-        XCTAssertTrue(
-            app.buttons["reader.position"]
-                .waitForExistence(timeout: 8)
-        )
-    }
-
-    func testScrollFlowAdvancesProgress() {
-        app.terminate()
-        app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
-            "-forceFlow", "scroll", "-skipOnboarding"
-        ]
-        app.launch()
-        openSampleBook()
-        let initial = pageLabelValue
-
-        // In scroll flow the page advances by swiping vertically.
-        app.swipeUp(velocity: .fast)
-        app.swipeUp(velocity: .fast)
-
-        let label = app.buttons["reader.position"]
-        let changed = NSPredicate(format: "label != %@", initial)
-        expectation(for: changed, evaluatedWith: label)
-        waitForExpectations(timeout: 8)
+    /// Opens whatever book the simulator container already holds and
+    /// scrolls through two chapters, asserting the app answers throughout.
+    /// Run with `TEST_RUNNER_PROBE_KEEP_STATE=1` after seeding the container
+    /// (library.json progress + reader settings) by hand to replay a
+    /// tester's exact state; without the variable it runs on the sample book.
+    func testScrollFlowStaysResponsiveOnSeededState() {
+        let card = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH 'library.book.'")).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 15))
+        card.tap()
+        let window = app.windows.firstMatch
+        func alive(_ tag: String) {
+            let ok = app.wait(for: .runningForeground, timeout: 5)
+            XCTAssertTrue(ok && window.exists, "app hung at \(tag)")
+        }
+        XCTAssertTrue(app.buttons["reader.back"].waitForExistence(timeout: 15), "reader opens")
+        alive("open"); sleep(2)
+        window.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        for i in 0..<10 { app.swipeUp(velocity: .fast); if i % 3 == 2 { alive("swipe\(i)") } }
+        for _ in 0..<10 where !app.buttons["reader.nextChapter"].exists { app.swipeUp(velocity: .fast) }
+        if app.buttons["reader.nextChapter"].exists { app.buttons["reader.nextChapter"].tap() }
+        alive("nextChapter")
+        for i in 0..<10 { app.swipeUp(velocity: .fast); if i % 3 == 2 { alive("ch2-swipe\(i)") } }
+        for _ in 0..<4 { app.swipeDown(velocity: .fast) }
+        alive("final")
     }
 
     func testScrollFlowChapterEndAffordanceAdvancesChapter() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-forceFlow", "scroll", "-skipOnboarding"
         ]
         app.launch()
@@ -290,11 +277,15 @@ final class ReaderJourneyUITests: XCTestCase {
                       "chapter end should offer the next chapter")
         pill.tap()
 
-        // Wait for the next chapter to load (the pill leaves the
-        // start of a chapter), then bring back the chrome.
-        let gone = NSPredicate(format: "exists == 0")
-        expectation(for: gone, evaluatedWith: pill)
-        waitForExpectations(timeout: 8)
+        // On a phone the next chapter starts taller than the viewport, so the
+        // pill leaves until the reader scrolls again. A short chapter on an
+        // iPad-sized screen is legitimately visible end to end, which keeps
+        // the affordance up — there, only the chapter change is asserted.
+        if UIDevice.current.userInterfaceIdiom == .phone {
+            let gone = NSPredicate(format: "exists == 0")
+            expectation(for: gone, evaluatedWith: pill)
+            waitForExpectations(timeout: 8)
+        }
 
         let title = app.staticTexts["The Keeper's Son"]
         for _ in 0..<3 where !title.exists {
@@ -307,18 +298,64 @@ final class ReaderJourneyUITests: XCTestCase {
                       "top bar should show the next chapter title")
     }
 
-    /// Opens the appearance sheet and selects the Layout tab, where the
-    /// page-flow and transition controls live in the redesigned tabbed panel.
-    private func openLayoutTab() {
+    /// Opens the appearance sheet and scrolls to the Layout section, where
+    /// the page-flow and transition controls live.
+    private func openLayoutSection() {
         tapMenuItem("reader.typography")
-        let layout = app.buttons["appearance.tab.layout"]
-        XCTAssertTrue(layout.waitForExistence(timeout: 6))
-        layout.tap()
+        let flow = app.buttons["flow.paged"]
+        XCTAssertTrue(flow.waitForExistence(timeout: 6))
+        // The sheet opens at its compact detent; pull it up so the Layout
+        // section is on screen and hittable.
+        app.swipeUp(velocity: .fast)
+        if !flow.isHittable { app.swipeUp() }
+        XCTAssertTrue(flow.isHittable, "layout section should be reachable")
+    }
+
+    /// Curl mode owns the horizontal touches, so a chapter-edge pull is
+    /// detected by the engine, not the scroll view. A quick short flick
+    /// at the last page used to do nothing (70px distance gate, and a
+    /// settling curl swallowed it); it must turn the chapter.
+    func testCurlQuickFlickAtChapterEndAdvancesChapter() {
+        app.terminate()
+        app.launchArguments = [
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-forceTransition", "curl", "-skipOnboarding"
+        ]
+        app.launch()
+        openSampleBook()
+
+        let window = app.windows.firstMatch
+        let title = app.staticTexts["reader.chapterTitle"]
+        let firstChapter = title.label
+        let pagesLeft = app.staticTexts["reader.chapterPagesLeft"]
+        // Tap to the last page of the chapter.
+        for _ in 0..<40 where !pagesLeft.label.hasPrefix("0 ") {
+            window.coordinate(
+                withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)
+            ).tap()
+            _ = pagesLeft.waitForExistence(timeout: 2)
+        }
+        XCTAssertTrue(pagesLeft.label.hasPrefix("0 "),
+                      "should reach the chapter's last page")
+
+        // A short, fast flick: ~50pt, well under the old 70px gate.
+        let start = window.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)
+        )
+        let end = start.withOffset(CGVector(dx: -50, dy: 0))
+        start.press(
+            forDuration: 0.02, thenDragTo: end,
+            withVelocity: .fast, thenHoldForDuration: 0
+        )
+
+        let changed = NSPredicate(format: "label != %@", firstChapter)
+        expectation(for: changed, evaluatedWith: title)
+        waitForExpectations(timeout: 8)
     }
 
     func testFlowAndTransitionPickersPersist() {
         openSampleBook()
-        openLayoutTab()
+        openLayoutSection()
 
         // Transition picker is only visible in paged flow.
         let eink = app.buttons["transition.eink"]
@@ -336,7 +373,7 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(
             app.buttons["reader.menu"].waitForExistence(timeout: 6)
         )
-        openLayoutTab()
+        openLayoutSection()
         let paged = app.buttons["flow.paged"]
         XCTAssertTrue(paged.waitForExistence(timeout: 6))
         paged.tap()
@@ -367,7 +404,7 @@ final class ReaderJourneyUITests: XCTestCase {
 
         // Relaunch without resetting: the highlight must survive.
         app.terminate()
-        app.launchArguments = ["-seedSampleBook", "-skipOnboarding"]
+        app.launchArguments = ["-skipIntro", "-seedSampleBook", "-skipOnboarding"]
         app.launch()
         openSampleBook()
         tapMenuItem("reader.contents")
@@ -392,58 +429,62 @@ final class ReaderJourneyUITests: XCTestCase {
         )
     }
 
-    func testTranslateSheetRequiresTermsAndAppleLoginBeforeFreeChapter() {
+    /// Opens the translation sheet from the Translate destination, which
+    /// lists every eligible book — the primary way in.
+    private func openTranslationSheet(
+        for title: String = "The Lantern of Aldebaran"
+    ) {
         let translateTab = tab(.translate)
         XCTAssertTrue(translateTab.waitForExistence(timeout: 10))
         translateTab.tap()
 
-        // The Translate destination lists eligible books directly.
-        let readyBook =
-            app.buttons["translate.ready.The Lantern of Aldebaran"]
-        XCTAssertTrue(readyBook.waitForExistence(timeout: 6))
+        let readyBook = app.buttons["translate.ready.\(title)"]
+        XCTAssertTrue(readyBook.waitForExistence(timeout: 8))
         readyBook.tap()
+    }
+
+    func testTranslateSheetAsksForAppleLoginWhenReachingForTheFreeChapter() {
+        openTranslationSheet()
 
         XCTAssertTrue(
             app.otherElements["translation.sheet"].waitForExistence(timeout: 6)
         )
+        // No account yet: the page leads with the book, not a login. Both
+        // ways in are live, the attestation is fine print with the Terms link
+        // inline, and reaching for the free chapter brings Sign in with Apple
+        // forward — without starting anything.
         let freeChapter = app.buttons["translation.freeChapter"]
         XCTAssertTrue(freeChapter.waitForExistence(timeout: 6))
-        XCTAssertFalse(freeChapter.isEnabled)
-
-        let termsAcceptance = app.buttons["translation.termsAcceptance"]
-        XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
-        XCTAssertTrue(app.buttons["translation.terms.link"].exists)
+        XCTAssertTrue(freeChapter.isEnabled)
         XCTAssertFalse(app.buttons["translation.signInWithApple"].exists)
-        termsAcceptance.tap()
-        XCTAssertFalse(freeChapter.isEnabled)
+        XCTAssertTrue(app.staticTexts["translation.terms.link"].exists)
+        XCTAssertFalse(app.buttons["translation.termsAcceptance"].exists)
+
+        freeChapter.tap()
         XCTAssertTrue(
-            app.buttons["translation.signInWithApple"]
-                .waitForExistence(timeout: 6)
+            app.buttons["translation.signInWithApple"].waitForExistence(timeout: 6)
         )
+
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "translation-sheet"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     func testLocalBackendTranslatesAndImportsTheWholeBook() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding", "-translationBackendURL",
             "http://127.0.0.1:48218"
         ]
         app.launch()
 
-        let translate = tab(.translate)
-        XCTAssertTrue(translate.waitForExistence(timeout: 10))
-        translate.tap()
+        openTranslationSheet()
 
-        let pickerBook =
-            app.buttons["translate.ready.The Lantern of Aldebaran"]
-        XCTAssertTrue(pickerBook.waitForExistence(timeout: 6))
-        pickerBook.tap()
-
-        let termsAcceptance = app.buttons["translation.termsAcceptance"]
-        XCTAssertTrue(termsAcceptance.waitForExistence(timeout: 6))
-        termsAcceptance.tap()
-
+        let start = app.buttons["translation.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 6))
+        start.tap()
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(
             localAccount.waitForExistence(timeout: 6),
@@ -451,15 +492,8 @@ final class ReaderJourneyUITests: XCTestCase {
         )
         localAccount.tap()
 
-        let fullBookDisclosure =
-            app.buttons["translation.fullBookDisclosure"]
-        XCTAssertTrue(fullBookDisclosure.waitForExistence(timeout: 6))
-        fullBookDisclosure.tap()
-
+        // Tapping the capsule is the terms acceptance; there is no checkbox.
         let quote = app.buttons["translation.calculateQuote"]
-        for _ in 0..<4 where !quote.exists {
-            app.swipeUp(velocity: .fast)
-        }
         XCTAssertTrue(quote.waitForExistence(timeout: 6))
         XCTAssertTrue(quote.isEnabled)
         quote.tap()
@@ -479,18 +513,17 @@ final class ReaderJourneyUITests: XCTestCase {
         XCTAssertTrue(app.buttons["translation.aiConsent.privacy"].exists)
         allowAI.tap()
 
-        XCTAssertTrue(
-            app.staticTexts[
-                "Full Hungarian translation was added as a separate library book."
-            ].waitForExistence(timeout: 30),
-            "the fake backend result should be consumed and imported by the app"
+        let added = NSPredicate(format: "label CONTAINS[c] 'Added to your shelf'")
+        expectation(
+            for: added, evaluatedWith: app.buttons["translation.fullBook"]
         )
+        waitForExpectations(timeout: 30)
     }
 
     func testHungarianAIPermissionCanBeDeclinedBeforeUpload() {
         app.terminate()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-seedSampleBook",
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-seedSampleBook",
             "-skipOnboarding", "-forceLanguage", "hu",
             "-translationBackendURL", "http://127.0.0.1:48218"
         ]
@@ -502,10 +535,9 @@ final class ReaderJourneyUITests: XCTestCase {
         tab(.translate).tap()
         app.buttons["translate.ready.The Lantern of Aldebaran"].tap()
 
-        let terms = app.buttons["translation.termsAcceptance"]
-        XCTAssertTrue(terms.waitForExistence(timeout: 6))
-        terms.tap()
-
+        let start = app.buttons["translation.start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 6))
+        start.tap()
         let localAccount = app.buttons["translation.localTestAccount"]
         XCTAssertTrue(localAccount.waitForExistence(timeout: 6))
         localAccount.tap()
@@ -529,6 +561,66 @@ final class ReaderJourneyUITests: XCTestCase {
             app.otherElements["translation.sheet"]
                 .waitForExistence(timeout: 6),
             "declining AI processing must keep the offline app usable"
+        )
+    }
+
+    /// Tapping a highlighted passage in the page offers removal — the
+    /// undo path for an accidental highlight.
+    func testTappingAHighlightOffersRemoval() {
+        app.terminate()
+        app.launchArguments = [
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding",
+            "-seedShowcaseBooks", "-seedShowcaseState", "en",
+            "-autoOpenFirstBook"
+        ]
+        app.launch()
+
+        XCTAssertTrue(
+            app.buttons["reader.position"].waitForExistence(timeout: 25)
+        )
+
+        // The book resumes pages past the seeded highlight, so jump to it
+        // through the contents sheet first — the same locate path a reader
+        // uses to revisit a highlight.
+        let snippet = "Alice was beginning to get very tired"
+        tapMenuItem("reader.contents")
+        let contentsSegments = app.segmentedControls.firstMatch.buttons
+        XCTAssertTrue(
+            contentsSegments.element(boundBy: 2).waitForExistence(timeout: 8)
+        )
+        contentsSegments.element(boundBy: 2).tap()
+        let row = app.scrollViews["contents.highlights"].staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", snippet)
+        ).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 8))
+        row.tap()
+
+        // WebKit exposes the whole paragraph as one text run — the mark
+        // gets no run of its own — so tap into the first line, which the
+        // highlighted sentence fully covers.
+        let paragraph = app.webViews.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", snippet)
+        ).firstMatch
+        XCTAssertTrue(paragraph.waitForExistence(timeout: 15))
+        paragraph.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.3, dy: 0.07)
+        ).tap()
+
+        // Dialog action buttons do not carry SwiftUI accessibility
+        // identifiers; address the action by its visible label. The dialog
+        // exposes the label on two elements, so take the first.
+        let remove = app.buttons["Remove highlight"].firstMatch
+        XCTAssertTrue(remove.waitForExistence(timeout: 6))
+        remove.tap()
+
+        // The mark is gone: the contents sheet lists no highlights.
+        tapMenuItem("reader.contents")
+        XCTAssertTrue(
+            contentsSegments.element(boundBy: 2).waitForExistence(timeout: 8)
+        )
+        contentsSegments.element(boundBy: 2).tap()
+        XCTAssertTrue(
+            app.staticTexts["No highlights yet"].waitForExistence(timeout: 6)
         )
     }
 

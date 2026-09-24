@@ -17,8 +17,15 @@ struct LibraryView: View {
     @State private var openBook: Book?
     @State private var importError: String?
     @State private var isImporting = false
-    @State private var translationBook: Book?
+    @Environment(TranslationPresenter.self) private var translationPresenter
+    @Environment(\.translationHeroNamespace) private var translationNamespace
     @State private var searchText = ""
+    /// The book a delete was asked for, waiting on the first confirmation.
+    @State private var deleteCandidate: Book?
+    /// A translated book that cleared the first confirmation. Its translation
+    /// exists nowhere else — the backend keeps a result for a day and then
+    /// drops it — so this one is asked twice.
+    @State private var secondDeleteCandidate: Book?
 
     /// The shelf now carries its own editorial identity rather than morphing
     /// with the reading theme — the library is a place, the reader is the book.
@@ -109,10 +116,6 @@ struct LibraryView: View {
                 )
             }
         }
-        .sheet(item: $translationBook) { book in
-            TranslationSheet(book: book)
-                .environment(translationStore)
-        }
         .alert(
             "Import failed",
             isPresented: Binding(
@@ -124,6 +127,45 @@ struct LibraryView: View {
         } message: {
             Text(importError ?? "")
         }
+        .confirmationDialog(
+            Text(deleteCandidate?.title ?? ""),
+            isPresented: Binding(
+                get: { deleteCandidate != nil },
+                set: { if !$0 { deleteCandidate = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: deleteCandidate
+        ) { book in
+            Button("Delete book", role: .destructive) {
+                // A translated book is asked twice: it is the one copy that
+                // exists, and the shelf is where it exists.
+                if book.isTranslatedCopy {
+                    secondDeleteCandidate = book
+                } else {
+                    library.delete(book)
+                }
+            }
+            .accessibilityIdentifier("library.delete.confirm")
+            Button("Keep", role: .cancel) {}
+        } message: { book in
+            Text(deleteWarning(for: book))
+        }
+        .alert(
+            "Delete the translation for good?",
+            isPresented: Binding(
+                get: { secondDeleteCandidate != nil },
+                set: { if !$0 { secondDeleteCandidate = nil } }
+            ),
+            presenting: secondDeleteCandidate
+        ) { book in
+            Button("Delete", role: .destructive) {
+                library.delete(book)
+            }
+            .accessibilityIdentifier("library.delete.confirmTranslation")
+            Button("Keep", role: .cancel) {}
+        } message: { book in
+            Text(secondDeleteWarning(for: book))
+        }
         .task(id: translationRecoveryID) {
             guard scenePhase == .active else { return }
             await TranslationRecovery.reconcilePendingJobs(
@@ -133,6 +175,43 @@ struct LibraryView: View {
                 auth: translationAuthStore
             )
         }
+    }
+
+    /// What this particular delete actually costs, said before it happens.
+    ///
+    /// Four books, four different losses: a spent free chapter that cannot be
+    /// spent again, a paid translation that can be re-run from the original at
+    /// no charge, an original whose purchase is bound to its exact bytes, and
+    /// an ordinary book that is only a file.
+    private func deleteWarning(for book: Book) -> String {
+        if book.isTranslationPreview {
+            return String(
+                localized: "The free chapter for this book is already used up. Deleting it leaves nothing to go back to."
+            )
+        }
+        if book.isTranslatedCopy {
+            return String(
+                localized: "We do not keep translations on our servers. You can have this one translated again at no charge — but only from the same original file."
+            )
+        }
+        if library.hasTranslatedCopy(of: book) {
+            return String(
+                localized: "The translation stays on your shelf. The purchase is bound to this exact file, though: without it, the book cannot be translated again."
+            )
+        }
+        return String(
+            localized: "The book and your place in it are removed from this device."
+        )
+    }
+
+    private func secondDeleteWarning(for book: Book) -> String {
+        book.isTranslationPreview
+            ? String(
+                localized: "This book has no free chapter left. Once this copy is gone, translating it again costs the full price."
+            )
+            : String(
+                localized: "This is the only copy. Translating it again needs the original file, unchanged."
+            )
     }
 
     // MARK: - Shelf
@@ -177,54 +256,62 @@ struct LibraryView: View {
 
     private var bookGrid: some View {
         LazyVGrid(
+            // Adaptive: two columns on a phone, more as width grows (iPad).
             columns: [
-                GridItem(.flexible(), spacing: 22),
-                GridItem(.flexible(), spacing: 22)
+                GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 22)
             ],
             alignment: .leading,
             spacing: 30
         ) {
             ForEach(visibleBooks) { book in
-                        Button {
-                            openBook = book
-                        } label: {
-                            BookCard(
-                                book: book,
-                                coverURL: library.coverURL(for: book),
-                                titleColor: palette.text,
-                                captionColor: palette.secondaryText,
-                                accentColor: palette.accent
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier(
-                            "library.book.\(book.title)"
-                        )
-                        .contextMenu {
-                            if book.canExportTranslatedEPUB {
-                                ShareLink(item: library.storedFileURL(for: book)) {
-                                    Label(
-                                        "Export translated EPUB",
-                                        systemImage: "square.and.arrow.up"
-                                    )
-                                }
-                            }
-                            if book.isTranslatableSource {
-                                Button {
-                                    translationBook = book
-                                } label: {
-                                    Label(
-                                        "Translate book",
-                                        systemImage: "sparkles"
-                                    )
-                                }
-                            }
-                            Button(role: .destructive) {
-                                library.delete(book)
-                            } label: {
-                                Label("Delete book", systemImage: "trash")
-                            }
+                bookButton(book)
+            }
+        }
+    }
+
+    private func bookButton(_ book: Book) -> some View {
+        Button {
+            openBook = book
+        } label: {
+            BookCard(
+                book: book,
+                coverURL: library.coverURL(for: book),
+                titleColor: palette.text,
+                captionColor: palette.secondaryText,
+                accentColor: palette.accent,
+                heroNamespace: translationNamespace,
+                heroPresenter: translationPresenter
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(
+            "library.book.\(book.title)"
+        )
+        .contextMenu {
+            if book.canExportTranslatedEPUB {
+                ShareLink(item: library.storedFileURL(for: book)) {
+                    Label {
+                        Text("Export translated EPUB")
+                    } icon: {
+                        Icon(.share, size: 16)
+                    }
                 }
+            }
+            if book.isTranslatableSource {
+                Button {
+                    translationPresenter.present(book, from: .library)
+                } label: {
+                    Label {
+                        Text("Translate book")
+                    } icon: {
+                        Icon(.sparkles, size: 16)
+                    }
+                }
+            }
+            Button(role: .destructive) {
+                deleteCandidate = book
+            } label: {
+                Label { Text("Delete book") } icon: { Icon(.trash2, size: 16) }
             }
         }
     }
@@ -265,8 +352,7 @@ struct LibraryView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                Icon(.chevronRight, size: 14)
                     .foregroundStyle(palette.tertiaryText)
             }
             .padding(Spacing.md)
@@ -338,7 +424,7 @@ struct LibraryView: View {
             palette: palette
         ) {
             AppIconButton(
-                systemImage: "plus",
+                icon: .plus,
                 label: "Add a book",
                 isSelected: false,
                 palette: palette
@@ -364,8 +450,7 @@ struct LibraryView: View {
 
     private var searchField: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 16, weight: .medium))
+            Icon(.search, size: 16)
                 .foregroundStyle(palette.secondaryText)
 
             TextField("Search your library", text: $searchText)
@@ -379,8 +464,7 @@ struct LibraryView: View {
                 Button {
                     searchText = ""
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                    Icon(.circleX, size: 16)
                         .foregroundStyle(palette.tertiaryText)
                 }
                 .accessibilityLabel("Clear search")
@@ -420,8 +504,7 @@ struct LibraryView: View {
                 Circle()
                     .fill(palette.surface)
                     .frame(width: 120, height: 120)
-                Image(systemName: "books.vertical")
-                    .font(.system(size: 44, weight: .light))
+                Icon(.libraryBig, size: 44)
                     .foregroundStyle(palette.accent)
             }
             VStack(spacing: 6) {
@@ -436,7 +519,7 @@ struct LibraryView: View {
             }
             AppPrimaryButton(
                 title: "Add a book",
-                systemImage: "plus",
+                icon: .plus,
                 action: { isImporterPresented = true },
                 palette: palette
             )

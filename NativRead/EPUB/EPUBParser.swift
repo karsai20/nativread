@@ -71,7 +71,8 @@ enum EPUBParser {
             spineHrefs: spineHrefs,
             coverImageURL: coverImageURL,
             toc: toc,
-            spineWeights: weights
+            spineWeights: weights,
+            declaredLanguage: opf.language
         )
     }
 
@@ -246,23 +247,13 @@ enum EPUBParser {
     ///
     /// EPUB reflowable content never needs its own scripts — the reading
     /// engine supplies all interactivity — so any author-supplied script is
-    /// removed before the chapter is rendered in the WebView. The WebView
-    /// keeps JavaScript enabled for the app-injected engine; engine scripts
-    /// and `evaluateJavaScript` calls are not affected by this pass.
-    ///
-    /// Best-effort: unreadable or unwritable files are skipped and never
-    /// raise — sanitizing must not block opening a book. Encoding is
-    /// detected (BOM'd UTF-16 XHTML is valid EPUB content and WKWebView
-    /// renders it, so skipping non-UTF-8 files would skip sanitizing them)
+    /// removed before the chapter is rendered in the WebView, which keeps
+    /// JavaScript enabled only for the app-injected engine. Encoding is
+    /// detected (BOM'd UTF-16 XHTML is valid EPUB content WKWebView renders)
     /// and the cleaned file is written back in the same encoding.
-    static func sanitizeScripts(in spineURLs: [URL]) {
-        for url in spineURLs {
-            try? sanitizeForReading(url)
-        }
-    }
-
-    /// Strict import path: unreadable or unwritable content fails closed
-    /// instead of letting an unsanitized chapter reach the JS-enabled reader.
+    ///
+    /// Fails closed: unreadable or unwritable content throws instead of
+    /// letting an unsanitized chapter reach the JS-enabled reader.
     static func sanitizeForReading(in spineURLs: [URL]) throws {
         for url in spineURLs { try sanitizeForReading(url) }
     }

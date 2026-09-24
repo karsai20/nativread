@@ -1,10 +1,12 @@
 import Foundation
 
-/// Converts a pure-KF8 MOBI/AZW3 book into an EPUB, in pure Swift.
+/// Converts a MOBI/AZW3 book into an EPUB, in pure Swift. This is the entry
+/// point for every Kindle format: hybrid MOBI6+KF8 files (what KindleGen
+/// writes as `.mobi`) convert from their KF8 half, and books with no KF8 part
+/// hand off to `MOBI6Converter`.
 ///
-/// Constraints: supports plain PalmDOC-compressed (compression == 2),
-/// unencrypted, KF8 (version >= 8) books only — no HUFF/CDIC, no DRM, and
-/// no legacy MOBI6-only files. Those raise `MOBIError.unsupported`.
+/// Constraints: plain PalmDOC-compressed (compression == 2), unencrypted books
+/// only — no HUFF/CDIC and no DRM. Those raise `MOBIError.unsupported`.
 enum KF8Converter {
     /// Reassembled book pieces, ready to be written as an EPUB.
     struct Book {
@@ -22,24 +24,41 @@ enum KF8Converter {
         try KF8EPUBWriter.write(book, to: destination)
     }
 
+    /// A `.mobi` from KindleGen is usually a hybrid: a MOBI6 book, a boundary
+    /// record, then a complete KF8 book whose record numbers are all relative
+    /// to that boundary. EXTH 121 in the MOBI6 header points at it. Reading
+    /// record 0 alone would see version 6 and reject a perfectly convertible
+    /// file. Falls back to the original view when there is no usable KF8 half.
+    private static func kf8Part(
+        of db: PalmDatabase,
+        header: MOBIHeader
+    ) -> (PalmDatabase, MOBIHeader) {
+        guard header.version < 8,
+              let boundary = header.kf8BoundaryIndex,
+              let shifted = db.rebased(at: boundary),
+              let kf8 = try? MOBIHeader(record0: shifted.record(0)),
+              kf8.version >= 8
+        else { return (db, header) }
+        return (shifted, kf8)
+    }
+
     // MARK: - Reassembly
 
     static func makeBook(from data: Data) throws -> Book {
-        let db = try PalmDatabase(data: data)
-        guard db.creator == "MOBI" || db.creator == "TPZ0" else {
+        let container = try PalmDatabase(data: data)
+        guard container.creator == "MOBI" || container.creator == "TPZ0" else {
             throw MOBIError.notMOBI
         }
-        let mobi = try MOBIHeader(record0: db.record(0))
+        let (db, mobi) = kf8Part(
+            of: container,
+            header: try MOBIHeader(record0: container.record(0))
+        )
         guard mobi.encryption == 0 else {
             throw MOBIError.unsupported("the book is DRM-protected")
         }
         guard mobi.compression == 2 else {
             throw MOBIError.unsupported("unsupported text compression")
         }
-        guard mobi.version >= 8 else {
-            throw MOBIError.unsupported("only KF8 (AZW3) books are supported")
-        }
-
         // 1. Decompress + concatenate the text records into the raw markup blob.
         // textRecordCount is untrusted; clamp to the records that exist and
         // tolerate 0 (an empty blob falls through to the no-readable-text throw).
@@ -48,6 +67,12 @@ enum KF8Converter {
         for i in stride(from: 1, through: lastTextRecord, by: 1) {
             let trimmed = mobi.trimTrailingData(db.record(i))
             raw.append(PalmDocDecompressor.decompress(trimmed))
+        }
+
+        // A book with no KF8 part is a legacy MOBI6 one: same records, but a
+        // single HTML blob instead of a skeleton/fragment index.
+        guard mobi.version >= 8 else {
+            return try MOBI6Converter.makeBook(db: db, mobi: mobi, raw: raw)
         }
 
         // 2. Split the blob into flows via the FDST table.
@@ -73,7 +98,7 @@ enum KF8Converter {
 
         // 5. Rewrite kindle: references to relative EPUB paths.
         let parts = rawParts.enumerated().map { index, markup -> (String, String) in
-            let name = String(format: "part%04d.xhtml", index)
+            let name = partName(index)
             let rewritten = rewriteReferences(
                 in: markup, firstImageIndex: mobi.firstImageIndex,
                 recordName: recordName, partCount: rawParts.count,
@@ -155,7 +180,8 @@ enum KF8Converter {
 
     // MARK: - Resources
 
-    private struct ImageResource {
+    /// Shared with the MOBI6 path, which collects images the same way.
+    struct ImageResource {
         let record: Int
         let name: String
         let data: Data
@@ -165,7 +191,7 @@ enum KF8Converter {
     /// Resource records run from `firstImageIndex` until the first record that
     /// is not a recognised image (JPEG/PNG/GIF) — that boundary is the FDST/
     /// FLIS/FCIS/index block that follows the images.
-    private static func collectImages(
+    static func collectImages(
         db: PalmDatabase, firstImageIndex: Int
     ) -> [ImageResource] {
         var result: [ImageResource] = []
@@ -183,7 +209,7 @@ enum KF8Converter {
         return result
     }
 
-    private static func imageKind(_ data: Data) -> (ext: String, mediaType: String)? {
+    static func imageKind(_ data: Data) -> (ext: String, mediaType: String)? {
         guard data.count >= 4 else { return nil }
         let b = [UInt8](data.prefix(8))
         if b[0] == 0xFF, b[1] == 0xD8, b[2] == 0xFF { return ("jpg", "image/jpeg") }
@@ -202,6 +228,13 @@ enum KF8Converter {
         return (1 ..< flows.count).map { i in
             StyleResource(flowIndex: i, name: styleName(i), data: flows[i])
         }
+    }
+
+    /// Spine file name for part `index`. The extension is what decides how
+    /// WebKit parses the file once `loadFileURL` opens it, so the MOBI6 path
+    /// asks for `html` — see `MOBI6Converter`.
+    static func partName(_ index: Int, ext: String = "xhtml") -> String {
+        String(format: "part%04d.%@", index, ext)
     }
 
     private static func styleName(_ flowIndex: Int) -> String {
@@ -231,7 +264,7 @@ enum KF8Converter {
             let fileNum = fid < fragments.count
                 ? (fragments[fid].tags[3]?.first ?? 0) : 0
             let clamped = min(max(fileNum, 0), max(partCount - 1, 0))
-            return String(format: "part%04d.xhtml", clamped)
+            return partName(clamped)
         }
         // Neutralise any remaining kindle: URIs so no dangling scheme ships.
         text = replace(text, #"kindle:[^"'\s)>]*"#) { _ in "#" }
@@ -256,7 +289,7 @@ enum KF8Converter {
     }
 
     /// Regex replace where `transform` receives the captured groups (1-based).
-    private static func replace(
+    static func replace(
         _ input: String, _ pattern: String, _ transform: ([String]) -> String
     ) -> String {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return input }
@@ -281,12 +314,16 @@ enum KF8Converter {
         return result
     }
 
-    private static func coverImageName(
+    static func coverImageName(
         mobi: MOBIHeader, recordName: [Int: String]
     ) -> String? {
         if let data = mobi.exth[MOBIHeader.exthCoverOffset], data.count >= 4 {
-            let record = mobi.firstImageIndex + data.be32(0)
-            if let name = recordName[record] { return name }
+            let offset = data.be32(0)
+            // 0xFFFFFFFF is Kindle's "no cover" marker, not an offset.
+            if offset != 0xFFFF_FFFF,
+               let name = recordName[mobi.firstImageIndex + offset] {
+                return name
+            }
         }
         // Fall back to the first image so the library always shows a cover.
         return recordName.min(by: { $0.key < $1.key })?.value

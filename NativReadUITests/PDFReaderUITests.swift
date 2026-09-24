@@ -15,7 +15,7 @@ final class PDFReaderUITests: XCTestCase {
     private func launch(_ extraArguments: [String]) {
         app = XCUIApplication()
         app.launchArguments = [
-            "-resetLibrary", "-resetSettings", "-skipOnboarding"
+            "-skipIntro", "-resetLibrary", "-resetSettings", "-skipOnboarding"
         ] + extraArguments
         app.launch()
     }

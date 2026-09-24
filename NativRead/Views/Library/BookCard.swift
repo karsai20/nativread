@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 
 /// One book on the shelf: real cover art when the EPUB ships one,
@@ -11,12 +12,21 @@ struct BookCard: View {
     let captionColor: Color
     /// The shelf accent, used for the in-progress reading bar.
     let accentColor: Color
+    /// When set, the cover is the place the translate stage lifts from.
+    var heroNamespace: Namespace.ID? = nil
+    var heroPresenter: TranslationPresenter? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Self.cover(book: book, coverURL: coverURL)
+            // The empty shape owns the 2:3 slot and the artwork fills it as an
+            // overlay. Sizing the card off the cover instead lets a source
+            // image that is not already 2:3 overflow the slot — the crop then
+            // follows the image, not the shelf.
+            Color.clear
                 .aspectRatio(2 / 3, contentMode: .fit)
+                .overlay { Self.cover(book: book, coverURL: coverURL) }
                 .clipShape(RoundedRectangle(cornerRadius: Spacing.radiusSmall))
+                .modifier(HeroSource(book: book, namespace: heroNamespace, presenter: heroPresenter))
                 .overlay(
                     RoundedRectangle(cornerRadius: Spacing.radiusSmall)
                         .strokeBorder(.black.opacity(0.08))
@@ -65,14 +75,48 @@ struct BookCard: View {
     /// render a book identically.
     @ViewBuilder
     static func cover(book: Book, coverURL: URL?) -> some View {
-        if let coverURL,
-           let image = UIImage(contentsOfFile: coverURL.path) {
+        if let coverURL, let image = decodedCover(at: coverURL) {
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
         } else {
             GeneratedCover(title: book.title, author: book.author)
         }
+    }
+
+    /// Decoded once per file: re-reading a cover from disk on every render
+    /// stalls the first frames of the translate lift. A cover never changes
+    /// once imported, so the path is the key. Bounded by bytes, so a large
+    /// shelf cannot hold every cover in memory at once.
+    private static let coverCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.totalCostLimit = coverCacheBytes
+        return cache
+    }()
+
+    private static let coverCacheBytes = 64 * 1024 * 1024
+    /// Longest edge a cover is decoded at. The largest cover on screen (a
+    /// 220 pt-wide grid card on iPad, 330 pt tall) is ~1000 px at @3x; a
+    /// full-size EPUB cover decoded as-is is ~12 MB, this is ~2.7 MB.
+    private static let coverMaxPixels = 1000
+
+    private static func decodedCover(at url: URL) -> UIImage? {
+        let key = url.path as NSString
+        if let hit = coverCache.object(forKey: key) { return hit }
+        // ImageIO downsamples while decoding, so the full-size bitmap never
+        // exists — unlike scaling a decoded UIImage.
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: coverMaxPixels,
+        ] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options)
+        else { return nil }
+        let image = UIImage(cgImage: cgImage)
+        coverCache.setObject(image, forKey: key, cost: cgImage.bytesPerRow * cgImage.height)
+        return image
     }
 
     @ViewBuilder
@@ -98,8 +142,7 @@ struct BookCard: View {
             )
         } else if book.isFinished {
             HStack(spacing: 3) {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 8, weight: .bold))
+                Icon(.check, size: 8)
                 Text("FINISHED")
                     .font(.system(size: 8, weight: .bold))
                     .kerning(0.8)
@@ -142,12 +185,16 @@ struct GeneratedCover: View {
         ("#2C4248", "#142226", "#C5DBD8")
     ]
 
-    private var palette: (Color, Color, Color) {
+    private var palette: (Color, Color, Color) { Self.palette(for: title) }
+
+    /// The deterministic (top, bottom, ink) triple for a title. Exposed so
+    /// coverless books can still tint a row with their own artwork colours.
+    static func palette(for title: String) -> (Color, Color, Color) {
         var hash = 5381
         for scalar in title.unicodeScalars {
             hash = (hash &* 33) &+ Int(scalar.value)
         }
-        let chosen = Self.palettes[abs(hash) % Self.palettes.count]
+        let chosen = palettes[abs(hash) % palettes.count]
         return (
             Color(hex: chosen.0), Color(hex: chosen.1), Color(hex: chosen.2)
         )
@@ -197,6 +244,22 @@ struct GeneratedCover: View {
                     .padding(.bottom, proxy.size.height * 0.08)
                 }
             }
+        }
+    }
+}
+
+/// Optional matched-geometry source: only shelves that host the translate
+/// stage pass a namespace.
+private struct HeroSource: ViewModifier {
+    let book: Book
+    let namespace: Namespace.ID?
+    let presenter: TranslationPresenter?
+
+    func body(content: Content) -> some View {
+        if let namespace, let presenter {
+            content.translationHero(for: book, host: .library, in: namespace, presenter: presenter)
+        } else {
+            content
         }
     }
 }

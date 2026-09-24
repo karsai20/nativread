@@ -11,7 +11,7 @@ struct SearchSheet: View {
     var body: some View {
         VStack(spacing: Spacing.md) {
             HStack(spacing: Spacing.xs) {
-                Image(systemName: "magnifyingglass")
+                Icon(.search, size: 18)
                     .foregroundStyle(palette.secondaryText)
                 TextField("Search in book", text: $viewModel.searchQuery)
                     .focused($isFieldFocused)
@@ -24,7 +24,7 @@ struct SearchSheet: View {
                     Button {
                         viewModel.searchQuery = ""
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        Icon(.circleX, size: 18)
                             .foregroundStyle(palette.secondaryText)
                     }
                 }
@@ -69,8 +69,7 @@ struct SearchSheet: View {
     /// Shown before a search runs (hint) or after one finds nothing.
     private var emptyState: some View {
         VStack(spacing: Spacing.xs) {
-            Image(systemName: "text.page.badge.magnifyingglass")
-                .font(.system(size: 28))
+            Icon(.fileSearch, size: 28)
                 .foregroundStyle(palette.secondaryText)
             Text(emptyStateMessage)
                 .font(Typography.title())
@@ -85,13 +84,13 @@ struct SearchSheet: View {
         ).count >= 2 else {
             // Localized at the String level: `Text(String)` is verbatim, so
             // these must resolve through the catalog here, not in the view.
-            return String(localized: "Type at least two characters")
+            return String(localized: "Type at least two characters", bundle: .appLanguage)
         }
         // Only claim "no matches" once a search has actually completed;
         // before that, keep prompting so an empty list never lies.
         return viewModel.hasSearched
-            ? String(localized: "No matches")
-            : String(localized: "Press search to find")
+            ? String(localized: "No matches", bundle: .appLanguage)
+            : String(localized: "Press search to find", bundle: .appLanguage)
     }
 
     private var resultsList: some View {

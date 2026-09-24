@@ -68,6 +68,36 @@ final class ReaderControllerScrollLockTests: XCTestCase {
         XCTAssertTrue(controller.webView.scrollView.isScrollEnabled)
     }
 
+    /// Only a settled position the reader actually chose may be written
+    /// back as their progress. Persisting a mid-scroll sample, or the
+    /// restore that has not landed yet, is what used to drop a reader
+    /// back at the top of the chapter.
+    func testOnlySettledPositionsArePersistable() {
+        func state(
+            restoring: Bool, atRest: Bool
+        ) -> ReaderEngineState {
+            ReaderEngineState(
+                page: 3, pageCount: 10, fraction: 0.33,
+                isRestoring: restoring, isAtRest: atRest
+            )
+        }
+
+        XCTAssertTrue(state(restoring: false, atRest: true).isPersistable)
+        XCTAssertFalse(state(restoring: true, atRest: true).isPersistable)
+        XCTAssertFalse(state(restoring: false, atRest: false).isPersistable)
+    }
+
+    /// Scroll flow reports where the reader actually is, not the nearest
+    /// whole screen — the rounding was losing up to half a page every
+    /// time a chapter was reopened.
+    func testScrollEngineReportsAContinuousFraction() {
+        let engine = ReaderScripts.engine(
+            pageWidth: 393, flow: .scroll, transition: .slide
+        )
+        XCTAssertTrue(engine.contains("scrollTop / max"))
+        XCTAssertTrue(engine.contains("restoreTarget"))
+    }
+
     func testViewportPreparationReplacesPortraitGeometry() {
         let controller = makeController(flow: .paged, transition: .slide)
         let landscape = CGSize(width: 852, height: 393)
@@ -78,5 +108,56 @@ final class ReaderControllerScrollLockTests: XCTestCase {
         )
 
         XCTAssertEqual(controller.pageSize, landscape)
+    }
+}
+
+/// A WebContent process that dies again right after the reload it was
+/// given must not be reloaded forever: the page would stay hidden (alpha 0)
+/// and the reader would look frozen, on every reopen of that chapter.
+@MainActor
+final class ReaderControllerProcessTerminationTests: XCTestCase {
+
+    private func makeController() -> ReaderController {
+        ReaderController(
+            pageSize: CGSize(width: 393, height: 852),
+            initialCSS: "",
+            backgroundColor: .white,
+            flow: .scroll,
+            transition: .slide
+        )
+    }
+
+    func testFirstTerminationReloadsAndHidesThePage() {
+        let controller = makeController()
+        controller.webView.alpha = 1
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        XCTAssertEqual(controller.contentProcessReloads, 1)
+        XCTAssertEqual(controller.webView.alpha, 0)
+    }
+
+    func testRepeatedTerminationGivesUpInsteadOfLooping() {
+        let controller = makeController()
+        var gaveUp = 0
+        controller.onContentProcessGaveUp = { gaveUp += 1 }
+        for _ in 0..<5 {
+            controller.webViewWebContentProcessDidTerminate(controller.webView)
+        }
+        XCTAssertEqual(
+            controller.contentProcessReloads,
+            ReaderController.maxContentProcessReloads
+        )
+        XCTAssertEqual(gaveUp, 1, "give up exactly once, then stay quiet")
+        XCTAssertEqual(controller.webView.alpha, 1, "never leave the page hidden")
+    }
+
+    func testReloadBudgetResetsWhenAChapterLoads() {
+        let controller = makeController()
+        controller.webViewWebContentProcessDidTerminate(controller.webView)
+        XCTAssertEqual(controller.contentProcessReloads, 1)
+        let root = FileManager.default.temporaryDirectory
+        let chapter = root.appendingPathComponent("chapter.xhtml")
+        try? "<html></html>".write(to: chapter, atomically: true, encoding: .utf8)
+        controller.loadChapter(at: chapter, readAccessRoot: root)
+        XCTAssertEqual(controller.contentProcessReloads, 0)
     }
 }

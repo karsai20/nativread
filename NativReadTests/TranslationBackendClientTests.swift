@@ -42,6 +42,25 @@ final class TranslationBackendClientTests: XCTestCase {
         XCTAssertEqual(status.chunks?.done, 1)
     }
 
+    func testPricingDecodesTheTableAndCallsTheRightPath() async throws {
+        StubURLProtocol.enqueue(
+            200,
+            #"{"quoteVersion":"source-chars-v1","charactersPerCredit":1000,"tiers":[{"tier":1,"maxSourceCharacters":150000,"productId":"com.karsai.nativread.book.t1"},{"tier":2,"maxSourceCharacters":300000,"productId":"com.karsai.nativread.book.t2"}]}"#
+        )
+
+        let pricing = try await makeClient().pricing()
+
+        XCTAssertEqual(
+            StubURLProtocol.lastRequest?.url?.path, "/api/pricing"
+        )
+        XCTAssertEqual(pricing.quoteVersion, "source-chars-v1")
+        XCTAssertEqual(pricing.tiers.count, 2)
+        XCTAssertEqual(
+            pricing.tier(forSourceCharacters: 150_001)?.productId,
+            "com.karsai.nativread.book.t2"
+        )
+    }
+
     func testServerErrorBodySurfacesMessage() async {
         StubURLProtocol.enqueue(500, #"{"error":"boom"}"#)
         do {

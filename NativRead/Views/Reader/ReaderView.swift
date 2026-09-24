@@ -3,7 +3,14 @@ import SwiftUI
 /// The full-screen reading surface: page web view underneath, tap zones
 /// and swipe on top, chrome bars that melt away while reading.
 struct ReaderView: View {
-    @State private var viewModel: ReaderViewModel
+    /// `StateObject` because its autoclosure runs once per presentation.
+    /// `State(initialValue:)` would run on every re-evaluation of the
+    /// presenting closure — and the shelf re-evaluates it on every saved
+    /// scroll position — building and tearing down a WKWebView (a whole
+    /// WebContent process) per scroll settle. On iPhone 17 / iOS 26.6 that
+    /// churn deadlocked RunningBoard and hung the app.
+    @StateObject private var model: OncePerPresentation<ReaderViewModel>
+    private var viewModel: ReaderViewModel { model.value }
     /// Whether the bottom-right reading menu is fanned out.
     @State private var isMenuOpen = false
     @Environment(\.dismiss) private var dismiss
@@ -18,14 +25,13 @@ struct ReaderView: View {
         settingsStore: SettingsStore,
         initialSystemDark: Bool
     ) {
-        let bounds = UIScreen.main.bounds
-        _viewModel = State(initialValue: ReaderViewModel(
+        _model = StateObject(wrappedValue: OncePerPresentation(ReaderViewModel(
             book: book,
             library: library,
             settingsStore: settingsStore,
-            pageSize: bounds.size,
+            pageSize: UIScreen.main.bounds.size,
             initialSystemDark: initialSystemDark
-        ))
+        )))
     }
 
     private var palette: ReaderPalette { viewModel.palette }
@@ -83,7 +89,7 @@ struct ReaderView: View {
         .onDisappear {
             viewModel.persistProgressNow()
         }
-        .sheet(item: $viewModel.activeSheet) { sheet in
+        .sheet(item: Bindable(viewModel).activeSheet) { sheet in
             switch sheet {
             case .contents:
                 ContentsSheet(viewModel: viewModel)
@@ -95,7 +101,29 @@ struct ReaderView: View {
                 SearchSheet(viewModel: viewModel)
             }
         }
+        .confirmationDialog(
+            Text(verbatim: dialogExcerpt),
+            isPresented: Binding(
+                get: { viewModel.tappedHighlight != nil },
+                set: { if !$0 { viewModel.tappedHighlight = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Remove highlight", role: .destructive) {
+                if let highlight = viewModel.tappedHighlight {
+                    viewModel.removeHighlight(highlight)
+                }
+                viewModel.tappedHighlight = nil
+            }
+            .accessibilityIdentifier("reader.highlight.remove")
+        }
         .accessibilityAction(.escape) { dismiss() }
+    }
+
+    /// The tapped passage, trimmed so the dialog title stays one glance.
+    private var dialogExcerpt: String {
+        guard let text = viewModel.tappedHighlight?.text else { return "" }
+        return text.count > 120 ? String(text.prefix(120)) + "…" : text
     }
 
     // MARK: - Chapter loading veil
@@ -140,8 +168,7 @@ struct ReaderView: View {
                     viewModel.goToNextChapter()
                 } label: {
                     HStack(spacing: Spacing.xxs + 3) {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
+                        Icon(.chevronDown, size: 12)
                         Text(viewModel.nextChapterTitle.isEmpty
                             ? "Next chapter"
                             : viewModel.nextChapterTitle)
@@ -185,8 +212,14 @@ struct ReaderView: View {
     /// eyebrow up top, and a floating settings card down below.
     private var chrome: some View {
         ZStack {
-            restingLabels
-                .opacity(viewModel.isChromeVisible ? 0 : 1)
+            // A scrolled chapter runs through the whole screen, so ambient
+            // labels there would have text sliding across them. Scroll flow
+            // keeps the page bare and shows those numbers only on a tap,
+            // each on its own floating island.
+            if !isScrollFlow {
+                restingLabels
+                    .opacity(viewModel.isChromeVisible ? 0 : 1)
+            }
             VStack(spacing: 0) {
                 if viewModel.isChromeVisible {
                     topChrome.transition(
@@ -207,6 +240,32 @@ struct ReaderView: View {
         )
     }
 
+    private var isScrollFlow: Bool { viewModel.settings.pageFlow == .scroll }
+
+    /// Wraps an ambient label in a floating capsule — the chrome's circles
+    /// as a pill — so a chapter scrolling underneath never runs into it.
+    /// Paged flow keeps the label bare: its text stops at the margin.
+    @ViewBuilder
+    private func island(_ label: some View) -> some View {
+        if isScrollFlow {
+            label
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.xs)
+                .background {
+                    // No border: the pill should read as paper lifted off
+                    // the page, and an outline round a two-word label looks
+                    // like a control. A wide, soft shadow does the lifting.
+                    Capsule()
+                        .fill(palette.background.opacity(
+                            reduceTransparency ? 1 : 0.94
+                        ))
+                        .shadow(color: .black.opacity(0.10), radius: 14, y: 3)
+                }
+        } else {
+            label
+        }
+    }
+
     /// Ambient labels that stay up while reading. They never intercept
     /// touches — the page behind them owns every gesture.
     private var restingLabels: some View {
@@ -216,6 +275,7 @@ struct ReaderView: View {
                 .tracking(Typography.eyebrowTracking)
                 .textCase(.uppercase)
                 .lineLimit(1)
+                .accessibilityIdentifier("reader.chapterTitle")
                 .padding(.horizontal, Spacing.xl)
             Spacer()
             Text("\(viewModel.estimatedBookPagesRead)")
@@ -230,22 +290,24 @@ struct ReaderView: View {
 
     private var topChrome: some View {
         ZStack {
-            Text(String.localizedStringWithFormat(
-                String(localized: "%lld pages left in chapter"),
-                viewModel.pagesLeftInChapter
-            ))
-                .font(Typography.eyebrow)
-                .tracking(Typography.eyebrowTracking)
-                .textCase(.uppercase)
-                .foregroundStyle(palette.secondaryText)
-                .lineLimit(1)
+            island(
+                Text(String.localizedStringWithFormat(
+                    String(localized: "%lld pages left in chapter", bundle: .appLanguage),
+                    viewModel.pagesLeftInChapter
+                ))
+                    .font(Typography.eyebrow)
+                    .tracking(Typography.eyebrowTracking)
+                    .textCase(.uppercase)
+                    .foregroundStyle(palette.secondaryText)
+                    .lineLimit(1)
+            )
                 .padding(.horizontal, 64)
                 .accessibilityIdentifier("reader.chapterPagesLeft")
 
             HStack {
                 Spacer()
                 floatingCircle(
-                    icon: "xmark", identifier: "reader.back"
+                    icon: .x, identifier: "reader.back"
                 ) {
                     dismiss()
                 }
@@ -257,14 +319,13 @@ struct ReaderView: View {
 
     /// A small floating circular control, the Books-style chrome unit.
     private func floatingCircle(
-        icon: String,
+        icon: LucideIcon,
         identifier: String,
         isActive: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
+            Icon(icon, size: 18)
                 .foregroundStyle(isActive ? palette.accent : palette.text)
                 .frame(width: 48, height: 48)
                 .background(floatingCircleBackground(isActive: isActive))
@@ -316,10 +377,12 @@ struct ReaderView: View {
         Button {
             viewModel.activeSheet = .position
         } label: {
-            Text(pageLabel)
-                .font(Typography.meta(13))
-                .monospacedDigit()
-                .foregroundStyle(palette.secondaryText)
+            island(
+                Text(pageLabel)
+                    .font(Typography.meta(13))
+                    .monospacedDigit()
+                    .foregroundStyle(palette.secondaryText)
+            )
                 .frame(minHeight: Spacing.minTapTarget)
                 .contentShape(Rectangle())
         }
@@ -333,7 +396,7 @@ struct ReaderView: View {
             if isMenuOpen {
                 Group {
                     floatingCircle(
-                        icon: "list.bullet", identifier: "reader.contents"
+                        icon: .list, identifier: "reader.contents"
                     ) {
                         viewModel.activeSheet = .contents
                     }
@@ -341,7 +404,7 @@ struct ReaderView: View {
                     .transition(fanTransition(delay: 0.15))
 
                     floatingCircle(
-                        icon: "magnifyingglass", identifier: "reader.search"
+                        icon: .search, identifier: "reader.search"
                     ) {
                         viewModel.activeSheet = .search
                     }
@@ -366,10 +429,7 @@ struct ReaderView: View {
                     HStack(spacing: Spacing.sm) {
                         if let url = viewModel.bookFileURL {
                             ShareLink(item: url) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(
-                                        size: 18, weight: .semibold
-                                    ))
+                                Icon(.share, size: 18)
                                     .foregroundStyle(palette.text)
                                     .frame(width: 48, height: 48)
                                     .background(floatingCircleBackground())
@@ -381,7 +441,7 @@ struct ReaderView: View {
 
                         floatingCircle(
                             icon: viewModel.isOrientationLocked
-                                ? "lock.rotation" : "rotate.right",
+                                ? .lock : .rotateCw,
                             identifier: "reader.rotationLock",
                             isActive: viewModel.isOrientationLocked
                         ) {
@@ -396,9 +456,9 @@ struct ReaderView: View {
                         ))
 
                         floatingCircle(
-                            icon: viewModel.currentBookmark != nil
-                                ? "bookmark.fill" : "bookmark",
-                            identifier: "reader.bookmark"
+                            icon: .bookmark,
+                            identifier: "reader.bookmark",
+                            isActive: viewModel.currentBookmark != nil
                         ) {
                             viewModel.toggleBookmark()
                         }
@@ -412,7 +472,7 @@ struct ReaderView: View {
             }
 
             floatingCircle(
-                icon: isMenuOpen ? "chevron.down" : "ellipsis",
+                icon: isMenuOpen ? .chevronDown : .ellipsis,
                 identifier: "reader.menu"
             ) {
                 isMenuOpen.toggle()
@@ -448,8 +508,7 @@ struct ReaderView: View {
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: Spacing.md) {
-            Image(systemName: "book.closed")
-                .font(.system(size: 40))
+            Icon(.book, size: 40)
                 .foregroundStyle(palette.secondaryText)
             Text("This book could not be opened")
                 .font(Typography.title(17))
@@ -516,7 +575,7 @@ private struct ReadingPositionSheet: View {
             HStack(spacing: Spacing.sm) {
                 chapterButton(
                     title: "Previous chapter",
-                    icon: "chevron.left",
+                    icon: .chevronLeft,
                     identifier: "reader.position.previousChapter",
                     enabled: viewModel.spineIndex > 0
                 ) {
@@ -526,7 +585,7 @@ private struct ReadingPositionSheet: View {
                 }
                 chapterButton(
                     title: "Next chapter",
-                    icon: "chevron.right",
+                    icon: .chevronRight,
                     identifier: "reader.position.nextChapter",
                     enabled: viewModel.hasNextChapter
                 ) {
@@ -573,13 +632,17 @@ private struct ReadingPositionSheet: View {
 
     private func chapterButton(
         title: LocalizedStringKey,
-        icon: String,
+        icon: LucideIcon,
         identifier: String,
         enabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label(title, systemImage: icon)
+            Label {
+                Text(title)
+            } icon: {
+                Icon(icon, size: 14)
+            }
                 .font(Typography.body(14))
                 .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget)
                 .contentShape(Rectangle())
@@ -589,4 +652,12 @@ private struct ReadingPositionSheet: View {
         .disabled(!enabled)
         .accessibilityIdentifier(identifier)
     }
+}
+
+/// Holds an `@Observable` model so a view can keep it in a `StateObject`,
+/// whose `wrappedValue` autoclosure is evaluated once per presentation.
+/// Observation still flows from the model itself; the box is inert.
+final class OncePerPresentation<Value>: ObservableObject {
+    let value: Value
+    init(_ value: Value) { self.value = value }
 }

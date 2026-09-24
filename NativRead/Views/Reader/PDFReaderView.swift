@@ -5,7 +5,9 @@ import PDFKit
 /// — melt-away top/bottom bars, page position, page label, bookmark —
 /// over a fixed-layout PDFKit page instead of the reflowable web view.
 struct PDFReaderView: View {
-    @State private var viewModel: PDFReaderViewModel
+    /// See `ReaderView`: built once per presentation, not per re-render.
+    @StateObject private var model: OncePerPresentation<PDFReaderViewModel>
+    private var viewModel: PDFReaderViewModel { model.value }
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -18,12 +20,12 @@ struct PDFReaderView: View {
         settingsStore: SettingsStore,
         initialSystemDark: Bool
     ) {
-        _viewModel = State(initialValue: PDFReaderViewModel(
+        _model = StateObject(wrappedValue: OncePerPresentation(PDFReaderViewModel(
             book: book,
             library: library,
             settingsStore: settingsStore,
             initialSystemDark: initialSystemDark
-        ))
+        )))
     }
 
     private var palette: ReaderPalette { viewModel.palette }
@@ -52,7 +54,7 @@ struct PDFReaderView: View {
         .onDisappear {
             viewModel.persistProgressNow()
         }
-        .sheet(item: $viewModel.activeSheet) { sheet in
+        .sheet(item: Bindable(viewModel).activeSheet) { sheet in
             switch sheet {
             case .contents:
                 PDFContentsSheet(viewModel: viewModel)
@@ -116,8 +118,7 @@ struct PDFReaderView: View {
             Button {
                 dismiss()
             } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .semibold))
+                Icon(.chevronLeft, size: 17)
                     .frame(
                         width: Spacing.minTapTarget,
                         height: Spacing.minTapTarget
@@ -141,9 +142,11 @@ struct PDFReaderView: View {
             Button {
                 viewModel.toggleBookmark()
             } label: {
-                Image(systemName: viewModel.currentBookmark != nil
-                    ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 16, weight: .medium))
+                Icon(.bookmark, size: 16)
+                    .foregroundStyle(
+                        viewModel.currentBookmark != nil
+                            ? palette.accent : palette.text
+                    )
             }
             .accessibilityIdentifier("reader.bookmark")
         }
@@ -162,8 +165,7 @@ struct PDFReaderView: View {
                 Button {
                     viewModel.activeSheet = .contents
                 } label: {
-                    Image(systemName: "list.bullet")
-                        .font(.system(size: 17))
+                    Icon(.list, size: 17)
                         .frame(
                             width: Spacing.minTapTarget,
                             height: Spacing.minTapTarget
@@ -180,8 +182,7 @@ struct PDFReaderView: View {
                         Text(viewModel.pageLabel)
                             .font(Typography.meta(12))
                             .monospacedDigit()
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 8, weight: .bold))
+                        Icon(.chevronUp, size: 8)
                             .accessibilityHidden(true)
                     }
                     .foregroundStyle(palette.secondaryText)
@@ -199,8 +200,7 @@ struct PDFReaderView: View {
                 Button {
                     viewModel.activeSheet = .search
                 } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 16))
+                    Icon(.search, size: 16)
                         .frame(
                             width: Spacing.minTapTarget,
                             height: Spacing.minTapTarget
@@ -211,8 +211,7 @@ struct PDFReaderView: View {
                 Button {
                     viewModel.activeSheet = .appearance
                 } label: {
-                    Image(systemName: "sun.max")
-                        .font(.system(size: 16))
+                    Icon(.sun, size: 16)
                         .frame(
                             width: Spacing.minTapTarget,
                             height: Spacing.minTapTarget
@@ -260,8 +259,7 @@ struct PDFReaderView: View {
 
     private func errorView(_ message: String) -> some View {
         VStack(spacing: Spacing.md) {
-            Image(systemName: "doc.questionmark")
-                .font(.system(size: 40))
+            Icon(.fileQuestion, size: 40)
                 .foregroundStyle(palette.secondaryText)
             Text("This book could not be opened")
                 .font(Typography.title(17))
@@ -331,13 +329,13 @@ private struct PDFReadingPositionSheet: View {
             HStack(spacing: Spacing.sm) {
                 pageButton(
                     title: "Previous page",
-                    icon: "chevron.left",
+                    icon: .chevronLeft,
                     identifier: "reader.position.previousPage",
                     enabled: viewModel.page > 0
                 ) { movePage(by: -1) }
                 pageButton(
                     title: "Next page",
-                    icon: "chevron.right",
+                    icon: .chevronRight,
                     identifier: "reader.position.nextPage",
                     enabled: viewModel.page < viewModel.pageCount - 1
                 ) { movePage(by: 1) }
@@ -366,13 +364,17 @@ private struct PDFReadingPositionSheet: View {
 
     private func pageButton(
         title: LocalizedStringKey,
-        icon: String,
+        icon: LucideIcon,
         identifier: String,
         enabled: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label(title, systemImage: icon)
+            Label {
+                Text(title)
+            } icon: {
+                Icon(icon, size: 14)
+            }
                 .font(Typography.body(14))
                 .frame(maxWidth: .infinity, minHeight: Spacing.minTapTarget)
                 .contentShape(Rectangle())

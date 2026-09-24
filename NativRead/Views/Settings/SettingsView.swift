@@ -106,9 +106,9 @@ struct SettingsView: View {
     private var privacyControlsSection: some View {
         AppSettingsSection("Privacy Controls", palette: palette) {
             AppSettingsRow(
-                systemImage: "hand.raised.slash",
+                icon: .ban,
                 title: "Forget AI Permissions",
-                value: String(localized: "Ask again next time"),
+                value: String(localized: "Ask again next time", bundle: .appLanguage),
                 hidesSeparator: true,
                 action: { showsAIConsentResetConfirmation = true },
                 palette: palette
@@ -123,8 +123,7 @@ struct SettingsView: View {
     /// reassurance rather than a wall of switches.
     private var identityCard: some View {
         HStack(spacing: Spacing.md) {
-            Image(systemName: "books.vertical.fill")
-                .font(.system(size: 22, weight: .medium))
+            Icon(.libraryBig, size: 22)
                 .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
                 .background(palette.accent)
@@ -160,13 +159,13 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: Spacing.md) {
             AppSettingsSection("Account", palette: palette) {
                 AppSettingsRow(
-                    systemImage: "person.crop.circle.badge.checkmark",
+                    icon: .userCheck,
                     title: "Signed in with Apple",
                     palette: palette
                 )
 
                 AppSettingsRow(
-                    systemImage: "trash",
+                    icon: .trash2,
                     title: translationAuthStore.isDeletingAccount
                         ? "Deleting account..."
                         : "Delete Account",
@@ -185,10 +184,11 @@ struct SettingsView: View {
 
             if let displayedError = accountActionError
                     ?? translationAuthStore.accountDeletionErrorMessage {
-                Label(
-                    displayedError,
-                    systemImage: "exclamationmark.triangle"
-                )
+                Label {
+                    Text(displayedError)
+                } icon: {
+                    Icon(.triangleAlert, size: 16)
+                }
                 .font(Typography.meta())
                 .foregroundStyle(Color.red)
                 .fixedSize(horizontal: false, vertical: true)
@@ -229,7 +229,7 @@ struct SettingsView: View {
     private var header: some View {
         AppLargeTitleHeader(
             title: "Settings",
-            subtitle: String(localized: "A reading space tuned to you"),
+            subtitle: String(localized: "A reading space tuned to you", bundle: .appLanguage),
             palette: palette
         )
     }
@@ -294,7 +294,7 @@ struct SettingsView: View {
             ) { index, language in
                 let isSelected = selectedAppLanguage == language
                 AppSettingsRow(
-                    systemImage: nil,
+                    icon: nil,
                     title: LocalizedStringKey(language.endonym),
                     hidesSeparator: index == AppLanguage.pickable.count - 1,
                     // Applied immediately: Settings is a tab now, so there is
@@ -304,8 +304,7 @@ struct SettingsView: View {
                     palette: palette
                 ) {
                     if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
+                        Icon(.check, size: 14)
                             .foregroundStyle(palette.accent)
                     }
                 }
@@ -333,14 +332,14 @@ struct SettingsView: View {
     private var aboutSection: some View {
         AppSettingsSection("About", palette: palette) {
             AppSettingsRow(
-                systemImage: "info.circle",
+                icon: .info,
                 title: "Version",
                 value: appVersion,
                 palette: palette
             )
 
             AppSettingsLink(
-                systemImage: "hand.raised",
+                icon: .hand,
                 title: "Privacy Policy",
                 palette: palette
             ) {
@@ -349,7 +348,7 @@ struct SettingsView: View {
             .accessibilityIdentifier("settings.privacy.link")
 
             AppSettingsLink(
-                systemImage: "doc.text",
+                icon: .fileText,
                 title: "Terms of Use",
                 palette: palette
             ) {
@@ -357,8 +356,16 @@ struct SettingsView: View {
             }
             .accessibilityIdentifier("settings.terms.link")
 
+            AppSettingsRow(
+                icon: .sparkles,
+                title: "Show Welcome Again",
+                action: { settingsStore.replayOnboarding() },
+                palette: palette
+            )
+            .accessibilityIdentifier("settings.replayOnboarding")
+
             AppSettingsLink(
-                systemImage: "chevron.left.forwardslash.chevron.right",
+                icon: .code,
                 title: "Licenses",
                 hidesSeparator: true,
                 palette: palette

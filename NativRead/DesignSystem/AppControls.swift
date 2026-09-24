@@ -17,7 +17,7 @@ struct AppPrimaryButton: View {
     }
 
     let title: LocalizedStringKey
-    var systemImage: String? = nil
+    var icon: LucideIcon? = nil
     var tone: Tone = .accent
     var isEnabled: Bool = true
     let action: () -> Void
@@ -40,21 +40,19 @@ struct AppPrimaryButton: View {
     /// Directional glyphs describe what happens next, so they follow the label;
     /// every other icon names the thing being acted on and leads it.
     private var iconTrails: Bool {
-        systemImage?.hasPrefix("arrow.") ?? false
+        icon == .arrowRight
     }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: Spacing.xs) {
-                if let systemImage, !iconTrails {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 18, weight: .semibold))
+                if let icon, !iconTrails {
+                    Icon(icon, size: 18)
                 }
                 Text(title)
                     .font(Typography.control(17, weight: .bold))
-                if let systemImage, iconTrails {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 18, weight: .semibold))
+                if let icon, iconTrails {
+                    Icon(icon, size: 18)
                 }
             }
             .foregroundStyle(foreground)
@@ -92,7 +90,7 @@ struct PressScaleButtonStyle: ButtonStyle {
 /// A round, surface-filled control for header and toolbar actions. `isSelected`
 /// switches it to the accent wash — used for toggles like bookmark or lock.
 struct AppIconButton: View {
-    let systemImage: String
+    let icon: LucideIcon
     let label: LocalizedStringKey
     var size: CGFloat = Spacing.minTapTarget
     var isSelected: Bool = false
@@ -101,8 +99,7 @@ struct AppIconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: size * 0.42, weight: .medium))
+            Icon(icon, size: size * 0.42)
                 .foregroundStyle(isSelected ? palette.accent : palette.text)
                 .frame(width: size, height: size)
                 .background(isSelected ? palette.accentSoft : palette.surface)
@@ -175,56 +172,5 @@ struct AppProgressTrack: View {
         .frame(height: 5)
         .accessibilityElement()
         .accessibilityValue(Text(clamped.formatted(.percent.precision(.fractionLength(0)))))
-    }
-}
-
-// MARK: - Segmented control
-
-/// An iOS-style segmented control drawn from tokens so it inherits the paper
-/// palette instead of the system's grey.
-struct AppSegmentedControl<Value: Hashable>: View {
-    struct Option: Identifiable {
-        let value: Value
-        let title: LocalizedStringKey
-        var id: Value { value }
-    }
-
-    let options: [Option]
-    @Binding var selection: Value
-    let palette: BrandPalette
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(options) { option in
-                let isSelected = option.value == selection
-                Button {
-                    selection = option.value
-                } label: {
-                    Text(option.title)
-                        .font(Typography.control(13, weight: isSelected ? .bold : .semibold))
-                        .foregroundStyle(isSelected ? palette.text : palette.secondaryText)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, minHeight: 36)
-                        .padding(.horizontal, Spacing.xs)
-                        .background {
-                            if isSelected {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(palette.surface)
-                                    .shadow(
-                                        color: .black.opacity(palette.shadowOpacity * 0.8),
-                                        radius: 3, y: 1
-                                    )
-                            }
-                        }
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-            }
-        }
-        .padding(3)
-        .background(palette.surfaceRaised)
-        .clipShape(RoundedRectangle(cornerRadius: Spacing.sm, style: .continuous))
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.18), value: selection)
     }
 }

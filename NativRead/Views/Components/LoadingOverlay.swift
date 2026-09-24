@@ -1,13 +1,12 @@
 import SwiftUI
 
-/// A centred "card over a dimmed backdrop" loading indicator, themed by
-/// whichever palette owns the surface behind it — the reader's reading
-/// palette or the library's brand palette. Used for blocking async work
-/// such as book import where the result must land before the user continues.
+/// A centred "card over a dimmed backdrop" loading indicator in the brand
+/// palette. Used for blocking async work such as book import where the
+/// result must land before the user continues.
 struct LoadingOverlay: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    let palette: any PaletteColors
+    let palette: BrandPalette
     let message: String
 
     var body: some View {

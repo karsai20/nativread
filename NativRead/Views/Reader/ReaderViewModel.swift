@@ -23,6 +23,9 @@ final class ReaderViewModel {
     private(set) var pageCount = 1
     var isChromeVisible = true
     var activeSheet: ReaderSheet?
+
+    /// Highlight the reader tapped in the text; drives the remove dialog.
+    var tappedHighlight: Highlight?
     var loadError: String?
 
     /// True from the moment a chapter starts loading until the engine
@@ -48,7 +51,14 @@ final class ReaderViewModel {
     private(set) var hasSearched = false
 
     private var extractedRoot: URL
-    private var suppressProgressSave = false
+
+    /// Where the reader is inside the current chapter, 0…1, as the engine
+    /// last reported it. Finer than `page` in scroll flow, which rounds to
+    /// whole screens — and it is this value that gets persisted and
+    /// restored. Unobserved on purpose: it updates several times a second
+    /// while scrolling, and re-rendering the reader that often stutters
+    /// the glide. The chrome follows `page` instead.
+    @ObservationIgnored private var pageFraction: Double = 0
 
     var settings: ReaderSettings { settingsStore.settings }
     var book: Book? { library.book(id: bookID) }
@@ -91,8 +101,8 @@ final class ReaderViewModel {
             flow: settingsStore.settings.pageFlow,
             transition: settingsStore.settings.pageTransition
         )
-        controller.onState = { [weak self] page, pageCount in
-            self?.handleState(page: page, pageCount: pageCount)
+        controller.onState = { [weak self] state in
+            self?.handleState(state)
         }
         controller.onTap = { [weak self] zone in
             self?.handleTap(zone: zone)
@@ -100,9 +110,23 @@ final class ReaderViewModel {
         controller.onHighlightRequested = { [weak self] in
             self?.highlightCurrentSelection()
         }
+        controller.onHighlightTap = { [weak self] text, occurrence in
+            guard let self else { return }
+            self.tappedHighlight = self.chapterHighlights.first {
+                $0.text == text && $0.occurrence == occurrence
+            }
+        }
         controller.onChapterReady = { [weak self] in
             self?.finishChapterLoading()
             self?.applyStoredHighlights()
+        }
+        controller.onContentProcessGaveUp = { [weak self] in
+            // The chapter keeps killing WebKit's content process. Stop the
+            // veil and say so instead of leaving a blank, frozen-looking page.
+            self?.finishChapterLoading()
+            self?.loadError = String(
+                localized: "This chapter keeps crashing the page renderer. Try another chapter or reopen the book."
+            )
         }
         controller.onOverscroll = { [weak self] direction in
             if direction == "forward" {
@@ -183,6 +207,7 @@ final class ReaderViewModel {
                     systemDark: self.systemDark
                 )
             )
+            self.measuredPageCounts = [:]
             guard self.parsed != nil else { return }
             self.loadChapter(at: self.spineIndex, fraction: fraction)
         }
@@ -197,6 +222,9 @@ final class ReaderViewModel {
         beginChapterLoading()
         spineIndex = index
         lastState = nil
+        // Seed the position we asked for: a rotation before the engine
+        // reports back would otherwise reload the chapter at the top.
+        pageFraction = fraction
         controller.loadChapter(
             at: parsed.spineURLs[index],
             readAccessRoot: extractedRoot,
@@ -231,20 +259,23 @@ final class ReaderViewModel {
     /// chapter still persists its new spine index.
     private var lastState: (page: Int, pageCount: Int)?
 
-    private func handleState(page: Int, pageCount: Int) {
-        guard lastState == nil
-            || lastState! != (page: page, pageCount: pageCount) else {
-            return
+    private func handleState(_ state: ReaderEngineState) {
+        pageFraction = state.fraction
+        if lastState == nil
+            || lastState! != (page: state.page, pageCount: state.pageCount) {
+            lastState = (page: state.page, pageCount: state.pageCount)
+            page = state.page
+            pageCount = state.pageCount
+            measuredPageCounts[spineIndex] = state.pageCount
         }
-        lastState = (page: page, pageCount: pageCount)
-        self.page = page
-        self.pageCount = pageCount
-        guard !suppressProgressSave else { return }
+        // Mid-scroll samples and the not-yet-landed restore are not
+        // reading positions; persisting either is how a saved scroll
+        // position used to end up back at the top of the chapter.
+        guard state.isPersistable else { return }
         library.updateProgress(
             bookID: bookID,
             spineIndex: spineIndex,
-            pageFraction: pageCount > 1
-                ? Double(page) / Double(pageCount - 1) : 0
+            pageFraction: state.fraction
         )
     }
 
@@ -356,28 +387,33 @@ final class ReaderViewModel {
 
     // MARK: - Chrome page labels
 
-    /// 1-based page number within the chapter, for the resting chrome.
-    var currentPageNumber: Int { page + 1 }
-
     /// Full pages still ahead in this chapter.
     var pagesLeftInChapter: Int { max(0, pageCount - 1 - page) }
 
-    /// Whole-book page estimate at the current typography (see
-    /// `Book.estimatedBookPages`).
-    var estimatedBookPageCount: Int {
-        Book.estimatedBookPages(
-            chapterPageCount: pageCount,
-            spineIndex: spineIndex,
-            weights: book?.spineWeights ?? []
+    /// Chapter page counts the engine reported this session at the
+    /// current typography; reset whenever the layout changes.
+    private var measuredPageCounts: [Int: Int] = [:]
+
+    /// Per-chapter page counts, measured where known and estimated
+    /// elsewhere (see `Book.estimatedChapterPages`).
+    private var chapterPages: [Int] {
+        let pages = Book.estimatedChapterPages(
+            measured: measuredPageCounts, weights: book?.spineWeights ?? []
         )
+        return pages.isEmpty ? [max(1, pageCount)] : pages
     }
 
-    /// Estimated pages already read of `estimatedBookPageCount`,
-    /// clamped so an opened book always shows at least page 1.
+    /// Whole-book page estimate at the current typography.
+    var estimatedBookPageCount: Int { chapterPages.reduce(0, +) }
+
+    /// Pages already read of `estimatedBookPageCount`: every page of the
+    /// chapters before this one plus the page the reader is on. Measured
+    /// chapters keep their counts, so turning into the next chapter can
+    /// only move this forward.
     var estimatedBookPagesRead: Int {
-        let total = estimatedBookPageCount
-        let read = Int((bookFraction * Double(total)).rounded())
-        return min(total, max(1, read))
+        let pages = chapterPages
+        let before = pages.prefix(spineIndex).reduce(0, +)
+        return min(pages.reduce(0, +), before + page + 1)
     }
 
     /// The stored book file, for the share action in the reader menu.
@@ -411,9 +447,7 @@ final class ReaderViewModel {
 
     // MARK: - Bookmarks
 
-    private var currentPageFraction: Double {
-        pageCount > 1 ? Double(page) / Double(pageCount - 1) : 0
-    }
+    private var currentPageFraction: Double { pageFraction }
 
     var currentBookmark: Bookmark? {
         book?.bookmarks.first {
@@ -562,6 +596,7 @@ final class ReaderViewModel {
     }
 
     private func reapplyStyle() {
+        measuredPageCounts = [:]
         controller.applySettings(
             css: ReaderStyle.css(
                 settings: settings,
@@ -573,7 +608,9 @@ final class ReaderViewModel {
             ),
             backgroundColor: UIColor(palette.background),
             flow: settings.pageFlow,
-            transition: reduceMotion ? .instant : settings.pageTransition
+            transition: settings.effectiveTransition(
+                reduceMotion: reduceMotion
+            )
         )
     }
 }

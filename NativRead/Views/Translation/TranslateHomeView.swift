@@ -1,15 +1,17 @@
 import SwiftUI
 
-/// The Translate destination: a workspace for turning books into the reader's
-/// own language. It answers three questions in order — what is running now,
-/// what can I translate next, and what is already done.
+/// The Translate destination: what is running now, what can be translated
+/// next, and what is already done. The list is the primary way to start a
+/// translation; the library context menu is a shortcut to the same sheet.
 struct TranslateHomeView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(SettingsStore.self) private var settingsStore
     @Environment(TranslationStore.self) private var translationStore
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.locale) private var locale
 
-    @State private var translationBook: Book?
+    @Environment(TranslationPresenter.self) private var translationPresenter
+    @Environment(\.translationHeroNamespace) private var translationNamespace
     @State private var openBook: Book?
 
     private var palette: BrandPalette {
@@ -66,10 +68,6 @@ struct TranslateHomeView: View {
                 .padding(.bottom, Spacing.xl)
             }
         }
-        .sheet(item: $translationBook) { book in
-            TranslationSheet(book: book)
-                .environment(translationStore)
-        }
         .fullScreenCover(item: $openBook) { book in
             if book.format == .pdf {
                 PDFReaderView(
@@ -110,7 +108,7 @@ struct TranslateHomeView: View {
                         .foregroundStyle(palette.text)
                         .lineLimit(2)
 
-                    Text(job.targetLanguage.displayName)
+                    Text(verbatim: localizedTargetName(job.targetLanguage))
                         .font(Typography.control(14))
                         .foregroundStyle(palette.secondaryText)
                 }
@@ -119,11 +117,19 @@ struct TranslateHomeView: View {
                 AppPill(title: phaseTitle(job.phase), tone: .info, palette: palette)
             }
 
-            AppProgressTrack(
-                value: progressValue(job),
-                tone: palette.info,
-                palette: palette
-            )
+            if let fraction = progressValue(job) {
+                AppProgressTrack(
+                    value: fraction,
+                    tone: palette.info,
+                    palette: palette
+                )
+            } else {
+                // No chunk report yet: an indeterminate bar, not a fake zero —
+                // same behavior as the sheet's progress card.
+                ProgressView()
+                    .progressViewStyle(.linear)
+                    .tint(palette.info)
+            }
         }
         .padding(Spacing.md)
         .background(palette.surface)
@@ -136,18 +142,18 @@ struct TranslateHomeView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             AppSectionLabel(title: "Ready to translate", palette: palette)
 
-            AppSettingsSection(palette: palette) {
-                ForEach(Array(translatableBooks.enumerated()), id: \.element.id) { index, book in
-                    AppSettingsRow(
-                        systemImage: "sparkles",
-                        title: LocalizedStringKey(book.title),
-                        value: book.author,
-                        hidesSeparator: index == translatableBooks.count - 1,
-                        action: { translationBook = book },
-                        palette: palette
-                    )
-                    .accessibilityIdentifier("translate.ready.\(book.title)")
-                }
+            ForEach(translatableBooks) { book in
+                TranslateBookRow(
+                    book: book,
+                    coverURL: library.coverURL(for: book),
+                    languageLabel: nil,
+                    icon: .sparkles,
+                    palette: palette,
+                    heroNamespace: translationNamespace,
+                    heroPresenter: translationPresenter,
+                    action: { translationPresenter.present(book, from: .translate) }
+                )
+                .accessibilityIdentifier("translate.ready.\(book.title)")
             }
         }
     }
@@ -156,25 +162,25 @@ struct TranslateHomeView: View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             AppSectionLabel(title: "Completed", palette: palette)
 
-            AppSettingsSection(palette: palette) {
-                ForEach(Array(translatedBooks.enumerated()), id: \.element.id) { index, book in
-                    AppSettingsRow(
-                        systemImage: "checkmark.seal",
-                        title: LocalizedStringKey(book.title),
-                        value: book.author,
-                        hidesSeparator: index == translatedBooks.count - 1,
-                        action: { openBook = book },
-                        palette: palette
-                    )
-                }
+            ForEach(translatedBooks) { book in
+                TranslateBookRow(
+                    book: book,
+                    coverURL: library.coverURL(for: book),
+                    languageLabel: localizedTargetName(
+                        book.translatedLanguage ?? .hu
+                    ),
+                    icon: .badgeCheck,
+                    palette: palette,
+                    action: { openBook = book }
+                )
+                .accessibilityIdentifier("translate.done.\(book.title)")
             }
         }
     }
 
     private var emptyState: some View {
         VStack(spacing: Spacing.md) {
-            Image(systemName: "character.book.closed")
-                .font(.system(size: 34, weight: .light))
+            Icon(.languages, size: 34)
                 .foregroundStyle(palette.accent)
                 .frame(width: 88, height: 88)
                 .background(palette.accentSoft)
@@ -195,20 +201,26 @@ struct TranslateHomeView: View {
 
     // MARK: - Helpers
 
-    /// Chunk counts are the only progress the backend reports; before the first
-    /// chunk lands the bar shows the phase, not a fake percentage.
-    private func progressValue(_ job: TranslationJob) -> Double {
+    /// Chunk counts are the only progress the backend reports; `nil` until the
+    /// first chunk lands, which renders as an indeterminate bar.
+    private func progressValue(_ job: TranslationJob) -> Double? {
         guard let total = job.totalChunks, total > 0,
-              let done = job.translatedChunks else { return 0 }
+              let done = job.translatedChunks else { return nil }
         return Double(done) / Double(total)
+    }
+
+    private func localizedTargetName(
+        _ language: TranslationTargetLanguage
+    ) -> String {
+        language.localizedName(in: locale)
     }
 
     private func phaseTitle(_ phase: TranslationJobPhase) -> String {
         switch phase {
-        case .uploading: return String(localized: "Uploading")
-        case .translating: return String(localized: "Translating")
-        case .importingResult: return String(localized: "Importing")
-        default: return String(localized: "Working")
+        case .uploading: return String(localized: "Uploading", bundle: .appLanguage)
+        case .translating: return String(localized: "Translating", bundle: .appLanguage)
+        case .importingResult: return String(localized: "Importing", bundle: .appLanguage)
+        default: return String(localized: "Working", bundle: .appLanguage)
         }
     }
 }

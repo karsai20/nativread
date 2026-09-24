@@ -186,4 +186,16 @@ final class LocalizationStoreTests: XCTestCase {
         XCTAssertNotNil(AppLanguage(rawValue: "de"))
     }
 
+    func testInAppLanguageAlsoLocalizesStringLocalized() {
+        // `String(localized:)` skips the swizzled lookup `Text` uses, so it
+        // is handed the in-app `.lproj` — or a Hungarian app shows English
+        // buttons on an English phone.
+        Bundle.setAppLanguage("hu")
+        defer { Bundle.setAppLanguage(nil) }
+        XCTAssertEqual(String(localized: "Translate", bundle: .appLanguage), "Fordítás")
+        XCTAssertEqual(
+            String.localizedStringWithFormat(String(localized: "%lld chapters", bundle: .appLanguage), 4),
+            "4 fejezet"
+        )
+    }
 }

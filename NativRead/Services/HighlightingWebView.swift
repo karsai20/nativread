@@ -19,7 +19,7 @@ final class HighlightingWebView: WKWebView {
                 UIMenu(options: .displayInline, children: [
                     UIAction(
                         title: "Highlight",
-                        image: UIImage(systemName: "highlighter")
+                        image: UIImage(named: "lucide-highlighter")
                     ) { [weak self] _ in
                         self?.onHighlightSelection?()
                     }

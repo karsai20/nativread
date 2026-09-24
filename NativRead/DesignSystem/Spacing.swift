@@ -7,8 +7,7 @@ import CoreGraphics
 /// while layouts with values far apart create intentional contrast.
 ///
 /// These constants generalise the values that currently live in
-/// `ReaderControlStyle` (cornerRadius 10, cardCornerRadius 14, minTapTarget
-/// 44, rowSpacing 8) so later design-system phases can unify both layers
+/// `ReaderControlStyle` (cornerRadius 10, minTapTarget 44, rowSpacing 8) so later design-system phases can unify both layers
 /// without changing existing reader views.
 enum Spacing {
 
@@ -35,7 +34,6 @@ enum Spacing {
     /// Matches `ReaderControlStyle.cornerRadius`.
     static let radiusSmall: CGFloat = 10
     /// 14 pt — cards and elevated panels.
-    /// Matches `ReaderControlStyle.cardCornerRadius`.
     static let radiusCard: CGFloat = 14
     /// 18 pt — bottom sheets and modal containers.
     static let radiusSheet: CGFloat = 18
@@ -43,8 +41,6 @@ enum Spacing {
     static let radiusControl: CGFloat = 17
     /// 20 pt — grouped setting cards and list containers.
     static let radiusGroup: CGFloat = 20
-    /// 28 pt — the top corners of a presented modal sheet.
-    static let radiusModal: CGFloat = 28
 
     // MARK: — Touch targets & strokes
 

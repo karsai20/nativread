@@ -1,6 +1,7 @@
 # Onboarding strategy
 
 Status: CURRENT PRODUCT DIRECTION, 2026-07-30.
+Revised 2026-08-06: first beat reworked after tester feedback (see below).
 
 ## Product principle
 
@@ -20,8 +21,15 @@ definitions.
 First launch is three beats, each carrying **one sentence** and a live render
 of the app's own UI:
 
-1. *Add a book in a language you don't read.* — the shelf, with real covers
-   and the library's own **Add a book** tile.
+1. *Any book. Your language.* — a shelf of covers drifting past both edges,
+   mixing titles the reader can read with ones they cannot. Real jackets where
+   the fixtures have them, `GeneratedCover` for the rest.
+
+   **Do not draw the library's Add a book tile here** (2026-08-06). It was
+   specified for this beat and testers pressed it: on a screen whose only
+   action is Continue, a control-shaped thing that does nothing competes with
+   the real call to action and reads as a broken button. The value line
+   already carries the instruction.
 2. *We translate the first chapter free, so you can see what you'd get.* — the
    translator's detected language pair and its free-chapter card.
 3. *You can close the app. We keep translating.* — the Translate tab's live

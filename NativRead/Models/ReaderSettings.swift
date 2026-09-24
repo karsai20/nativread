@@ -3,29 +3,39 @@ import SwiftUI
 /// The four reading atmospheres. Chrome colours follow the page so the
 /// whole screen feels like one sheet of paper, the way Apple Books does it.
 enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
-    case paper, sepia, ink, dusk
+    // Tile order: the light row, then the dark row.
+    case paper, sepia, mist, bold, dusk, amber, ink, night
 
     var id: String { rawValue }
 
     // Labels mirror the app-level Light/Dark palette: `paper` is the light
-    // page, `ink` the dark one; `sepia`/`dusk` keep their character names.
+    // page, `ink` the dark one; the rest keep their character names.
     var label: String {
         switch self {
-        case .paper:    return Bundle.main.localizedString(forKey: "theme.label.paper", value: "Light", table: nil)
-        case .sepia:    return Bundle.main.localizedString(forKey: "theme.label.sepia", value: "Sepia", table: nil)
-        case .dusk:     return Bundle.main.localizedString(forKey: "theme.label.dusk", value: "Dusk", table: nil)
-        case .ink:      return Bundle.main.localizedString(forKey: "theme.label.ink", value: "Dark", table: nil)
+        case .paper: return Bundle.main.localizedString(forKey: "theme.label.paper", value: "Light", table: nil)
+        case .sepia: return Bundle.main.localizedString(forKey: "theme.label.sepia", value: "Sepia", table: nil)
+        case .mist:  return Bundle.main.localizedString(forKey: "theme.label.mist", value: "Mist", table: nil)
+        case .bold:  return Bundle.main.localizedString(forKey: "theme.label.bold", value: "Bold", table: nil)
+        case .dusk:  return Bundle.main.localizedString(forKey: "theme.label.dusk", value: "Dusk", table: nil)
+        case .amber: return Bundle.main.localizedString(forKey: "theme.label.amber", value: "Amber", table: nil)
+        case .ink:   return Bundle.main.localizedString(forKey: "theme.label.ink", value: "Dark", table: nil)
+        case .night: return Bundle.main.localizedString(forKey: "theme.label.night", value: "Night", table: nil)
         }
     }
 
-    // Eye-friendly, modern set: no pure white or black, warm low-blue-light
-    // tones, and a unified calm sage accent that ties to the NativRead brand.
+    // Eye-friendly set: no pure white, warm low-blue-light tones. Night is
+    // true black for OLED, Amber the lowest-blue-light page, Mist the
+    // Kindle-style sage, Bold the high-contrast page for readers who need it.
     var backgroundHex: String {
         switch self {
         case .paper: return "#F5F1E8"
         case .sepia: return "#F1E6CF"
-        case .dusk: return "#21252B"
-        case .ink: return "#181A18"
+        case .mist:  return "#E3EAE0"
+        case .bold:  return "#FBFAF7"
+        case .dusk:  return "#21252B"
+        case .amber: return "#2A1F16"
+        case .ink:   return "#181A18"
+        case .night: return "#000000"
         }
     }
 
@@ -33,8 +43,12 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .paper: return "#2B2A26"
         case .sepia: return "#3B3020"
-        case .dusk: return "#CBCED4"
-        case .ink: return "#E7E3D8"
+        case .mist:  return "#25312A"
+        case .bold:  return "#141311"
+        case .dusk:  return "#CBCED4"
+        case .amber: return "#E6CFAE"
+        case .ink:   return "#E7E3D8"
+        case .night: return "#CFC9BC"
         }
     }
 
@@ -42,8 +56,12 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .paper: return "#706E66"
         case .sepia: return "#8C7B5C"
-        case .dusk: return "#868B93"
-        case .ink: return "#9B9A8F"
+        case .mist:  return "#5C6B60"
+        case .bold:  return "#55524C"
+        case .dusk:  return "#868B93"
+        case .amber: return "#A8906E"
+        case .ink:   return "#9B9A8F"
+        case .night: return "#8F8A80"
         }
     }
 
@@ -51,10 +69,19 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .paper: return "#6F7E68"
         case .sepia: return "#6E7A5F"
-        case .dusk: return "#A6B49E"
-        case .ink: return "#A6B49E"
+        case .mist:  return "#4E6B58"
+        case .bold:  return "#8A2F22"
+        case .dusk:  return "#A6B49E"
+        case .amber: return "#D2A263"
+        case .ink:   return "#A6B49E"
+        case .night: return "#C39A68"
         }
     }
+
+    /// CSS `font-weight` for body text. Bold is the one theme that reads
+    /// heavier, not just darker; static faces (Charter, Georgia, Palatino)
+    /// resolve 500 to regular, so there it is contrast-only. Accepted.
+    var bodyFontWeight: Int { self == .bold ? 500 : 400 }
 
     /// Slightly raised fill vs the page background, for grouped wells.
     var surfaceHex: String {
@@ -71,17 +98,19 @@ enum ReaderTheme: String, Codable, CaseIterable, Identifiable {
     /// Shadow strength tuned per theme: the dark page needs the strongest.
     var shadowOpacity: Double {
         switch self {
-        case .paper: return 0.10
+        case .paper, .bold, .mist: return 0.10
         case .sepia: return 0.12
         case .dusk:  return 0.30
+        case .amber: return 0.34
         case .ink:   return 0.38
+        case .night: return 0.42
         }
     }
 
     var isDark: Bool {
         switch self {
-        case .paper, .sepia: return false
-        case .dusk, .ink: return true
+        case .paper, .sepia, .mist, .bold: return false
+        case .dusk, .amber, .ink, .night: return true
         }
     }
 
@@ -151,17 +180,17 @@ enum ReaderFont: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// SwiftUI preview font for the typography panel. Bundled fonts use
+    /// SwiftUI preview font for the appearance panel. Bundled fonts use
     /// the family name iOS exposes once registered via `UIAppFonts`.
-    var previewFont: Font {
+    func previewFont(size: CGFloat = 17) -> Font {
         switch self {
-        case .newYork: return .system(.body, design: .serif)
-        case .sanFrancisco: return .system(.body)
-        case .georgia: return .custom("Georgia", size: 17)
-        case .palatino: return .custom("Palatino", size: 17)
-        case .charter: return .custom("Charter", size: 17)
-        case .crimson: return .custom("Crimson Pro", size: 17)
-        case .cormorant: return .custom(Typography.displayFamily, size: 17)
+        case .newYork: return .system(size: size, design: .serif)
+        case .sanFrancisco: return .system(size: size)
+        case .georgia: return .custom("Georgia", size: size)
+        case .palatino: return .custom("Palatino", size: size)
+        case .charter: return .custom("Charter", size: size)
+        case .crimson: return .custom("Crimson Pro", size: size)
+        case .cormorant: return .custom(Typography.displayFamily, size: size)
         }
     }
 }
@@ -186,10 +215,10 @@ enum PageFlow: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    var icon: String {
+    var icon: LucideIcon {
         switch self {
-        case .paged: return "book.pages"
-        case .scroll: return "arrow.up.and.down.text.horizontal"
+        case .paged: return .bookOpen
+        case .scroll: return .unfoldVertical
         }
     }
 }
@@ -228,6 +257,9 @@ struct ReaderPalette: Equatable {
     let hairlineHex: String
     let shadowOpacity: Double
     let isDark: Bool
+    /// CSS body weight the theme asks for (Bold reads heavier, see
+    /// `ReaderTheme.bodyFontWeight`).
+    let bodyFontWeight: Int
 
     var background: Color { Color(hex: backgroundHex) }
     var text: Color { Color(hex: textHex) }
@@ -250,16 +282,65 @@ struct ReaderSettings: Codable, Equatable {
     var warmth: Double = 0
     var pageFlow: PageFlow = .paged
     var pageTransition: PageTransition = .slide
+    /// Stored optional on purpose: settings saved before this shipped have
+    /// no such key, and a missing non-optional key makes the whole blob fail
+    /// to decode — which would reset every reader setting on upgrade.
+    private var twoPageSpreadStored: Bool?
+    /// Two facing columns per page on a wide screen (iPad in landscape),
+    /// the way an open book reads. Narrower screens ignore it — see
+    /// `ReaderStyle.spreadMinimumWidth`.
+    var twoPageSpread: Bool {
+        get { twoPageSpreadStored ?? true }
+        set { twoPageSpreadStored = newValue }
+    }
+    /// Stored optional for the same upgrade-safety reason as the spread.
+    private var allowsMotionWhenReducedStored: Bool?
+    /// iOS Reduce Motion switches page turns to an instant cut, which silently
+    /// overrides whatever the reader picked here. A reader who wants their
+    /// page turn back says so with this, and their choice wins.
+    var allowsMotionWhenReduced: Bool {
+        get { allowsMotionWhenReducedStored ?? false }
+        set { allowsMotionWhenReducedStored = newValue }
+    }
+
+    /// The page turn actually used. Reduce Motion cuts it to an instant jump
+    /// unless the reader has asked for their animation back — which is why the
+    /// picker alone never decides this.
+    func effectiveTransition(reduceMotion: Bool) -> PageTransition {
+        reduceMotion && !allowsMotionWhenReduced ? .instant : pageTransition
+    }
     // Defaults to Charter ('Charter' / 'Iowan Old Style' / Georgia) so a
     // fresh reader matches the warm book serif used across the app chrome.
     // Persisted settings from earlier versions keep whatever the reader chose.
     var font: ReaderFont = .charter
     var fontSize: Double = 18
-    var lineHeight: Double = 1.55
-    var horizontalMargin: Double = 26
+    var lineHeight: Double = 1.45
+    var horizontalMargin: Double = 20
     var isJustified: Bool = true
 
     static let fontSizeRange: ClosedRange<Double> = 13...26
+
+    /// First-launch text size, taken from the system Dynamic Type setting
+    /// so a reader who already asked iOS for bigger text opens the book at
+    /// bigger text. Only used when nothing is stored; a saved size wins.
+    static func defaultFontSize(for category: UIContentSizeCategory) -> Double {
+        switch category {
+        case .extraSmall: return 15
+        case .small: return 16
+        case .medium: return 17
+        case .large, .unspecified: return 18
+        case .extraLarge: return 19
+        case .extraExtraLarge: return 20
+        case .extraExtraExtraLarge: return 22
+        case .accessibilityMedium, .accessibilityLarge,
+             .accessibilityExtraLarge, .accessibilityExtraExtraLarge,
+             .accessibilityExtraExtraExtraLarge: return 24
+        // An unknown raw value (the category is not always resolved this
+        // early in launch) must land on the plain default, never on the
+        // accessibility size.
+        default: return 18
+        }
+    }
     static let lineHeightRange: ClosedRange<Double> = 1.25...2.1
     static let marginRange: ClosedRange<Double> = 14...48
     static let warmthRange: ClosedRange<Double> = 0...1
@@ -288,7 +369,8 @@ struct ReaderSettings: Codable, Equatable {
                 surfaceRaisedHex: theme.surfaceRaisedHex,
                 hairlineHex: theme.hairlineHex,
                 shadowOpacity: theme.shadowOpacity,
-                isDark: theme.isDark
+                isDark: theme.isDark,
+                bodyFontWeight: theme.bodyFontWeight
             )
         }
         func warmed(_ hex: String, cap: Double) -> String {
@@ -311,7 +393,8 @@ struct ReaderSettings: Codable, Equatable {
             ),
             hairlineHex: warmed(theme.hairlineHex, cap: Self.backgroundWarmthCap),
             shadowOpacity: theme.shadowOpacity,
-            isDark: theme.isDark
+            isDark: theme.isDark,
+            bodyFontWeight: theme.bodyFontWeight
         )
     }
 }
@@ -320,7 +403,8 @@ extension ReaderSettings {
     private enum CodingKeys: String, CodingKey {
         case theme, darkTheme, themeMode, warmth, pageFlow,
              pageTransition, font, fontSize, lineHeight,
-             horizontalMargin, isJustified
+             horizontalMargin, isJustified, twoPageSpreadStored,
+             allowsMotionWhenReducedStored
     }
 
     /// Tolerant decoding: settings persisted by older versions are
@@ -348,6 +432,12 @@ extension ReaderSettings {
         pageTransition = (try? container.decodeIfPresent(
             PageTransition.self, forKey: .pageTransition
         )) ?? defaults.pageTransition
+        twoPageSpreadStored = try container.decodeIfPresent(
+            Bool.self, forKey: .twoPageSpreadStored
+        )
+        allowsMotionWhenReducedStored = try container.decodeIfPresent(
+            Bool.self, forKey: .allowsMotionWhenReducedStored
+        )
         font = try container.decodeIfPresent(
             ReaderFont.self, forKey: .font) ?? defaults.font
         fontSize = try container.decodeIfPresent(
