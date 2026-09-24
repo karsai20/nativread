@@ -1,6 +1,30 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Full book · %@" : {
+      "comment" : "The whole-book price, kept on screen while the reader signs in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teljes könyv · %@"
+          }
+        }
+      }
+    },
+    "Price unavailable. Try again" : {
+      "comment" : "Translate button when the on-device price lookup failed; tapping retries it without uploading the book.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Az ár nem érhető el. Próbáld újra"
+          }
+        }
+      }
+    },
     "Beta" : {
       "comment" : "Badge on a translation target language still being quality-checked.",
       "extractionState" : "manual",

@@ -17,6 +17,8 @@ struct TranslationSheet: View {
 
     @State private var hasAcceptedTerms = false
     @State private var isRequestingTranslation = false
+    /// A price lookup the reader asked to retry is running.
+    @State private var isResolvingPrice = false
     @State private var detectedLanguage: DetectedBookLanguage = .unknown
     @State private var usesLocalTestAccount = false
     @State private var fullQuote: TranslationBackendClient.UploadResponse?
@@ -239,6 +241,12 @@ struct TranslationSheet: View {
     private var actionArea: some View {
         VStack(spacing: Spacing.sm) {
             if showsAccount {
+                if let price = bookProduct?.displayPrice {
+                    Text(String(localized: "Full book · \(price)", bundle: .appLanguage))
+                        .font(Typography.control(15, weight: .semibold))
+                        .foregroundStyle(palette.text)
+                        .accessibilityIdentifier("translation.price")
+                }
                 TranslationAccountSection(palette: palette) {
                     usesLocalTestAccount = true
                     pricingError = nil
@@ -358,7 +366,9 @@ struct TranslationSheet: View {
                 }
             )
             .accessibilityIdentifier("translation.purchaseFullBook")
-        } else {
+        } else if settings.isPrivateTestTranslationBackend {
+            // A local translator sells nothing: quoting through an upload is how
+            // a debug run reaches the translate button.
             TranslateCapsule(
                 title: String(localized: isRequestingTranslation ? "Getting the price…" : "Get the price", bundle: .appLanguage),
                 price: nil,
@@ -371,6 +381,19 @@ struct TranslationSheet: View {
                 }
             )
             .accessibilityIdentifier("translation.calculateQuote")
+        } else {
+            // The price is only ever worked out on this device. When that
+            // fails (no table, StoreKit unreachable) the reader retries; the
+            // book is never uploaded just to learn what it costs.
+            TranslateCapsule(
+                title: String(localized: isResolvingPrice ? "Getting the price…" : "Price unavailable. Try again", bundle: .appLanguage),
+                price: nil,
+                progress: nil,
+                isEnabled: !isResolvingPrice && !exceedsLongestTier && book.isTranslatableSource,
+                palette: palette,
+                action: retryPrice
+            )
+            .accessibilityIdentifier("translation.retryPrice")
         }
     }
 
@@ -535,6 +558,16 @@ struct TranslationSheet: View {
         }
         guard let productId = locallyPricedProductID() else { return }
         bookProduct = try? await purchases.product(for: productId)
+    }
+
+    private func retryPrice() {
+        isResolvingPrice = true
+        Task {
+            await pricing.refreshIfStale()
+            await resolvePriceWithoutUpload()
+            await loadBandProducts()
+            isResolvingPrice = false
+        }
     }
 
     /// Prices for every band. One StoreKit round trip for the whole table, and
