@@ -127,11 +127,15 @@ struct TranslationStage: View {
 
             VStack(spacing: 0) {
                 // The cover's place on the page; the cover itself flies above.
-                // Unshifted on purpose: the cover follows the finger through
-                // its own offset, so the flight home starts from the slot.
+                // The slot, not the cover, follows the finger: the cover is
+                // pinned to the slot's global frame, which cancels any offset
+                // put on the cover itself. The offset sits after the matched
+                // effect so it counts towards that frame, and the flight home
+                // starts from wherever the finger left the cover.
                 Color.clear
                     .frame(width: Self.coverWidth, height: Self.coverWidth * 1.5)
                     .matchedGeometryEffect(id: TranslationPresenter.stageSlotID, in: namespace)
+                    .offset(x: dragX)
                     .padding(.top, Spacing.xl)
 
                 TranslationSheet(book: book)
@@ -143,7 +147,6 @@ struct TranslationStage: View {
             .allowsHitTesting(isLifted)
 
             cover
-                .offset(x: isLifted ? dragX : 0)
 
             closeButton
                 .padding(.trailing, Spacing.lg)
