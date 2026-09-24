@@ -72,18 +72,6 @@ final class TranslationStore {
         )
     }
 
-    func clearTermsAcceptance(for book: Book) {
-        var job = self.job(for: book)
-        guard !job.phase.isInFlight else { return }
-        job.acceptedTermsVersion = nil
-        job.termsAcceptanceID = nil
-        job.termsAcceptanceLocale = nil
-        job.attestedAt = nil
-        job.phase = .draft
-        job.updatedAt = .now
-        upsert(job)
-    }
-
     func recordAIProcessingConsent(for book: Book) {
         var job = self.job(for: book)
         job.bookTitle = book.title

@@ -198,7 +198,7 @@ final class EPUBParserTests: XCTestCase {
         <script>fetch("file:///etc/passwd")</script></body></html>
         """.write(to: chapter, atomically: true, encoding: .utf8)
 
-        EPUBParser.sanitizeScripts(in: [chapter])
+        try EPUBParser.sanitizeForReading(in: [chapter])
 
         let result = try String(contentsOf: chapter, encoding: .utf8)
         XCTAssertFalse(result.lowercased().contains("<script"))
@@ -206,10 +206,10 @@ final class EPUBParserTests: XCTestCase {
         XCTAssertTrue(result.contains("<p>Hello</p>"))
     }
 
-    func testSanitizeScriptsSkipsMissingFilesWithoutThrowing() {
+    func testSanitizeFailsClosedOnMissingFiles() {
         let missing = tempDirectory.appendingPathComponent("nope.xhtml")
-        // Must not throw or crash on unreadable input.
-        EPUBParser.sanitizeScripts(in: [missing])
+        // An unreadable chapter must not reach the JS-enabled reader unsanitized.
+        XCTAssertThrowsError(try EPUBParser.sanitizeForReading(in: [missing]))
     }
 
     func testSanitizeScriptsHandlesUTF16SpineFiles() throws {
@@ -221,7 +221,7 @@ final class EPUBParserTests: XCTestCase {
         <script>fetch("file:///etc/passwd")</script></body></html>
         """.write(to: chapter, atomically: true, encoding: .utf16)
 
-        EPUBParser.sanitizeScripts(in: [chapter])
+        try EPUBParser.sanitizeForReading(in: [chapter])
 
         var encoding = String.Encoding.utf8
         let result = try String(contentsOf: chapter, usedEncoding: &encoding)

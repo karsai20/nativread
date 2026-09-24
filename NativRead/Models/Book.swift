@@ -238,11 +238,6 @@ struct Book: Codable, Equatable, Identifiable {
             Int.self, forKey: .sourceCharacters)
     }
 
-    var percentText: String {
-        let percent = Int((progress.bookFraction * 100).rounded())
-        return "\(percent)%"
-    }
-
     var isTranslationPreview: Bool { variant == .translationPreview }
     var isTranslatedCopy: Bool { variant != .original }
     /// The visible EU AI Act transparency marker for translated output.

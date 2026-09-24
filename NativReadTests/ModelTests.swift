@@ -101,13 +101,12 @@ final class ModelTests: XCTestCase {
         }
     }
 
-    func testPercentTextRounds() {
+    func testIsFinishedOnlyNearTheEnd() {
         var book = Book(
             title: "T", author: "A", fileName: "f.epub",
             spineWeights: [1]
         )
         book.progress.bookFraction = 0.337
-        XCTAssertEqual(book.percentText, "34%")
         XCTAssertFalse(book.isFinished)
         book.progress.bookFraction = 0.999
         XCTAssertTrue(book.isFinished)

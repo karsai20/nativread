@@ -106,16 +106,6 @@ final class SettingsStore {
         defaults.set(appearance.rawValue, forKey: Self.appearanceKey)
     }
 
-    func setTranslationBackendURL(_ value: String) {
-        translationBackendURLString = value.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-        defaults.set(
-            translationBackendURLString,
-            forKey: Self.translationBackendURLKey
-        )
-    }
-
     /// Test/screenshot override for a local translator. Keeping this out of
     /// UserDefaults prevents an automated run from changing the endpoint a
     /// person configured in Settings.

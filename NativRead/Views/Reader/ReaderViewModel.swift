@@ -387,9 +387,6 @@ final class ReaderViewModel {
 
     // MARK: - Chrome page labels
 
-    /// 1-based page number within the chapter, for the resting chrome.
-    var currentPageNumber: Int { page + 1 }
-
     /// Full pages still ahead in this chapter.
     var pagesLeftInChapter: Int { max(0, pageCount - 1 - page) }
 

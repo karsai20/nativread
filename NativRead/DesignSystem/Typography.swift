@@ -76,9 +76,6 @@ enum Typography {
     /// Tracking to pair with `eyebrow`. Spaced out to reinforce the label role.
     static let eyebrowTracking: CGFloat = 1.6
 
-    /// Canonical point size for eyebrow labels.
-    static let eyebrowSize: CGFloat = 12
-
     /// Timestamps, byte counts, and supplementary captions.
     /// Plain SF at small sizes stays legible without competing with serif copy.
     static func meta(_ size: CGFloat = 13) -> Font {

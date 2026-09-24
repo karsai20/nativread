@@ -9,7 +9,6 @@ import ZIPFoundation
 @Observable
 final class LibraryStore {
     private(set) var books: [Book] = []
-    var lastError: String?
 
     /// Flips to true when a finished-book transition satisfies
     /// `ReviewPromptPolicy`. The root view observes it, shows the StoreKit

@@ -214,26 +214,6 @@ final class TranslationStoreTests: XCTestCase {
         )
     }
 
-    func testTermsCheckboxCanBeClearedBeforeTranslation() throws {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString, isDirectory: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-        let book = Book(
-            title: "Book",
-            author: "A",
-            fileName: "book.epub",
-            spineWeights: [1_800]
-        )
-        let store = TranslationStore(rootDirectory: root)
-        store.recordTermsAcceptance(for: book, localeIdentifier: "en-US")
-
-        store.clearTermsAcceptance(for: book)
-
-        XCTAssertNil(store.currentTermsAcceptance(for: book))
-        XCTAssertNil(store.job(for: book).attestedAt)
-        XCTAssertEqual(store.job(for: book).phase, .draft)
-    }
-
     func testAIProcessingConsentPersistsForBookAndVersion() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
