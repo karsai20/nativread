@@ -1364,6 +1364,7 @@ enum ReaderScripts {
         let escaped = css
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "`", with: "\\`")
+            .replacingOccurrences(of: "$", with: "\\$")
         return """
         (function () {
           \(ensureViewport)

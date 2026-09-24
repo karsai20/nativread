@@ -30,6 +30,28 @@ final class CurlEngineContractTests: XCTestCase {
         }
     }
 
+    /// `applyStyle` embeds the CSS in a JS template literal, so `${…}`,
+    /// backticks and backslashes must arrive as text, never as code.
+    func testApplyStyleKeepsCSSVerbatim() {
+        let css = "a::after { content: '${globalThis.pwned = 1}' } `\\` $"
+        let context = JSContext()!
+        context.evaluateScript("""
+        var style = null, window = {};
+        var el = () => ({ setAttribute() {} });
+        var document = {
+          querySelector: () => null, getElementById: () => null,
+          createElement: el, head: null,
+          documentElement: { appendChild(s) { if ('id' in s) style = s; } }
+        };
+        """)
+        context.evaluateScript(ReaderScripts.applyStyle(css: css))
+        XCTAssertNil(context.exception)
+        XCTAssertEqual(
+            context.evaluateScript("style.textContent").toString(), css
+        )
+        XCTAssertTrue(context.evaluateScript("globalThis.pwned").isUndefined)
+    }
+
     /// A syntax error anywhere in the engine string kills the whole
     /// reader (no pages, no taps), so parse every flow/transition
     /// combination with JavaScriptCore. `new Function` parses without
