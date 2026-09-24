@@ -1,7 +1,7 @@
 import Foundation
 
 /// One translation on the backend, end to end: upload (unless a quote already
-/// did), start, follow progress, download, and import the result into the
+/// did; the free chapter uploads only the book up to that chapter), start, follow progress, download, and import the result into the
 /// library. The sheet decides whether it may run; this only runs it.
 @MainActor
 struct TranslationRun {
@@ -19,6 +19,11 @@ struct TranslationRun {
         let upload: TranslationBackendClient.UploadResponse
         if let preparedUpload {
             upload = preparedUpload
+        } else if kind == .preview {
+            // The free chapter sends the book only up to that chapter.
+            let sample = try await Self.sample(of: sourceURL)
+            defer { try? FileManager.default.removeItem(at: sample) }
+            upload = try await client.upload(epubURL: sample)
         } else {
             upload = try await client.upload(epubURL: sourceURL)
         }
@@ -54,5 +59,15 @@ struct TranslationRun {
             library: library
         )
         translations.markBackendFinished(for: book, kind: kind)
+    }
+
+    /// Cuts the book off the main thread: reading a large archive stalls it.
+    private static func sample(of sourceURL: URL) async throws -> URL {
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sample-\(UUID().uuidString).epub")
+        try await Task.detached(priority: .userInitiated) {
+            try SampleEPUBBuilder.build(from: sourceURL, to: destination)
+        }.value
+        return destination
     }
 }

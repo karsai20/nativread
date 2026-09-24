@@ -14,6 +14,7 @@
 		03A95805D577A37F35F9B476 /* SettingsStoreOnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9618E5D60FFF19AD79A907DF /* SettingsStoreOnboardingTests.swift */; };
 		05D7FEE3F7C32DBB4446E87F /* Spacing.swift in Sources */ = {isa = PBXBuildFile; fileRef = D923E918FA4372E29AEFB313 /* Spacing.swift */; };
 		08529777A1B83AAF22317655 /* ReaderStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A12EBFC8F29368E79EF5A394 /* ReaderStyle.swift */; };
+		0CACB00D782A2990E2497D5B /* SampleEPUBBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465A425950E50B334F9A08B9 /* SampleEPUBBuilderTests.swift */; };
 		0D9248F7C5E6F544CCE64574 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7605BEA0A25C671DB4F3A74E /* LibraryView.swift */; };
 		0F4F4C9B383AD847003DF69B /* TranslationStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 935636378A69FC52051C2E8A /* TranslationStoreTests.swift */; };
 		11074FA01D08AF5038A3E921 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E14E413519C6AB9EC89C454 /* Typography.swift */; };
@@ -48,6 +49,7 @@
 		3C8C6C17B1CBD9684A691E3E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06E4703180D92FB621603456 /* Assets.xcassets */; };
 		432D509B0FC5B17F713A2BD2 /* ReaderAppearanceControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F6B80FC78A1664D904F760 /* ReaderAppearanceControls.swift */; };
 		4422700A3AECE99C64C2DB14 /* BrandPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039D85E7CC1F09475A8E8FD6 /* BrandPalette.swift */; };
+		4BD41B07CE2C53A481F4863F /* SampleEPUBBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A48F83FF090977341B2374FE /* SampleEPUBBuilder.swift */; };
 		4C65D3C1288338074B8C4DBB /* KF8ConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6864F0AF543B427F26EFE3BC /* KF8ConverterTests.swift */; };
 		4E716C72DC9CBFCDF671DE78 /* AppTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00E737F29FFDCAC535CA60B6 /* AppTabBar.swift */; };
 		4F23DE9B52EC5AB88D37CEE7 /* PalmDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6973A0658B222854210AF6D3 /* PalmDatabase.swift */; };
@@ -198,6 +200,7 @@
 		41C515AB3391858F18B8A382 /* NativRead.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NativRead.entitlements; sourceTree = "<group>"; };
 		44E05F3B910691CBE0A38D01 /* alice.azw3 */ = {isa = PBXFileReference; path = alice.azw3; sourceTree = "<group>"; };
 		460053620CC1DE7B473BDD28 /* EPUBXMLDelegates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EPUBXMLDelegates.swift; sourceTree = "<group>"; };
+		465A425950E50B334F9A08B9 /* SampleEPUBBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleEPUBBuilderTests.swift; sourceTree = "<group>"; };
 		46CD2A5EE4D62FD241F378D2 /* TranslateCapsule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateCapsule.swift; sourceTree = "<group>"; };
 		47FC64C7529CF2540CE31F4A /* TranslationPrivacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationPrivacy.swift; sourceTree = "<group>"; };
 		49D3220F69D9F23369A91546 /* HighlightExportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightExportTests.swift; sourceTree = "<group>"; };
@@ -253,6 +256,7 @@
 		A1FB9D3321C07AD573B5F7FB /* PDFReaderSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReaderSheets.swift; sourceTree = "<group>"; };
 		A288DF2274125E53E1515934 /* LaunchIntroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchIntroView.swift; sourceTree = "<group>"; };
 		A41020F1B417C212E4BD170E /* ReaderControlStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReaderControlStyle.swift; sourceTree = "<group>"; };
+		A48F83FF090977341B2374FE /* SampleEPUBBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleEPUBBuilder.swift; sourceTree = "<group>"; };
 		A5828C6CA5147F906FCE0AF5 /* PDFReaderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReaderViewModel.swift; sourceTree = "<group>"; };
 		A62273492171E9BF78F8FF14 /* NightInvertPDFPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NightInvertPDFPage.swift; sourceTree = "<group>"; };
 		A6B27D75C34320B39AA5A63F /* NativReadTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NativReadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -364,6 +368,7 @@
 				8E8EC0EDA2268305239B1A86 /* ReaderControllerScrollLockTests.swift */,
 				B98F9A27D56A6C4FC8E6D2E2 /* ReaderViewLifecycleTests.swift */,
 				D649FFEB2C032A311B04CB0E /* ReviewPromptPolicyTests.swift */,
+				465A425950E50B334F9A08B9 /* SampleEPUBBuilderTests.swift */,
 				82D6185C5816C08912362D43 /* SearchServiceTests.swift */,
 				9618E5D60FFF19AD79A907DF /* SettingsStoreOnboardingTests.swift */,
 				4CB09CDDA20ADD37EA4ADFD8 /* TextImporterTests.swift */,
@@ -450,6 +455,7 @@
 				1F0FF99935EA31EC97ECA580 /* MOBIIndex.swift */,
 				6973A0658B222854210AF6D3 /* PalmDatabase.swift */,
 				0CDFBFF2637F610C6E00BCC5 /* PalmDocDecompressor.swift */,
+				A48F83FF090977341B2374FE /* SampleEPUBBuilder.swift */,
 				D8AF8ACCDCE87A8A635301DB /* SourceCharacterCounter.swift */,
 			);
 			path = EPUB;
@@ -836,6 +842,7 @@
 				7389B3C82440A9A469784207 /* ReviewPromptPolicy.swift in Sources */,
 				BC6F3977ABC60D3B62A080AF /* RootView.swift in Sources */,
 				5AE4A6A32CCD49470350EC2A /* SampleDocuments.swift in Sources */,
+				4BD41B07CE2C53A481F4863F /* SampleEPUBBuilder.swift in Sources */,
 				B54AD54DE02F8992B7EFFCAD /* SearchService.swift in Sources */,
 				EBCCF8E2C081CD4B54D39190 /* SearchSheet.swift in Sources */,
 				1C90A7EFC527E9E3ADBBEDB9 /* SettingsComponents.swift in Sources */,
@@ -906,6 +913,7 @@
 				1CE28672EC5DAB7DAB0546DA /* ReaderControllerScrollLockTests.swift in Sources */,
 				610F67BA8FFB6048D57DF576 /* ReaderViewLifecycleTests.swift in Sources */,
 				9B57D74E27D6FBE437AE062F /* ReviewPromptPolicyTests.swift in Sources */,
+				0CACB00D782A2990E2497D5B /* SampleEPUBBuilderTests.swift in Sources */,
 				77C20DBD788454E3B9FB8D7A /* SearchServiceTests.swift in Sources */,
 				03A95805D577A37F35F9B476 /* SettingsStoreOnboardingTests.swift in Sources */,
 				91BF8D3303D8F8C7DA8C1894 /* TextImporterTests.swift in Sources */,
